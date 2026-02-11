@@ -74,6 +74,22 @@
 - Result:
   - Eliminates random host selection and stabilizes auth/write endpoints.
 
+### Production validation after hotfix
+- Git commits:
+  - `80236b2` (P1/P2 completion)
+  - `3d289fe` (DB host pinning hotfix)
+- Coolify deployments triggered:
+  - `bs4s88cgwgcokccsg8c4g8cw`
+  - `zwsgco8kccgc8sk8s8s0k4og`
+- Runtime image now active:
+  - `wk848wc4oo88swk0g8oc8ksw:3d289fe7c52381e799e99e67a8ce7b7dc4f3b9a3`
+- Production smoke results:
+  - Repeated registration stability check: `201,201,201,201,201,201`
+  - Full flow success:
+    - register -> phone verify -> story submit -> moderation scores
+    - research aggregates and transparency endpoints return valid payload
+    - telegram webhook endpoint responds `200`
+
 ### Scope accepted
 - Full build execution started.
 - Decisions delegated to agent.
