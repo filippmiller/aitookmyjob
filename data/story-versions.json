@@ -1,0 +1,76 @@
+[
+  {
+    "id": "eg7setbfguwtcu",
+    "storyId": "56uyb4ktic8p",
+    "versionNo": 1,
+    "payload": {
+      "id": "56uyb4ktic8p",
+      "name": "Smoke User",
+      "country": "us",
+      "language": "en",
+      "profession": "QA",
+      "company": "Example",
+      "laidOffAt": "2026-02",
+      "foundNewJob": false,
+      "reason": "Automation replaced my role in support workflows.",
+      "story": "I was laid off after AI automation replaced repetitive QA and reporting workflows in my team. Sharing this for transparency and support.",
+      "privacy": {
+        "nameDisplay": "anonymous",
+        "companyDisplay": "masked",
+        "geoDisplay": "country",
+        "dateDisplay": "month"
+      },
+      "status": "pending",
+      "estimatedLayoffs": 1,
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "riskBand": "low",
+        "recommendations": []
+      },
+      "submittedBy": "ffy09he76znx1l",
+      "createdAt": "2026-02-11T16:10:20.240Z"
+    },
+    "createdBy": "ffy09he76znx1l",
+    "createdAt": "2026-02-11T16:10:20.240Z"
+  },
+  {
+    "id": "e0qvak1ttw93mk",
+    "storyId": "ce83oe37hilw",
+    "versionNo": 1,
+    "payload": {
+      "id": "ce83oe37hilw",
+      "name": "Phase User",
+      "country": "us",
+      "language": "en",
+      "profession": "Designer",
+      "company": "TestCorp",
+      "laidOffAt": "2026-01-22",
+      "foundNewJob": false,
+      "reason": "Automation pilot replaced design drafts.",
+      "story": "I worked on campaign assets and the team was reduced after automated generation replaced first-draft production workflows.",
+      "privacy": {
+        "nameDisplay": "initials",
+        "companyDisplay": "masked",
+        "geoDisplay": "country",
+        "dateDisplay": "year"
+      },
+      "status": "pending",
+      "estimatedLayoffs": 1,
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "riskBand": "low",
+        "recommendations": []
+      },
+      "submittedBy": "oukdqu83bevcuu",
+      "createdAt": "2026-02-11T16:12:34.524Z"
+    },
+    "createdBy": "oukdqu83bevcuu",
+    "createdAt": "2026-02-11T16:12:34.524Z"
+  }
+]

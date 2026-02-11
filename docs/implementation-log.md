@@ -2,6 +2,63 @@
 
 ## 2026-02-11
 
+### P1/P2 completion pass (active polling run)
+- Added P1 backend flows:
+  - `POST /api/auth/phone/start`
+  - `POST /api/auth/phone/request-otp` (alias)
+  - `POST /api/auth/phone/verify`
+  - `POST /api/auth/phone/confirm` (alias)
+- Enforced verified phone for trusted writes:
+  - story submission (`POST /api/stories`)
+  - forum topic creation (`POST /api/forum/topics`)
+- Added AI-assisted moderation scoring on story intake:
+  - toxicity/spam/pii/deanonymization heuristic scores
+  - risk bands (`low`/`medium`/`high`)
+  - recommendations returned in API response
+- Added privacy transform model for public stories:
+  - field-level masking (`name/company/date`) at read time
+  - visibility mapping from frontend controls to canonical privacy schema
+- Added story versioning and moderation score lookup:
+  - table/file store for `story_versions`
+  - `GET /api/admin/moderation/:id/scores`
+- Added Telegram integration endpoints:
+  - `POST /api/integrations/telegram/link/start`
+  - `POST /api/integrations/telegram/link-code` (alias)
+  - `POST /api/integrations/telegram/link` (alias)
+  - `GET /api/integrations/telegram/status`
+  - `POST /api/integrations/telegram/webhook`
+- Added P2 analytics/transparency endpoints:
+  - `GET /api/research/aggregate`
+  - `GET /api/research/aggregates` (alias)
+  - `GET /api/transparency/report` (supports `from`, `to`, or `period=YYYY-QN`)
+  - `GET /api/admin/anomalies`
+  - `GET /api/admin/anomaly/signals`
+  - `GET /api/admin/anomalies/signals`
+  - `GET /api/antiabuse/anomaly/signals`
+- Added new persistence entities in Postgres + JSON fallback:
+  - `auth_identities`
+  - `story_versions`
+  - `telegram_links`
+  - `transparency_events`
+  - New local fallback files under `data/` for the same entities
+- Frontend integration (from worker + merged):
+  - phone verification forms in Auth section
+  - story privacy controls + risk warnings display
+  - transparency and anomaly panels in Admin
+  - Telegram linking/status panel in Integrations
+
+### Validation (local, post-change)
+- `node --check server.js` passed.
+- `node --check public/app.js` passed.
+- End-to-end smoke passed:
+  - register -> phone request-otp -> phone confirm -> verified
+  - submit story with privacy controls -> pending moderation
+  - topic creation succeeds after phone verification
+  - moderation queue and score detail endpoints return data
+  - anomaly signal endpoint returns valid JSON
+  - research aggregates and transparency endpoints return valid JSON
+  - telegram link-code and webhook endpoints return expected responses
+
 ### Scope accepted
 - Full build execution started.
 - Decisions delegated to agent.

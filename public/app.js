@@ -80,9 +80,24 @@ const FALLBACK_TEXT = {
   authLogoutOk: "Logged out.",
   authMeFail: "Could not load session.",
   authRequired: "Sign in required.",
+  authPhoneTitle: "Phone verification",
+  authPhoneHint: "Required for higher-trust posting and integrations.",
+  authPhone: "Phone number",
+  authPhoneCode: "Verification code",
+  authPhoneStart: "Send code",
+  authPhoneConfirm: "Confirm code",
+  authPhoneStartOk: "Verification code sent.",
+  authPhoneConfirmOk: "Phone verified.",
   adminTitle: "Admin",
   adminSecure: "Token required for privileged endpoints.",
   adminToken: "Admin token",
+  adminTransparencyTitle: "Transparency report",
+  adminTransparencyPeriod: "Reporting period (e.g. 2026-Q1)",
+  adminTransparencyLoad: "Load report",
+  adminTransparencyEmpty: "No transparency report loaded.",
+  adminAnomalyTitle: "Anomaly signals",
+  adminAnomalyLoad: "Load anomaly signals",
+  adminAnomalyEmpty: "No anomaly signals loaded.",
   loadAdmin: "Load overview",
   loadQueue: "Load moderation queue",
   moderationQueueTitle: "Moderation queue",
@@ -109,10 +124,29 @@ const FALLBACK_TEXT = {
   laidOffAt: "Layoff date (YYYY-MM)",
   reason: "Reason from employer",
   story: "Your story",
+  storyPrivacyTitle: "Privacy controls",
+  storyVisibilityName: "Name visibility",
+  storyVisibilityCompany: "Company visibility",
+  storyVisibilityGeo: "Location visibility",
+  storyVisibilityDate: "Date visibility",
+  visibilityPublic: "Public",
+  visibilityCoarse: "Coarse only",
+  visibilityHidden: "Hidden",
+  deanonymWarningTitle: "Deanonymization risk warnings",
+  deanonymWarningNone: "No deanonymization warnings reported.",
   foundNewJob: "I already found a new job",
   submit: "Submit for moderation",
   submitOk: "Story submitted. Thank you.",
   submitFail: "Could not submit story. Check fields and try again.",
+  navIntegrations: "Integrations",
+  integrationsTitle: "Integrations",
+  integrationsTelegramTitle: "Telegram link",
+  integrationsTelegramStatus: "Current Telegram status",
+  integrationsTelegramLoadStatus: "Refresh status",
+  integrationsTelegramGenerateCode: "Generate link code",
+  integrationsTelegramCode: "Link code",
+  integrationsTelegramNoStatus: "No Telegram status available yet.",
+  integrationsTelegramAuthHint: "Sign in to generate and view Telegram link status.",
   securityNote: "Security baseline: validation, rate limiting, CSP, strict payload limits.",
   footer: "Global launch: EN / RU / DE / FR / ES. Country-aware routes are live."
 };
@@ -132,13 +166,22 @@ const state = {
   adminToken: localStorage.getItem("adminToken") || "",
   adminOverview: null,
   moderationQueue: [],
+  storyRiskWarnings: [],
+  transparencyReport: null,
+  anomalySignals: [],
+  telegramStatus: null,
+  telegramLinkCode: "",
   messages: {
     auth: "",
+    phone: "",
     story: "",
     forumCreate: "",
     admin: "",
     queue: "",
-    sanction: ""
+    sanction: "",
+    transparency: "",
+    anomaly: "",
+    integrations: ""
   }
 };
 
@@ -234,6 +277,38 @@ function normalizeQueue(data) {
   return [];
 }
 
+function normalizeAnomalySignals(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.signals)) return data.signals;
+  if (Array.isArray(data.items)) return data.items;
+  return [];
+}
+
+function extractRiskWarnings(data) {
+  if (!data || typeof data !== "object") return [];
+
+  const directWarnings = data.deanonymizationWarnings || data.riskWarnings || data.warnings;
+  if (Array.isArray(directWarnings)) {
+    return directWarnings.map((v) => String(v || "").trim()).filter(Boolean);
+  }
+
+  const risk = data.deanonymizationRisk || data.risk || data.deanonymization;
+  if (risk && typeof risk === "object") {
+    if (Array.isArray(risk.warnings)) {
+      return risk.warnings.map((v) => String(v || "").trim()).filter(Boolean);
+    }
+    const level = String(risk.level || "").trim();
+    const score = Number(risk.score);
+    if (level || Number.isFinite(score)) {
+      const scorePart = Number.isFinite(score) ? ` (${score.toFixed(2)})` : "";
+      return [`${level || "risk"}${scorePart}`];
+    }
+  }
+
+  return [];
+}
+
 function render() {
   const companyTicker = state.companies.length
     ? state.companies.map((c) => `${esc(c.company)} (${fmt(c.layoffs)})`).join(" • ")
@@ -311,6 +386,28 @@ function render() {
     `).join("")
     : `<article class="card">${esc(state.messages.queue || t("queueEmpty"))}</article>`;
 
+  const storyRiskWarnings = state.storyRiskWarnings.length
+    ? `
+      <div class="risk-warnings">
+        <h3>${esc(t("deanonymWarningTitle"))}</h3>
+        <ul>${state.storyRiskWarnings.map((warning) => `<li>${esc(warning)}</li>`).join("")}</ul>
+      </div>
+    `
+    : `<p class="notice">${esc(t("deanonymWarningNone"))}</p>`;
+
+  const anomalyItems = state.anomalySignals.length
+    ? state.anomalySignals.map((signal) => `
+      <article class="card signal-item">
+        <div class="meta">
+          <span>${esc(signal.severity || signal.level || "unknown")}</span>
+          <span>${esc(signal.type || signal.category || "signal")}</span>
+          <span>${esc(signal.createdAt || signal.timestamp || "-")}</span>
+        </div>
+        <p>${esc(signal.summary || signal.reason || signal.message || "No summary")}</p>
+      </article>
+    `).join("")
+    : `<article class="card">${esc(state.messages.anomaly || t("adminAnomalyEmpty"))}</article>`;
+
   app.innerHTML = `
     <main class="container">
       <header class="nav reveal">
@@ -340,6 +437,7 @@ function render() {
         <a href="#forum">${esc(t("navForum"))}</a>
         <a href="#admin">${esc(t("navAdmin"))}</a>
         <a href="#auth">${esc(t("navAuth"))}</a>
+        <a href="#integrations">${esc(t("navIntegrations"))}</a>
       </nav>
 
       <section class="grid-4 reveal">
@@ -372,6 +470,18 @@ function render() {
             <input required type="password" name="password" placeholder="${esc(t("password"))}" />
             <button class="btn-primary" type="submit">${esc(t("login"))}</button>
           </form>
+          <form id="phoneStartForm" class="auth-form">
+            <h3>${esc(t("authPhoneTitle"))}</h3>
+            <p class="notice">${esc(t("authPhoneHint"))}</p>
+            <input required name="phone" placeholder="${esc(t("authPhone"))}" />
+            <button class="btn-secondary" type="submit">${esc(t("authPhoneStart"))}</button>
+          </form>
+          <form id="phoneConfirmForm" class="auth-form">
+            <h3>${esc(t("authPhoneConfirm"))}</h3>
+            <input required name="phone" placeholder="${esc(t("authPhone"))}" />
+            <input required name="code" placeholder="${esc(t("authPhoneCode"))}" />
+            <button class="btn-secondary" type="submit">${esc(t("authPhoneConfirm"))}</button>
+          </form>
           <div class="auth-session">
             <p><strong>${state.authUser ? esc(t("authSignedInAs")) : esc(t("authGuest"))}</strong>${state.authUser ? `: ${esc(state.authUser.email || state.authUser.id || "user")}` : ""}</p>
             <div class="hero-actions">
@@ -379,6 +489,7 @@ function render() {
               <button class="btn-secondary" type="button" id="logoutBtn">${esc(t("logout"))}</button>
             </div>
             <p class="notice" id="authMessage">${esc(state.messages.auth)}</p>
+            <p class="notice" id="phoneMessage">${esc(state.messages.phone)}</p>
           </div>
         </div>
       </section>
@@ -425,6 +536,20 @@ function render() {
         <p class="notice" id="adminMessage">${esc(state.messages.admin)}</p>
         <pre class="admin-pre">${esc(state.adminOverview ? JSON.stringify(state.adminOverview, null, 2) : "No admin overview loaded.")}</pre>
 
+        <h3>${esc(t("adminTransparencyTitle"))}</h3>
+        <form id="transparencyForm" class="admin-bar">
+          <input name="period" placeholder="${esc(t("adminTransparencyPeriod"))}" value="${esc(state.transparencyReport?.period || "")}" />
+          <button class="btn-secondary" type="submit">${esc(t("adminTransparencyLoad"))}</button>
+        </form>
+        <p class="notice">${esc(state.messages.transparency)}</p>
+        <pre class="admin-pre">${esc(state.transparencyReport ? JSON.stringify(state.transparencyReport, null, 2) : t("adminTransparencyEmpty"))}</pre>
+
+        <h3>${esc(t("adminAnomalyTitle"))}</h3>
+        <div class="hero-actions">
+          <button class="btn-secondary" type="button" id="loadAnomalyBtn">${esc(t("adminAnomalyLoad"))}</button>
+        </div>
+        <div class="queue-grid">${anomalyItems}</div>
+
         <h3>${esc(t("moderationQueueTitle"))}</h3>
         <div class="queue-grid">${queueItems}</div>
 
@@ -448,10 +573,67 @@ function render() {
           <input required name="laidOffAt" placeholder="${esc(t("laidOffAt"))}" />
           <input class="full" required name="reason" placeholder="${esc(t("reason"))}" />
           <textarea class="full" required name="story" rows="6" placeholder="${esc(t("story"))}"></textarea>
+          <div class="full privacy-block">
+            <h3>${esc(t("storyPrivacyTitle"))}</h3>
+            <div class="privacy-grid">
+              <label>
+                ${esc(t("storyVisibilityName"))}
+                <select name="visibilityName">
+                  <option value="public">${esc(t("visibilityPublic"))}</option>
+                  <option value="coarse">${esc(t("visibilityCoarse"))}</option>
+                  <option value="hidden">${esc(t("visibilityHidden"))}</option>
+                </select>
+              </label>
+              <label>
+                ${esc(t("storyVisibilityCompany"))}
+                <select name="visibilityCompany">
+                  <option value="public">${esc(t("visibilityPublic"))}</option>
+                  <option value="coarse">${esc(t("visibilityCoarse"))}</option>
+                  <option value="hidden">${esc(t("visibilityHidden"))}</option>
+                </select>
+              </label>
+              <label>
+                ${esc(t("storyVisibilityGeo"))}
+                <select name="visibilityGeo">
+                  <option value="public">${esc(t("visibilityPublic"))}</option>
+                  <option value="coarse">${esc(t("visibilityCoarse"))}</option>
+                  <option value="hidden">${esc(t("visibilityHidden"))}</option>
+                </select>
+              </label>
+              <label>
+                ${esc(t("storyVisibilityDate"))}
+                <select name="visibilityDate">
+                  <option value="public">${esc(t("visibilityPublic"))}</option>
+                  <option value="coarse">${esc(t("visibilityCoarse"))}</option>
+                  <option value="hidden">${esc(t("visibilityHidden"))}</option>
+                </select>
+              </label>
+            </div>
+          </div>
           <label><input type="checkbox" name="foundNewJob" /> ${esc(t("foundNewJob"))}</label>
           <button class="btn-primary" type="submit">${esc(t("submit"))}</button>
           <div class="full" id="submitResult">${esc(state.messages.story)}</div>
+          <div class="full">${storyRiskWarnings}</div>
         </form>
+      </section>
+
+      <section id="integrations" class="section card reveal">
+        <h2>${esc(t("integrationsTitle"))}</h2>
+        <h3>${esc(t("integrationsTelegramTitle"))}</h3>
+        ${state.authUser ? `
+          <div class="hero-actions">
+            <button class="btn-secondary" type="button" id="loadTelegramStatusBtn">${esc(t("integrationsTelegramLoadStatus"))}</button>
+          </div>
+          <p class="notice">${esc(state.messages.integrations)}</p>
+          <p><strong>${esc(t("integrationsTelegramStatus"))}</strong></p>
+          <pre class="admin-pre">${esc(state.telegramStatus ? JSON.stringify(state.telegramStatus, null, 2) : t("integrationsTelegramNoStatus"))}</pre>
+          <form id="telegramLinkCodeForm" class="admin-bar">
+            <button class="btn-primary" type="submit">${esc(t("integrationsTelegramGenerateCode"))}</button>
+            <span><strong>${esc(t("integrationsTelegramCode"))}:</strong> <code>${esc(state.telegramLinkCode || "-")}</code></span>
+          </form>
+        ` : `
+          <p class="notice">${esc(t("integrationsTelegramAuthHint"))}</p>
+        `}
       </section>
 
       <footer class="footer">${esc(t("footer"))}</footer>
@@ -508,6 +690,88 @@ async function loadModerationQueue() {
     state.messages.queue = res.error;
   }
 
+  render();
+}
+
+async function loadTransparencyReport(periodInput) {
+  const period = String(periodInput || "").trim();
+  const query = period ? `?period=${encodeURIComponent(period)}` : "";
+  const res = await requestJSON(withAdminToken(`/api/transparency/report${query}`), {
+    headers: getAdminHeaders()
+  });
+
+  if (res.ok) {
+    state.transparencyReport = res.data || {};
+    if (period && !state.transparencyReport.period) {
+      state.transparencyReport.period = period;
+    }
+    state.messages.transparency = "";
+  } else {
+    state.transparencyReport = null;
+    state.messages.transparency = res.error;
+  }
+
+  render();
+}
+
+async function loadAnomalySignals() {
+  const endpoints = [
+    "/api/admin/anomaly/signals",
+    "/api/admin/anomalies/signals",
+    "/api/antiabuse/anomaly/signals"
+  ];
+
+  let lastRes = null;
+  for (const endpoint of endpoints) {
+    const res = await requestJSON(withAdminToken(endpoint), {
+      headers: getAdminHeaders()
+    });
+    lastRes = res;
+    if (res.ok) {
+      state.anomalySignals = normalizeAnomalySignals(res.data);
+      state.messages.anomaly = state.anomalySignals.length ? "" : t("adminAnomalyEmpty");
+      render();
+      return;
+    }
+    if (res.status !== 404) break;
+  }
+
+  state.anomalySignals = [];
+  state.messages.anomaly = lastRes && lastRes.status === 404
+    ? t("adminAnomalyEmpty")
+    : (lastRes && lastRes.error) || t("adminAnomalyEmpty");
+  render();
+}
+
+async function loadTelegramStatus() {
+  if (!state.authUser) {
+    state.messages.integrations = t("authRequired");
+    render();
+    return;
+  }
+
+  const endpoints = [
+    "/api/integrations/telegram/status",
+    "/api/auth/integrations/telegram/status"
+  ];
+
+  let lastRes = null;
+  for (const endpoint of endpoints) {
+    const res = await requestJSON(endpoint);
+    lastRes = res;
+    if (res.ok) {
+      state.telegramStatus = res.data || null;
+      state.messages.integrations = "";
+      render();
+      return;
+    }
+    if (res.status !== 404) break;
+  }
+
+  state.telegramStatus = null;
+  state.messages.integrations = lastRes && lastRes.status === 404
+    ? ""
+    : (lastRes && lastRes.error) || t("integrationsTelegramNoStatus");
   render();
 }
 
@@ -580,6 +844,8 @@ function installListeners() {
     if (event.target.id === "logoutBtn") {
       const res = await requestJSON("/api/auth/logout", { method: "POST", body: {} });
       state.authUser = null;
+      state.telegramStatus = null;
+      state.telegramLinkCode = "";
       state.messages.auth = res.ok ? t("authLogoutOk") : res.error;
       render();
       return;
@@ -587,6 +853,16 @@ function installListeners() {
 
     if (event.target.id === "loadQueueBtn") {
       await loadModerationQueue();
+      return;
+    }
+
+    if (event.target.id === "loadAnomalyBtn") {
+      await loadAnomalySignals();
+      return;
+    }
+
+    if (event.target.id === "loadTelegramStatusBtn") {
+      await loadTelegramStatus();
     }
   });
 
@@ -596,6 +872,13 @@ function installListeners() {
     const formData = new FormData(form);
 
     if (form.id === "submitStoryForm") {
+      const privacy = {
+        name: String(formData.get("visibilityName") || "public"),
+        company: String(formData.get("visibilityCompany") || "public"),
+        geo: String(formData.get("visibilityGeo") || "public"),
+        date: String(formData.get("visibilityDate") || "public")
+      };
+
       const payload = {
         name: formData.get("name"),
         country: state.country,
@@ -605,12 +888,19 @@ function installListeners() {
         laidOffAt: formData.get("laidOffAt"),
         foundNewJob: formData.get("foundNewJob") === "on",
         reason: formData.get("reason"),
-        story: formData.get("story")
+        story: formData.get("story"),
+        privacy,
+        visibility: privacy
       };
 
       const res = await requestJSON("/api/stories", { method: "POST", body: payload });
+      state.storyRiskWarnings = extractRiskWarnings(res.data);
       state.messages.story = res.ok ? t("submitOk") : res.error || t("submitFail");
-      if (res.ok) form.reset();
+      if (res.ok) {
+        form.reset();
+        const stories = await getJSON(`/api/stories?country=${state.country}&limit=6`, { stories: [] });
+        state.stories = stories.stories || state.stories;
+      }
       render();
       return;
     }
@@ -645,6 +935,42 @@ function installListeners() {
       } else {
         state.messages.auth = res.error;
       }
+      render();
+      return;
+    }
+
+    if (form.id === "phoneStartForm") {
+      const payload = {
+        phone: String(formData.get("phone") || "").trim()
+      };
+      const res = await requestJSON("/api/auth/phone/request-otp", { method: "POST", body: payload });
+      state.messages.phone = res.ok ? t("authPhoneStartOk") : res.error;
+      render();
+      return;
+    }
+
+    if (form.id === "phoneConfirmForm") {
+      const payload = {
+        phone: String(formData.get("phone") || "").trim(),
+        code: String(formData.get("code") || "").trim()
+      };
+      const endpoints = ["/api/auth/phone/verify", "/api/auth/phone/confirm"];
+      let lastRes = null;
+
+      for (const endpoint of endpoints) {
+        const res = await requestJSON(endpoint, { method: "POST", body: payload });
+        lastRes = res;
+        if (res.ok) {
+          state.messages.phone = t("authPhoneConfirmOk");
+          await refreshAuthMe();
+          form.reset();
+          render();
+          return;
+        }
+        if (res.status !== 404) break;
+      }
+
+      state.messages.phone = (lastRes && lastRes.error) || t("authMeFail");
       render();
       return;
     }
@@ -738,6 +1064,16 @@ function installListeners() {
       return;
     }
 
+    if (form.id === "transparencyForm") {
+      if (!state.adminToken.trim()) {
+        state.messages.transparency = t("adminSecure");
+        render();
+        return;
+      }
+      await loadTransparencyReport(formData.get("period"));
+      return;
+    }
+
     if (form.classList.contains("moderation-action")) {
       if (!state.adminToken.trim()) {
         state.messages.queue = t("adminSecure");
@@ -791,6 +1127,31 @@ function installListeners() {
 
       state.messages.sanction = res.ok ? t("sanctionOk") : res.error || t("sanctionFail");
       if (res.ok) form.reset();
+      render();
+      return;
+    }
+
+    if (form.id === "telegramLinkCodeForm") {
+      if (!state.authUser) {
+        state.messages.integrations = t("authRequired");
+        render();
+        return;
+      }
+
+      const endpoints = ["/api/integrations/telegram/link-code", "/api/integrations/telegram/link"];
+      let lastRes = null;
+      for (const endpoint of endpoints) {
+        const res = await requestJSON(endpoint, { method: "POST", body: {} });
+        lastRes = res;
+        if (res.ok) {
+          state.telegramLinkCode = String(res.data?.code || res.data?.linkCode || res.data?.token || "").trim();
+          state.messages.integrations = "";
+          await loadTelegramStatus();
+          return;
+        }
+        if (res.status !== 404) break;
+      }
+      state.messages.integrations = (lastRes && lastRes.error) || t("integrationsTelegramNoStatus");
       render();
     }
   });

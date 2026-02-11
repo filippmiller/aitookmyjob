@@ -248,6 +248,75 @@ Integration:
 - Research API with aggregate-only access.
 - Transparency reporting automation.
 
+### 17.1 Phase checklist (new flows)
+
+| Phase | New flow scope | Exit checklist |
+|---|---|---|
+| P0 | Telegram webhook production test path | [ ] Webhook endpoint reachable, [ ] webhook secret validation enforced, [ ] production smoke test logged |
+| P1 | Phone verification + moderation AI score surfacing | [ ] OTP request/verify endpoints active, [ ] score schema persisted, [ ] admin score inspection path validated |
+| P2 | Research + transparency publication APIs | [ ] aggregate-only research endpoint active, [ ] transparency report endpoint active, [ ] privacy floor checks validated |
+
+### 17.2 Endpoint matrix (new flows)
+
+| Flow | Endpoint | Phase | Status |
+|---|---|---|---|
+| Phone verification | `POST /api/auth/phone/request-otp` | P1 | Implemented |
+| Phone verification | `POST /api/auth/phone/verify` | P1 | Implemented |
+| Moderation AI scores | `GET /api/admin/moderation/queue` | P1 | Implemented |
+| Moderation AI scores | `GET /api/admin/moderation/:id/scores` | P1 | Implemented |
+| Telegram webhook test | `POST /api/integrations/telegram/webhook` | P0 | Implemented |
+| Research aggregates | `GET /api/research/aggregates` | P2 | Implemented |
+| Transparency reports | `GET /api/transparency/report` | P2 | Implemented |
+
+### 17.3 Production validation commands (new flows)
+
+```bash
+BASE_URL=https://your-domain.com
+ADMIN_TOKEN=<strong-secret>
+TELEGRAM_SECRET=<telegram-webhook-secret>
+STORY_ID=<moderation-target-id>
+ENTRY_ID=story:<moderation-target-id>
+ENTRY_ID_URLENCODED=story%3A<moderation-target-id>
+```
+
+Phone verification:
+
+```bash
+curl -i -X POST "$BASE_URL/api/auth/phone/request-otp" \
+  -H "Content-Type: application/json" \
+  --data '{"phone":"+15555550123"}'
+
+curl -i -X POST "$BASE_URL/api/auth/phone/verify" \
+  -H "Content-Type: application/json" \
+  --data '{"phone":"+15555550123","code":"123456"}'
+```
+
+Moderation AI scores:
+
+```bash
+curl -i -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "$BASE_URL/api/admin/moderation/queue"
+
+curl -i -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "$BASE_URL/api/admin/moderation/$ENTRY_ID_URLENCODED/scores"
+```
+
+Telegram webhook:
+
+```bash
+curl -i -X POST "$BASE_URL/api/integrations/telegram/webhook" \
+  -H "Content-Type: application/json" \
+  -H "X-Telegram-Bot-Api-Secret-Token: $TELEGRAM_SECRET" \
+  --data '{"update_id":1,"message":{"message_id":1,"date":1700000000,"chat":{"id":1001,"type":"private"},"text":"/ping"}}'
+```
+
+Research/transparency:
+
+```bash
+curl -i "$BASE_URL/api/research/aggregates?country=global&from=2026-01-01&to=2026-12-31"
+curl -i "$BASE_URL/api/transparency/report?period=2026-Q1"
+```
+
 ## 18. Testing Strategy
 
 - Unit tests: validation, policy checks, privacy transforms.

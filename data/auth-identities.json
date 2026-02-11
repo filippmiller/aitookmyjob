@@ -1,0 +1,26 @@
+[
+  {
+    "emailVerified": true,
+    "phoneVerified": true,
+    "phoneOtpAttempts": 0,
+    "userId": "ffy09he76znx1l",
+    "phone": "+15555550123",
+    "updatedAt": "2026-02-11T16:10:20.225Z",
+    "pendingPhone": null,
+    "phoneOtpHash": null,
+    "phoneOtpExpiresAt": null
+  },
+  {
+    "emailVerified": true,
+    "phoneVerified": true,
+    "phoneOtpAttempts": 0,
+    "userId": "oukdqu83bevcuu",
+    "phone": "+15555550124",
+    "updatedAt": "2026-02-11T16:12:34.699Z",
+    "pendingPhone": null,
+    "phoneOtpHash": null,
+    "phoneOtpExpiresAt": null,
+    "telegramLinkCode": "YHPCNPZE",
+    "telegramCodeExpiresAt": "2026-02-11T16:27:34.699Z"
+  }
+]

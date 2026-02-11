@@ -95,3 +95,66 @@ curl -I "$BASE_URL/global/en/"
 ```
 
 Expected: root redirects to localized route; localized path returns `200`.
+
+## Phase checklist and endpoint matrix (new flows)
+
+| Phase | Flow | Endpoint | Status |
+|---|---|---|---|
+| P0 | Telegram webhook test | `POST /api/integrations/telegram/webhook` | Implemented |
+| P1 | Phone verification (request OTP) | `POST /api/auth/phone/request-otp` | Implemented |
+| P1 | Phone verification (verify code) | `POST /api/auth/phone/verify` | Implemented |
+| P1 | Moderation AI score queue visibility | `GET /api/admin/moderation/queue` | Implemented |
+| P1 | Moderation AI score detail visibility | `GET /api/admin/moderation/:id/scores` | Implemented |
+| P2 | Research aggregate API | `GET /api/research/aggregates` | Implemented |
+| P2 | Transparency reporting API | `GET /api/transparency/report` | Implemented |
+
+## Production validation commands for new flows
+
+Set variables:
+
+```bash
+BASE_URL=https://your-domain.com
+ADMIN_TOKEN=<strong-secret>
+TELEGRAM_SECRET=<telegram-webhook-secret>
+STORY_ID=<existing-story-id>
+ENTRY_ID=story:<existing-story-id>
+ENTRY_ID_URLENCODED=story%3A<existing-story-id>
+```
+
+1. P1 phone verification:
+
+```bash
+curl -i -X POST "$BASE_URL/api/auth/phone/request-otp" \
+  -H "Content-Type: application/json" \
+  --data '{"phone":"+15555550123"}'
+
+curl -i -X POST "$BASE_URL/api/auth/phone/verify" \
+  -H "Content-Type: application/json" \
+  --data '{"phone":"+15555550123","code":"123456"}'
+```
+
+2. P1 moderation AI score checks:
+
+```bash
+curl -i -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "$BASE_URL/api/admin/moderation/queue"
+
+curl -i -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "$BASE_URL/api/admin/moderation/$ENTRY_ID_URLENCODED/scores"
+```
+
+3. P0 telegram webhook ingress test:
+
+```bash
+curl -i -X POST "$BASE_URL/api/integrations/telegram/webhook" \
+  -H "Content-Type: application/json" \
+  -H "X-Telegram-Bot-Api-Secret-Token: $TELEGRAM_SECRET" \
+  --data '{"update_id":1,"message":{"message_id":1,"date":1700000000,"chat":{"id":1001,"type":"private"},"text":"/status"}}'
+```
+
+4. P2 research/transparency checks:
+
+```bash
+curl -i "$BASE_URL/api/research/aggregates?country=global&from=2026-01-01&to=2026-12-31"
+curl -i "$BASE_URL/api/transparency/report?period=2026-Q1"
+```
