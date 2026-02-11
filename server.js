@@ -1,13 +1,210 @@
+const fs = require("fs");
 const path = require("path");
 const express = require("express");
 const dotenv = require("dotenv");
+const helmet = require("helmet");
+const cors = require("cors");
+const morgan = require("morgan");
+const rateLimit = require("express-rate-limit");
+const { z } = require("zod");
+const { customAlphabet } = require("nanoid");
 
 dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT || 8080);
+const publicDir = path.join(__dirname, "public");
+const dataDir = path.join(__dirname, "data");
+const storiesPath = path.join(dataDir, "stories.json");
 
-app.use(express.static(path.join(__dirname, "public")));
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "change-me-admin-token";
+const defaultCountry = (process.env.DEFAULT_COUNTRY || "global").toLowerCase();
+const defaultLang = (process.env.DEFAULT_LANG || "en").toLowerCase();
+const rawOrigins = (process.env.CORS_ORIGINS || "").split(",").map((v) => v.trim()).filter(Boolean);
+const storyId = customAlphabet("1234567890abcdefghijklmnopqrstuvwxyz", 12);
+
+const languages = ["en", "ru", "de", "fr", "es"];
+const countries = [
+  { code: "global", name: "Global", region: "Global" },
+  { code: "us", name: "United States", region: "North America" },
+  { code: "de", name: "Germany", region: "Europe" },
+  { code: "fr", name: "France", region: "Europe" },
+  { code: "es", name: "Spain", region: "Europe" },
+  { code: "ru", name: "Russia", region: "Europe/Asia" },
+  { code: "gb", name: "United Kingdom", region: "Europe" },
+  { code: "ca", name: "Canada", region: "North America" },
+  { code: "mx", name: "Mexico", region: "North America" },
+  { code: "br", name: "Brazil", region: "South America" },
+  { code: "ar", name: "Argentina", region: "South America" },
+  { code: "in", name: "India", region: "Asia" },
+  { code: "jp", name: "Japan", region: "Asia" },
+  { code: "kr", name: "South Korea", region: "Asia" },
+  { code: "au", name: "Australia", region: "Oceania" },
+  { code: "za", name: "South Africa", region: "Africa" },
+  { code: "ae", name: "United Arab Emirates", region: "Middle East" },
+  { code: "it", name: "Italy", region: "Europe" },
+  { code: "nl", name: "Netherlands", region: "Europe" },
+  { code: "se", name: "Sweden", region: "Europe" }
+];
+
+const roles = [
+  "guest",
+  "user",
+  "verified_user",
+  "expert",
+  "community_lead",
+  "journalist",
+  "moderator",
+  "admin",
+  "superadmin",
+  "data_analyst"
+];
+
+const forumCategories = [
+  { id: "cop", key: "copywriters" },
+  { id: "dev", key: "developers-qa" },
+  { id: "des", key: "designers-artists" },
+  { id: "hr", key: "hr-recruiting" },
+  { id: "sup", key: "support-call-centers" },
+  { id: "law", key: "legal-rights" },
+  { id: "up", key: "reskilling-job-search" },
+  { id: "reg", key: "regional-groups" },
+  { id: "succ", key: "success-stories" }
+];
+
+const forumTopics = [
+  { id: "t1", categoryId: "cop", title: "How to pivot from copywriting to UX writing?", replies: 38, lastUpdate: "2026-02-10" },
+  { id: "t2", categoryId: "dev", title: "Junior developers: where to get first role in AI-first market", replies: 54, lastUpdate: "2026-02-11" },
+  { id: "t3", categoryId: "law", title: "Can my company train model on my work without consent?", replies: 19, lastUpdate: "2026-02-10" },
+  { id: "t4", categoryId: "sup", title: "Call-center layoffs: what countries still hire humans", replies: 27, lastUpdate: "2026-02-09" },
+  { id: "t5", categoryId: "succ", title: "I found a new role after 6 months — ask me anything", replies: 66, lastUpdate: "2026-02-11" }
+];
+
+const storySchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  country: z.string().trim().min(2).max(20),
+  language: z.enum(languages),
+  profession: z.string().trim().min(2).max(80),
+  company: z.string().trim().min(1).max(120),
+  laidOffAt: z.string().trim().min(4).max(20),
+  foundNewJob: z.boolean(),
+  reason: z.string().trim().min(8).max(240),
+  story: z.string().trim().min(40).max(3000)
+});
+
+function normalizeCountry(input) {
+  const normalized = String(input || "").toLowerCase();
+  return countries.some((c) => c.code === normalized) ? normalized : defaultCountry;
+}
+
+function normalizeLanguage(input) {
+  const normalized = String(input || "").toLowerCase();
+  return languages.includes(normalized) ? normalized : defaultLang;
+}
+
+function readStories() {
+  try {
+    const raw = fs.readFileSync(storiesPath, "utf8");
+    return JSON.parse(raw);
+  } catch (_error) {
+    return [];
+  }
+}
+
+function writeStories(stories) {
+  fs.writeFileSync(storiesPath, JSON.stringify(stories, null, 2));
+}
+
+function sanitizeText(text) {
+  return String(text || "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\u0000/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getTopCompanies(stories, country) {
+  const filtered = stories.filter((s) => s.status === "published" && (country === "global" || s.country === country));
+  const map = new Map();
+  for (const entry of filtered) {
+    if (!map.has(entry.company)) {
+      map.set(entry.company, { company: entry.company, stories: 0, layoffs: 0, rehired: 0 });
+    }
+    const row = map.get(entry.company);
+    row.stories += 1;
+    row.layoffs += Number(entry.estimatedLayoffs || 1);
+    row.rehired += entry.foundNewJob ? 1 : 0;
+  }
+  return [...map.values()].sort((a, b) => b.layoffs - a.layoffs).slice(0, 10);
+}
+
+function detectLocale(req) {
+  const headerCountry = normalizeCountry(req.headers["x-country"] || req.headers["cf-ipcountry"]);
+  const languageHeader = String(req.headers["accept-language"] || "");
+  const guessedLang = languageHeader.split(",")[0].split("-")[0].toLowerCase();
+  return {
+    country: headerCountry || defaultCountry,
+    lang: normalizeLanguage(guessedLang),
+    source: headerCountry ? "geo-header" : languageHeader ? "accept-language" : "default"
+  };
+}
+
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'"],
+        imgSrc: ["'self'", "data:"],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"]
+      }
+    },
+    crossOriginEmbedderPolicy: false
+  })
+);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || rawOrigins.length === 0 || rawOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("Origin not allowed"));
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    maxAge: 86400
+  })
+);
+
+app.use(morgan("combined"));
+app.use(express.json({ limit: "50kb", strict: true }));
+app.use(express.urlencoded({ extended: false, limit: "50kb" }));
+
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 240,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const storySubmitLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.use(globalLimiter);
+app.use(express.static(publicDir, { extensions: ["html"] }));
 
 app.get("/health", (_req, res) => {
   res.json({
@@ -17,7 +214,163 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.get("/api/meta", (_req, res) => {
+  res.json({ countries, languages, roles });
+});
+
+app.get("/api/locale", (req, res) => {
+  res.json(detectLocale(req));
+});
+
+app.get("/api/stats", (req, res) => {
+  const country = normalizeCountry(req.query.country || "global");
+  const stories = readStories().filter((s) => s.status === "published" && (country === "global" || s.country === country));
+
+  const laidOff = stories.reduce((sum, s) => sum + Number(s.estimatedLayoffs || 1), 0);
+  const sharedStories = stories.length;
+  const foundJob = stories.filter((s) => s.foundNewJob).length;
+  const distinctCompanies = new Set(stories.map((s) => s.company)).size;
+  const foundRate = sharedStories > 0 ? Math.round((foundJob / sharedStories) * 100) : 0;
+
+  res.json({
+    country,
+    counters: {
+      laidOff,
+      sharedStories,
+      foundJob,
+      distinctCompanies
+    },
+    foundRate
+  });
+});
+
+app.get("/api/stories", (req, res) => {
+  const country = normalizeCountry(req.query.country || "global");
+  const limit = Math.min(Number(req.query.limit || 12), 50);
+  const stories = readStories()
+    .filter((s) => s.status === "published" && (country === "global" || s.country === country))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, limit);
+  res.json({ country, stories });
+});
+
+app.post("/api/stories", storySubmitLimiter, (req, res) => {
+  const payload = {
+    ...req.body,
+    name: sanitizeText(req.body.name),
+    profession: sanitizeText(req.body.profession),
+    company: sanitizeText(req.body.company),
+    reason: sanitizeText(req.body.reason),
+    story: sanitizeText(req.body.story),
+    laidOffAt: sanitizeText(req.body.laidOffAt),
+    country: normalizeCountry(req.body.country),
+    language: normalizeLanguage(req.body.language),
+    foundNewJob: req.body.foundNewJob === true || req.body.foundNewJob === "true"
+  };
+
+  const parsed = storySchema.safeParse(payload);
+  if (!parsed.success) {
+    res.status(422).json({
+      message: "Validation failed",
+      errors: parsed.error.issues.map((e) => ({ field: e.path[0], message: e.message }))
+    });
+    return;
+  }
+
+  const stories = readStories();
+  const newStory = {
+    id: storyId(),
+    ...parsed.data,
+    status: "pending",
+    estimatedLayoffs: 1,
+    createdAt: new Date().toISOString()
+  };
+  stories.push(newStory);
+  writeStories(stories);
+
+  res.status(201).json({
+    message: "Story submitted for moderation",
+    id: newStory.id,
+    status: newStory.status
+  });
+});
+
+app.get("/api/companies/top", (req, res) => {
+  const country = normalizeCountry(req.query.country || "global");
+  const companies = getTopCompanies(readStories(), country);
+  res.json({ country, companies });
+});
+
+app.get("/api/forum/categories", (_req, res) => {
+  res.json({ categories: forumCategories });
+});
+
+app.get("/api/forum/topics", (req, res) => {
+  const country = normalizeCountry(req.query.country || "global");
+  res.json({
+    country,
+    topics: forumTopics
+  });
+});
+
+app.get("/api/admin/overview", (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "") || req.query.token;
+  if (token !== ADMIN_TOKEN) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  const stories = readStories();
+  const published = stories.filter((s) => s.status === "published");
+  const pending = stories.filter((s) => s.status === "pending");
+
+  res.json({
+    moderation: {
+      pendingStories: pending.length,
+      publishedStories: published.length
+    },
+    users: {
+      registeredEstimate: published.length * 3 + pending.length
+    },
+    system: {
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    }
+  });
+});
+
+app.get("/", (req, res) => {
+  const locale = detectLocale(req);
+  res.redirect(`/${locale.country}/${locale.lang}/`);
+});
+
+app.get("/:country/:lang", (req, res) => {
+  const country = normalizeCountry(req.params.country);
+  const lang = normalizeLanguage(req.params.lang);
+  if (country !== req.params.country.toLowerCase() || lang !== req.params.lang.toLowerCase()) {
+    res.redirect(`/${country}/${lang}/`);
+    return;
+  }
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
+app.get(/^\/([a-z]{2,10})\/([a-z]{2})(?:\/.*)?$/i, (req, res) => {
+  const country = normalizeCountry(req.params[0]);
+  const lang = normalizeLanguage(req.params[1]);
+  const rawCountry = String(req.params[0]).toLowerCase();
+  const rawLang = String(req.params[1]).toLowerCase();
+  if (country !== rawCountry || lang !== rawLang) {
+    res.redirect(`/${country}/${lang}/`);
+    return;
+  }
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
+app.use((err, _req, res, _next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ message: "Internal server error" });
+});
+
 app.listen(port, () => {
-  // Keep this log simple for container logs.
   console.log(`aitookmyjob running on :${port}`);
 });

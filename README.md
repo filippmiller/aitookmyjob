@@ -1,6 +1,15 @@
 # AI Took My Job
 
-Minimal Node.js site prepared for GitHub + Coolify deployment on Hetzner.
+Global platform prototype for AI displacement stories.
+
+## Features
+
+- Country-aware routing: `/:country/:lang/`
+- 5 languages out of the box: `en`, `ru`, `de`, `fr`, `es`
+- Live counters and company ticker
+- Story submission with moderation status
+- Forum and admin overview blocks
+- Security baseline: CSP, rate limits, strict payload validation
 
 ## Local run
 
@@ -9,12 +18,18 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:8080
+Open `http://localhost:8080`.
 
-## Health endpoint
+## Key endpoints
 
-`GET /health`
+- `GET /health`
+- `GET /api/meta`
+- `GET /api/stats?country=global`
+- `GET /api/stories?country=global&limit=6`
+- `POST /api/stories`
+- `GET /api/companies/top?country=global`
+- `GET /api/admin/overview?token=...`
 
-## Deployment
+## Detailed execution log
 
-See `docs/deployment.md`.
+See `docs/implementation-log.md`.

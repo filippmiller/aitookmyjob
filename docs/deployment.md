@@ -1,20 +1,24 @@
 # Deployment to Coolify (Hetzner)
 
-This project is configured for Coolify to build from GitHub.
+This project deploys as a single Node.js service.
 
 ## Required environment variables
 
 - `PORT=8080`
-- `SITE_TITLE=AI Took My Job`
-- `SITE_TAGLINE=Ship fast. Automate harder.`
+- `DEFAULT_COUNTRY=global`
+- `DEFAULT_LANG=en`
+- `ADMIN_TOKEN=<strong-secret>`
+- Optional: `CORS_ORIGINS=https://your-domain.com,https://www.your-domain.com`
 
 ## Runtime
 
-- Build pack: Nixpacks (auto)
+- Build pack: Nixpacks or Dockerfile
 - Start command: `npm start`
-- Port: `8080`
+- Exposed port: `8080`
 
-## Verify
+## Verify after deploy
 
-- Site URL from Coolify should return `public/index.html`
-- Health check: `/health`
+1. `GET /health` returns `{ ok: true, ... }`
+2. `GET /api/meta` returns countries and languages
+3. Open `/<country>/<lang>/` (example: `/global/en/`)
+4. Submit a story with the form and verify `status=pending`
