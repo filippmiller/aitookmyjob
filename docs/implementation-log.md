@@ -155,3 +155,23 @@
 - Moderation queue retrieval + action success.
 - Sanction creation success.
 - Full smoke output captured in terminal execution.
+
+### Production rollout finalized (Coolify + Hetzner)
+- Verified repository state and pushed latest build commit to GitHub:
+  - branch: `master`
+  - pushed commit: `6cffc36`
+- Triggered production deployment through Coolify manual GitHub webhook endpoint:
+  - `POST /webhooks/source/github/events/manual`
+  - response: deployment queued for app UUID `wk848wc4oo88swk0g8oc8ksw`
+  - deployment UUID: `ysw4g080g0sgkgskc4wgwws4`
+- Used active polling against Docker runtime to track rollout progress:
+  - old container image: `...:ee12088...`
+  - new container image: `...:6cffc36...`
+  - new container reached healthy running state.
+- Production smoke checks completed on live URL:
+  - `http://wk848wc4oo88swk0g8oc8ksw.89.167.42.128.sslip.io`
+  - `GET /health` -> `ok: true`
+  - `GET /api/meta` -> countries and 5 languages available
+  - `GET /api/stats?country=global` -> valid counters/found rate response
+  - `GET /api/admin/overview` (without token) -> `401` as expected
+  - `HEAD /global/en/` -> `200`
