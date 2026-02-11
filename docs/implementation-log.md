@@ -103,3 +103,55 @@
 - Paused feature expansion to create a full implementation whitepaper first.
 - Added `docs/WHITEPAPER.md` as the authoritative architecture and execution blueprint.
 - All next implementation steps will follow phases and acceptance criteria defined in the whitepaper.
+
+### Docs alignment to WHITEPAPER P0 endpoints and operational flows
+- Updated public docs to map WHITEPAPER P0 endpoint blueprint against currently implemented runtime endpoints.
+- Documented P0 operational flows explicitly:
+  - Public read flow: locale detection -> country-scoped stats/stories/companies reads.
+  - Story intake flow: `POST /api/stories` -> validation/sanitization -> persisted `pending` moderation state.
+  - Forum flow split: read endpoints active; write endpoints reserved for auth-gated P0 implementation.
+  - Admin/moderation flow split: admin overview active with token protection; queue/action/sanctions endpoints documented as P0 target.
+  - Auth/session + Telegram webhook flows documented as P0 targets.
+- Added curl-based verification checklist with concrete commands for:
+  - health/meta/locale checks
+  - country-aware read APIs
+  - story submit success and validation failure
+  - admin unauthorized vs authorized access
+  - localized route redirect/canonical checks
+
+### Active polling multi-agent run (user-requested)
+- Spawned 3 parallel workers:
+  1) backend P0 APIs,
+  2) frontend P0 UX,
+  3) docs + validation runbook.
+- Used active polling loops with forced finalize to avoid idle delay.
+- Backend worker returned exploration only; backend scope was implemented directly in main agent to keep delivery on schedule.
+- Frontend worker delivered major UI expansion (auth/forum/admin panels).
+- Docs worker delivered endpoint verification documentation and README/deploy updates.
+
+### P0 backend implementation completed in this cycle
+- Added dependencies: `bcryptjs`, `jsonwebtoken`.
+- Implemented auth APIs:
+  - `POST /api/auth/register`
+  - `POST /api/auth/login`
+  - `POST /api/auth/logout`
+  - `GET /api/auth/me`
+- Added session cookie auth (`auth_token`) and middleware.
+- Added forum write APIs:
+  - `POST /api/forum/topics`
+  - `POST /api/forum/topics/:id/replies`
+- Added moderation/admin APIs:
+  - `GET /api/admin/moderation/queue`
+  - `POST /api/admin/moderation/:id/action`
+  - `POST /api/admin/sanctions`
+- Added sanctions persistence and enforcement checks (mute/ban behavior gate).
+- Added audit logging for auth/story/forum/moderation/sanction events.
+- Extended Postgres initialization with new P0 tables and fallback local JSON storage for offline/dev.
+
+### Validation performed (local)
+- Health endpoint success.
+- Register/login/me flow success.
+- Topic creation + reply success.
+- Moderation queue retrieval + action success.
+- Sanction creation success.
+- Full smoke output captured in terminal execution.

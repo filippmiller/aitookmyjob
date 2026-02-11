@@ -1,0 +1,69 @@
+[
+  {
+    "id": "4kh07yveg1n9hs",
+    "action": "auth.register",
+    "actorId": "c7cwgjy6e5z980",
+    "targetType": "user",
+    "targetId": "c7cwgjy6e5z980",
+    "metadata": {
+      "email": "localtest@example.com"
+    },
+    "ip": "::1",
+    "createdAt": "2026-02-11T15:41:15.623Z"
+  },
+  {
+    "id": "977itybi63ul5n",
+    "action": "forum.topic.create",
+    "actorId": "c7cwgjy6e5z980",
+    "targetType": "forum_topic",
+    "targetId": "tnnqozoxvghquu",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::1",
+    "createdAt": "2026-02-11T15:41:15.763Z"
+  },
+  {
+    "id": "epqnqpmaky5eo3",
+    "action": "forum.reply.create",
+    "actorId": "c7cwgjy6e5z980",
+    "targetType": "forum_reply",
+    "targetId": "2s7lheu1jkazdc",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::1",
+    "createdAt": "2026-02-11T15:41:15.936Z"
+  },
+  {
+    "id": "3up5djp8rl2mwi",
+    "action": "moderation.action",
+    "actorId": "admin-token",
+    "targetType": "queue_entry",
+    "targetId": "story:gq550bnkq0ay",
+    "metadata": {
+      "action": "approve",
+      "reason": "smoke test approve"
+    },
+    "ip": "::1",
+    "createdAt": "2026-02-11T15:41:16.274Z"
+  },
+  {
+    "id": "f1lr3gdyn53a3m",
+    "action": "sanction.create",
+    "actorId": "admin-token",
+    "targetType": "user",
+    "targetId": "c7cwgjy6e5z980",
+    "metadata": {
+      "id": "ww5to3w1wywm69",
+      "targetUserId": "c7cwgjy6e5z980",
+      "type": "mute",
+      "reason": "smoke",
+      "durationDays": 1,
+      "createdBy": "admin-token",
+      "createdAt": "2026-02-11T15:41:16.424Z"
+    },
+    "ip": "::1",
+    "createdAt": "2026-02-11T15:41:16.426Z"
+  }
+]

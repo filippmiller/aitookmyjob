@@ -100,8 +100,9 @@
     "foundNewJob": false,
     "reason": "AI automation replaced reporting workflow.",
     "story": "I lost my role after the company deployed AI dashboards and reduced analyst headcount. I am now sharing this so others can prepare in advance.",
-    "status": "pending",
+    "status": "published",
     "estimatedLayoffs": 1,
-    "createdAt": "2026-02-11T15:00:47.416Z"
+    "createdAt": "2026-02-11T15:00:47.416Z",
+    "moderationReason": "smoke test approve"
   }
 ]

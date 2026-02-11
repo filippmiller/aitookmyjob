@@ -1,0 +1,15 @@
+[
+  {
+    "id": "tnnqozoxvghquu",
+    "categoryId": "dev",
+    "title": "Local test topic for P0 flow",
+    "body": "This is a backend validation topic body for forum write endpoint.",
+    "country": "global",
+    "language": "en",
+    "status": "published",
+    "createdBy": "c7cwgjy6e5z980",
+    "createdAt": "2026-02-11T15:41:15.760Z",
+    "replies": 1,
+    "lastUpdate": "2026-02-11T15:41:15.920Z"
+  }
+]

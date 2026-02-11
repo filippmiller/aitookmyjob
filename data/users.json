@@ -1,0 +1,12 @@
+[
+  {
+    "id": "c7cwgjy6e5z980",
+    "email": "localtest@example.com",
+    "phone": null,
+    "role": "user",
+    "passwordHash": "$2b$12$K5ewICBvpnWmw33bTB.ace6FdSe6VaFF.wyxOoV19dmYovQyFDvk2",
+    "createdAt": "2026-02-11T15:41:15.620Z",
+    "mutedUntil": "2026-02-12T15:41:16.420Z",
+    "bannedUntil": null
+  }
+]
