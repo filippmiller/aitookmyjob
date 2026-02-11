@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const dns = require("dns").promises;
 const express = require("express");
 const dotenv = require("dotenv");
 const helmet = require("helmet");
@@ -50,12 +51,7 @@ const auditId = customAlphabet("1234567890abcdefghijklmnopqrstuvwxyz", 14);
 const phoneOtpCode = customAlphabet("0123456789", 6);
 const linkCodeId = customAlphabet("1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ", 8);
 const usePostgres = Boolean(DATABASE_URL);
-const pgPool = usePostgres
-  ? new Pool({
-    connectionString: DATABASE_URL,
-    ssl: PG_SSL ? { rejectUnauthorized: false } : undefined
-  })
-  : null;
+let pgPool = null;
 
 const languages = ["en", "ru", "de", "fr", "es"];
 const countries = [
@@ -295,6 +291,56 @@ function mapStoryRow(row) {
     moderation: row.moderation || {},
     submittedBy: row.submitted_by || null
   };
+}
+
+function makeDbSslConfig() {
+  return PG_SSL ? { rejectUnauthorized: false } : undefined;
+}
+
+async function testPgConnection(connectionString) {
+  const client = new Pool({
+    connectionString,
+    ssl: makeDbSslConfig(),
+    max: 1,
+    idleTimeoutMillis: 3000
+  });
+  try {
+    const res = await client.query("SELECT 1 AS ok;");
+    return Boolean(res.rows?.[0]?.ok === 1 || res.rows?.[0]?.ok === "1");
+  } catch (_error) {
+    return false;
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
+async function resolvePinnedDatabaseUrl(baseUrl) {
+  const parsed = new URL(baseUrl);
+  if (parsed.hostname !== "postgres") return baseUrl;
+
+  const records = await dns.lookup("postgres", { all: true }).catch(() => []);
+  if (!records.length) return baseUrl;
+  const prioritized = [
+    ...records.filter((r) => r.family === 4),
+    ...records.filter((r) => r.family !== 4)
+  ];
+  for (const rec of prioritized) {
+    const candidate = new URL(baseUrl);
+    candidate.hostname = rec.address;
+    const ok = await testPgConnection(candidate.toString());
+    if (ok) {
+      return candidate.toString();
+    }
+  }
+  return baseUrl;
+}
+
+async function buildPgPool() {
+  const pinnedUrl = await resolvePinnedDatabaseUrl(DATABASE_URL);
+  return new Pool({
+    connectionString: pinnedUrl,
+    ssl: makeDbSslConfig()
+  });
 }
 
 async function initStorage() {
@@ -2410,6 +2456,7 @@ app.use((err, _req, res, _next) => {
 
 async function start() {
   if (usePostgres) {
+    pgPool = await buildPgPool();
     await initStorage();
     console.log("Storage mode: postgres");
   } else {

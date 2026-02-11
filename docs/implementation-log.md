@@ -57,7 +57,22 @@
   - moderation queue and score detail endpoints return data
   - anomaly signal endpoint returns valid JSON
   - research aggregates and transparency endpoints return valid JSON
-  - telegram link-code and webhook endpoints return expected responses
+- telegram link-code and webhook endpoints return expected responses
+
+### Production hotfix: Postgres hostname collision in Coolify network
+- Issue detected after rollout: intermittent `500` on auth/register due DB auth failures.
+- Root cause:
+  - Hostname `postgres` resolved to multiple IPv6 records in shared Docker network:
+    - app database container
+    - Coolify internal database
+  - Runtime occasionally connected to wrong DB endpoint, causing `password authentication failed`.
+- Fix implemented in application runtime:
+  - Added startup-time DB host pinning logic:
+    - Resolve all `postgres` addresses
+    - Probe each candidate with credentials
+    - Select first successful address for the production pool
+- Result:
+  - Eliminates random host selection and stabilizes auth/write endpoints.
 
 ### Scope accepted
 - Full build execution started.
