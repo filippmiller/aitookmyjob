@@ -86,3 +86,15 @@
 - Connected Coolify app env to new database (`DATABASE_URL`, `PG_SSL=false`).
 - Triggered application redeploy after env updates.
 - Added `data/*.tmp` to `.gitignore` to prevent accidental secret file commits.
+
+### Hotfix after first Postgres deploy
+- Initial `DATABASE_URL` used `host.docker.internal` and failed inside Coolify runtime (`ENOTFOUND`).
+- Updated runtime and preview env values to use Docker network hostname `postgres`.
+- Triggered redeploy and validated container health.
+- Runtime log now confirms: `Storage mode: postgres`.
+- Post-deploy verification:
+  - Public API `/api/stats` responds successfully.
+  - New story submission writes to Postgres (`stories` row count increased).
+
+### Security cleanup
+- Revoked temporary Coolify API token used for provisioning.
