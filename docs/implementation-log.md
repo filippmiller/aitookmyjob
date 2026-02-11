@@ -71,3 +71,18 @@
   - `/api/companies/top?country=global`
   - `/global/en/`
 - Tested POST submission to `/api/stories` and confirmed moderation status response.
+
+### Postgres rollout on Hetzner (P0)
+- Added native Postgres storage mode in `server.js` using `pg`.
+- Added automatic startup migration (`stories` table + index).
+- Added one-time seeding from `data/stories.json` when DB is empty.
+- Kept JSON fallback mode for local/dev without `DATABASE_URL`.
+- Added env switches:
+  - `DATABASE_URL`
+  - `PG_SSL`
+- Provisioned dedicated DB resources on Hetzner host PostgreSQL:
+  - role: `aitookmyjob`
+  - database: `aitookmyjob`
+- Connected Coolify app env to new database (`DATABASE_URL`, `PG_SSL=false`).
+- Triggered application redeploy after env updates.
+- Added `data/*.tmp` to `.gitignore` to prevent accidental secret file commits.

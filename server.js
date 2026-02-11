@@ -8,6 +8,7 @@ const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 const { z } = require("zod");
 const { customAlphabet } = require("nanoid");
+const { Pool } = require("pg");
 
 dotenv.config();
 
@@ -18,10 +19,19 @@ const dataDir = path.join(__dirname, "data");
 const storiesPath = path.join(dataDir, "stories.json");
 
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "change-me-admin-token";
+const DATABASE_URL = process.env.DATABASE_URL || "";
+const PG_SSL = String(process.env.PG_SSL || "false").toLowerCase() === "true";
 const defaultCountry = (process.env.DEFAULT_COUNTRY || "global").toLowerCase();
 const defaultLang = (process.env.DEFAULT_LANG || "en").toLowerCase();
 const rawOrigins = (process.env.CORS_ORIGINS || "").split(",").map((v) => v.trim()).filter(Boolean);
 const storyId = customAlphabet("1234567890abcdefghijklmnopqrstuvwxyz", 12);
+const usePostgres = Boolean(DATABASE_URL);
+const pgPool = usePostgres
+  ? new Pool({
+    connectionString: DATABASE_URL,
+    ssl: PG_SSL ? { rejectUnauthorized: false } : undefined
+  })
+  : null;
 
 const languages = ["en", "ru", "de", "fr", "es"];
 const countries = [
@@ -113,6 +123,118 @@ function readStories() {
 
 function writeStories(stories) {
   fs.writeFileSync(storiesPath, JSON.stringify(stories, null, 2));
+}
+
+function mapStoryRow(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    country: row.country,
+    language: row.language,
+    profession: row.profession,
+    company: row.company,
+    laidOffAt: row.laid_off_at,
+    foundNewJob: row.found_new_job,
+    reason: row.reason,
+    story: row.story,
+    status: row.status,
+    estimatedLayoffs: row.estimated_layoffs,
+    createdAt: row.created_at
+  };
+}
+
+async function initStorage() {
+  if (!usePostgres) return;
+
+  await pgPool.query(`
+    CREATE TABLE IF NOT EXISTS stories (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      country TEXT NOT NULL,
+      language TEXT NOT NULL,
+      profession TEXT NOT NULL,
+      company TEXT NOT NULL,
+      laid_off_at TEXT NOT NULL,
+      found_new_job BOOLEAN NOT NULL DEFAULT FALSE,
+      reason TEXT NOT NULL,
+      story TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      estimated_layoffs INTEGER NOT NULL DEFAULT 1,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pgPool.query("CREATE INDEX IF NOT EXISTS idx_stories_status_country_created ON stories(status, country, created_at DESC);");
+
+  const countRes = await pgPool.query("SELECT COUNT(*)::int AS count FROM stories;");
+  if (countRes.rows[0].count > 0) return;
+
+  const seed = readStories();
+  if (!seed.length) return;
+
+  for (const s of seed) {
+    await pgPool.query(
+      `INSERT INTO stories (
+        id, name, country, language, profession, company, laid_off_at,
+        found_new_job, reason, story, status, estimated_layoffs, created_at
+      ) VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+      ) ON CONFLICT (id) DO NOTHING;`,
+      [
+        s.id,
+        s.name,
+        s.country,
+        s.language,
+        s.profession,
+        s.company,
+        s.laidOffAt,
+        Boolean(s.foundNewJob),
+        s.reason,
+        s.story,
+        s.status || "pending",
+        Number(s.estimatedLayoffs || 1),
+        s.createdAt || new Date().toISOString()
+      ]
+    );
+  }
+}
+
+async function storageGetStories() {
+  if (!usePostgres) return readStories();
+  const res = await pgPool.query("SELECT * FROM stories ORDER BY created_at DESC;");
+  return res.rows.map(mapStoryRow);
+}
+
+async function storageInsertStory(newStory) {
+  if (!usePostgres) {
+    const stories = readStories();
+    stories.push(newStory);
+    writeStories(stories);
+    return;
+  }
+
+  await pgPool.query(
+    `INSERT INTO stories (
+      id, name, country, language, profession, company, laid_off_at,
+      found_new_job, reason, story, status, estimated_layoffs, created_at
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+    );`,
+    [
+      newStory.id,
+      newStory.name,
+      newStory.country,
+      newStory.language,
+      newStory.profession,
+      newStory.company,
+      newStory.laidOffAt,
+      newStory.foundNewJob,
+      newStory.reason,
+      newStory.story,
+      newStory.status,
+      newStory.estimatedLayoffs,
+      newStory.createdAt
+    ]
+  );
 }
 
 function sanitizeText(text) {
@@ -222,9 +344,9 @@ app.get("/api/locale", (req, res) => {
   res.json(detectLocale(req));
 });
 
-app.get("/api/stats", (req, res) => {
+app.get("/api/stats", async (req, res) => {
   const country = normalizeCountry(req.query.country || "global");
-  const stories = readStories().filter((s) => s.status === "published" && (country === "global" || s.country === country));
+  const stories = (await storageGetStories()).filter((s) => s.status === "published" && (country === "global" || s.country === country));
 
   const laidOff = stories.reduce((sum, s) => sum + Number(s.estimatedLayoffs || 1), 0);
   const sharedStories = stories.length;
@@ -244,17 +366,17 @@ app.get("/api/stats", (req, res) => {
   });
 });
 
-app.get("/api/stories", (req, res) => {
+app.get("/api/stories", async (req, res) => {
   const country = normalizeCountry(req.query.country || "global");
   const limit = Math.min(Number(req.query.limit || 12), 50);
-  const stories = readStories()
+  const stories = (await storageGetStories())
     .filter((s) => s.status === "published" && (country === "global" || s.country === country))
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, limit);
   res.json({ country, stories });
 });
 
-app.post("/api/stories", storySubmitLimiter, (req, res) => {
+app.post("/api/stories", storySubmitLimiter, async (req, res) => {
   const payload = {
     ...req.body,
     name: sanitizeText(req.body.name),
@@ -277,7 +399,6 @@ app.post("/api/stories", storySubmitLimiter, (req, res) => {
     return;
   }
 
-  const stories = readStories();
   const newStory = {
     id: storyId(),
     ...parsed.data,
@@ -285,8 +406,7 @@ app.post("/api/stories", storySubmitLimiter, (req, res) => {
     estimatedLayoffs: 1,
     createdAt: new Date().toISOString()
   };
-  stories.push(newStory);
-  writeStories(stories);
+  await storageInsertStory(newStory);
 
   res.status(201).json({
     message: "Story submitted for moderation",
@@ -295,9 +415,9 @@ app.post("/api/stories", storySubmitLimiter, (req, res) => {
   });
 });
 
-app.get("/api/companies/top", (req, res) => {
+app.get("/api/companies/top", async (req, res) => {
   const country = normalizeCountry(req.query.country || "global");
-  const companies = getTopCompanies(readStories(), country);
+  const companies = getTopCompanies(await storageGetStories(), country);
   res.json({ country, companies });
 });
 
@@ -313,14 +433,14 @@ app.get("/api/forum/topics", (req, res) => {
   });
 });
 
-app.get("/api/admin/overview", (req, res) => {
+app.get("/api/admin/overview", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "") || req.query.token;
   if (token !== ADMIN_TOKEN) {
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
 
-  const stories = readStories();
+  const stories = await storageGetStories();
   const published = stories.filter((s) => s.status === "published");
   const pending = stories.filter((s) => s.status === "pending");
 
@@ -371,6 +491,19 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ message: "Internal server error" });
 });
 
-app.listen(port, () => {
-  console.log(`aitookmyjob running on :${port}`);
+async function start() {
+  if (usePostgres) {
+    await initStorage();
+    console.log("Storage mode: postgres");
+  } else {
+    console.log("Storage mode: file-json");
+  }
+  app.listen(port, () => {
+    console.log(`aitookmyjob running on :${port}`);
+  });
+}
+
+start().catch((error) => {
+  console.error("Failed to start server:", error);
+  process.exit(1);
 });
