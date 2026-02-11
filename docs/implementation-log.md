@@ -98,3 +98,8 @@
 
 ### Security cleanup
 - Revoked temporary Coolify API token used for provisioning.
+
+### Planning checkpoint requested by user
+- Paused feature expansion to create a full implementation whitepaper first.
+- Added `docs/WHITEPAPER.md` as the authoritative architecture and execution blueprint.
+- All next implementation steps will follow phases and acceptance criteria defined in the whitepaper.
