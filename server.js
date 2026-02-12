@@ -3569,6 +3569,67 @@ app.get(/^\/([a-z]{2,10})\/([a-z]{2})(?:\/.*)?$/i, (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
+app.get("/forum", (req, res) => {
+  // This would be replaced with actual forum integration
+  // For now, redirect to main page with a message about upcoming forum
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Forum - AI Took My Job</title>
+      <meta charset="utf-8">
+      <style>
+        body { 
+          font-family: 'Inter', system-ui, sans-serif;
+          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          margin: 0;
+        }
+        .container {
+          text-align: center;
+          padding: 2rem;
+          max-width: 600px;
+        }
+        .glass-card {
+          background: rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 16px;
+          padding: 2rem;
+          box-shadow: 0 8px 32px rgba(30, 30, 46, 0.08);
+        }
+        .primary-btn {
+          background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          padding: 0.75rem 1.5rem;
+          font-weight: 600;
+          cursor: pointer;
+          text-decoration: none;
+          display: inline-block;
+          margin-top: 1rem;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="glass-card">
+          <h1>Community Forum Coming Soon</h1>
+          <p>We're integrating a world-class forum powered by an open-source solution to provide the best community experience.</p>
+          <p>Our team is working to integrate a robust forum system that will allow for meaningful discussions, support groups, and community building.</p>
+          <a href="/" class="primary-btn">Return Home</a>
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
 app.get("/support", (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
