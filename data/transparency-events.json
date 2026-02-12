@@ -1,1 +1,112 @@
-[]
+[
+  {
+    "id": "ysen9bkgvsq3y6",
+    "eventType": "moderation",
+    "status": "approve",
+    "details": {
+      "entryId": "story:t4tph7trfo37",
+      "reason": "Playwright moderation approval"
+    },
+    "createdAt": "2026-02-11T20:38:17.219Z"
+  },
+  {
+    "id": "l70wgmrxufbdo9",
+    "eventType": "moderation",
+    "status": "approve",
+    "details": {
+      "entryId": "story:1fssvyun2w84",
+      "reason": "Playwright moderation approval"
+    },
+    "createdAt": "2026-02-11T20:39:06.298Z"
+  },
+  {
+    "id": "m1p8apz28aepp1",
+    "eventType": "moderation",
+    "status": "approve",
+    "details": {
+      "entryId": "story:rsrpu9oz77rz",
+      "reason": "Playwright moderation approval"
+    },
+    "createdAt": "2026-02-11T20:39:39.881Z"
+  },
+  {
+    "id": "3418umxweo7r3e",
+    "eventType": "moderation",
+    "status": "approve",
+    "details": {
+      "entryId": "story:b3mgz2fcokpq",
+      "reason": "Playwright moderation approval"
+    },
+    "createdAt": "2026-02-11T21:20:04.594Z"
+  },
+  {
+    "id": "zl5q61my5tgfxo",
+    "eventType": "moderation",
+    "status": "approve",
+    "details": {
+      "entryId": "story:hgvckhbrlgkr",
+      "reason": "Playwright moderation approval"
+    },
+    "createdAt": "2026-02-11T21:20:44.215Z"
+  },
+  {
+    "id": "owz7jyj442irqm",
+    "eventType": "moderation",
+    "status": "approve",
+    "details": {
+      "entryId": "story:o7wtvugucca8",
+      "reason": "Playwright moderation approval"
+    },
+    "createdAt": "2026-02-11T21:22:07.329Z"
+  },
+  {
+    "id": "jixaaasydqrayw",
+    "eventType": "moderation",
+    "status": "approve",
+    "details": {
+      "entryId": "story:sgfqf7tituni",
+      "reason": "Playwright moderation approval"
+    },
+    "createdAt": "2026-02-12T04:00:25.016Z"
+  },
+  {
+    "id": "m033dr63chp8g3",
+    "eventType": "moderation",
+    "status": "approve",
+    "details": {
+      "entryId": "story:6s3njcybdfbm",
+      "reason": "Playwright moderation approval"
+    },
+    "createdAt": "2026-02-12T04:01:53.389Z"
+  },
+  {
+    "id": "piy8qltm3crw3z",
+    "eventType": "moderation",
+    "status": "approve",
+    "details": {
+      "entryId": "story:2neuvtpk9647",
+      "reason": "Playwright moderation approval"
+    },
+    "createdAt": "2026-02-12T04:05:04.237Z"
+  },
+  {
+    "id": "i0oktdmef4gb4a",
+    "eventType": "moderation",
+    "status": "approve",
+    "details": {
+      "entryId": "story:9ksi0driwm16",
+      "reason": "Playwright moderation approval"
+    },
+    "createdAt": "2026-02-12T04:57:07.816Z"
+  },
+  {
+    "id": "rjo323a5k2wjqy",
+    "eventType": "moderation",
+    "status": "approve",
+    "details": {
+      "entryId": "story:gtfid9d1xwtx",
+      "reason": "Playwright moderation approval"
+    },
+    "createdAt": "2026-02-12T05:03:11.466Z"
+  }
+]

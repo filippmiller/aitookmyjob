@@ -65,5 +65,1688 @@
     },
     "ip": "::1",
     "createdAt": "2026-02-11T15:41:16.426Z"
+  },
+  {
+    "id": "gxzfsi7ns5lotz",
+    "action": "auth.register",
+    "actorId": "onw3ctiryh335w",
+    "targetType": "user",
+    "targetId": "onw3ctiryh335w",
+    "metadata": {
+      "email": "pw_1770827368630_62706@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T16:29:37.928Z"
+  },
+  {
+    "id": "cq4itdr5szmpgl",
+    "action": "auth.register",
+    "actorId": "qr6nlj3yv376h8",
+    "targetType": "user",
+    "targetId": "qr6nlj3yv376h8",
+    "metadata": {
+      "email": "pw_1770828600606_23506@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T16:50:06.300Z"
+  },
+  {
+    "id": "8khtsu1gs4vgt5",
+    "action": "legal.takedown.request",
+    "actorId": null,
+    "targetType": "takedown",
+    "targetId": "a3u6sko1jlvasz",
+    "metadata": {
+      "targetUrl": "https://example.com/story/123"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T17:32:22.420Z"
+  },
+  {
+    "id": "c7rehiilldwvkh",
+    "action": "story.submit.anonymous",
+    "actorId": null,
+    "targetType": "story",
+    "targetId": "b9t2zj5h1fne",
+    "metadata": {
+      "country": "us",
+      "language": "en",
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "crisis": 0,
+        "riskBand": "low",
+        "recommendations": []
+      }
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T17:33:59.156Z"
+  },
+  {
+    "id": "1uj7jnnz200jf3",
+    "action": "auth.register",
+    "actorId": "kwt8crs5o9b97g",
+    "targetType": "user",
+    "targetId": "kwt8crs5o9b97g",
+    "metadata": {
+      "email": "pw_1770831275637_72242@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T17:34:42.244Z"
+  },
+  {
+    "id": "ivvqbui8rx2wwx",
+    "action": "auth.register",
+    "actorId": "6amvwp0upg1fci",
+    "targetType": "user",
+    "targetId": "6amvwp0upg1fci",
+    "metadata": {
+      "email": "pw_1770841860550_50904@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:31:06.094Z"
+  },
+  {
+    "id": "77y252on34aq2o",
+    "action": "auth.register",
+    "actorId": "nlw9e3chs36m6b",
+    "targetType": "user",
+    "targetId": "nlw9e3chs36m6b",
+    "metadata": {
+      "email": "pw_1770841999867_56590@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:33:25.279Z"
+  },
+  {
+    "id": "ittzdtyi2fg1u9",
+    "action": "auth.register",
+    "actorId": "teyanzefspm0er",
+    "targetType": "user",
+    "targetId": "teyanzefspm0er",
+    "metadata": {
+      "email": "pw_1770842142319_45610@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:35:47.742Z"
+  },
+  {
+    "id": "r27zca9fudxws1",
+    "action": "auth.phone.start",
+    "actorId": "teyanzefspm0er",
+    "targetType": "identity",
+    "targetId": "teyanzefspm0er",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:35:48.454Z"
+  },
+  {
+    "id": "ga630n3i127kfn",
+    "action": "auth.phone.verified",
+    "actorId": "teyanzefspm0er",
+    "targetType": "identity",
+    "targetId": "teyanzefspm0er",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:35:49.735Z"
+  },
+  {
+    "id": "h6t7zyhmqtcyz1",
+    "action": "forum.topic.create",
+    "actorId": "teyanzefspm0er",
+    "targetType": "forum_topic",
+    "targetId": "pkzox005bl75ow",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:35:50.409Z"
+  },
+  {
+    "id": "7tt9gum96pf3bd",
+    "action": "auth.register",
+    "actorId": "ldjb5hrq7vqp57",
+    "targetType": "user",
+    "targetId": "ldjb5hrq7vqp57",
+    "metadata": {
+      "email": "pw_1770842190347_95509@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:36:36.444Z"
+  },
+  {
+    "id": "8hqw6fe4wgx1e3",
+    "action": "auth.phone.start",
+    "actorId": "ldjb5hrq7vqp57",
+    "targetType": "identity",
+    "targetId": "ldjb5hrq7vqp57",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:36:37.758Z"
+  },
+  {
+    "id": "b6zutpcfwu2tz2",
+    "action": "auth.phone.verified",
+    "actorId": "ldjb5hrq7vqp57",
+    "targetType": "identity",
+    "targetId": "ldjb5hrq7vqp57",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:36:38.799Z"
+  },
+  {
+    "id": "tod0bw83xiysqf",
+    "action": "forum.topic.create",
+    "actorId": "ldjb5hrq7vqp57",
+    "targetType": "forum_topic",
+    "targetId": "h7pi75g51zn9iq",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:36:39.508Z"
+  },
+  {
+    "id": "4x3qdbm5jxt99j",
+    "action": "auth.register",
+    "actorId": "3u0gnnj5wy7od9",
+    "targetType": "user",
+    "targetId": "3u0gnnj5wy7od9",
+    "metadata": {
+      "email": "pw_1770842236318_57543@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:37:21.726Z"
+  },
+  {
+    "id": "p1qjalythkq2dy",
+    "action": "auth.phone.start",
+    "actorId": "3u0gnnj5wy7od9",
+    "targetType": "identity",
+    "targetId": "3u0gnnj5wy7od9",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:37:22.525Z"
+  },
+  {
+    "id": "t92hxlr4x1zu0x",
+    "action": "auth.phone.verified",
+    "actorId": "3u0gnnj5wy7od9",
+    "targetType": "identity",
+    "targetId": "3u0gnnj5wy7od9",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:37:23.378Z"
+  },
+  {
+    "id": "n2kvmfeygok5qb",
+    "action": "forum.topic.create",
+    "actorId": "3u0gnnj5wy7od9",
+    "targetType": "forum_topic",
+    "targetId": "n88qnt3yqfb4yp",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:37:24.165Z"
+  },
+  {
+    "id": "b22pwss74lpytf",
+    "action": "forum.reply.create",
+    "actorId": "3u0gnnj5wy7od9",
+    "targetType": "forum_reply",
+    "targetId": "dncc7fmex00ezb",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:37:24.919Z"
+  },
+  {
+    "id": "za8ks31533co31",
+    "action": "forum.reply.create",
+    "actorId": "3u0gnnj5wy7od9",
+    "targetType": "forum_reply",
+    "targetId": "7v00xc0lpkn6f5",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:37:25.409Z"
+  },
+  {
+    "id": "t450hy2w55xlgf",
+    "action": "auth.register",
+    "actorId": "e1fb0w1bwnj8xi",
+    "targetType": "user",
+    "targetId": "e1fb0w1bwnj8xi",
+    "metadata": {
+      "email": "pw_1770842283258_23991@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:38:08.953Z"
+  },
+  {
+    "id": "2vb708ndemp4d8",
+    "action": "auth.phone.start",
+    "actorId": "e1fb0w1bwnj8xi",
+    "targetType": "identity",
+    "targetId": "e1fb0w1bwnj8xi",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:38:09.780Z"
+  },
+  {
+    "id": "2y5uai1e498u1m",
+    "action": "auth.phone.verified",
+    "actorId": "e1fb0w1bwnj8xi",
+    "targetType": "identity",
+    "targetId": "e1fb0w1bwnj8xi",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:38:11.207Z"
+  },
+  {
+    "id": "04l4is9edivvdw",
+    "action": "forum.topic.create",
+    "actorId": "e1fb0w1bwnj8xi",
+    "targetType": "forum_topic",
+    "targetId": "w5xvohjnq31ptr",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:38:11.972Z"
+  },
+  {
+    "id": "i3d4g3iokdbzaf",
+    "action": "forum.reply.create",
+    "actorId": "e1fb0w1bwnj8xi",
+    "targetType": "forum_reply",
+    "targetId": "2jm7v14g3td6ei",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:38:12.698Z"
+  },
+  {
+    "id": "pt43sevu8zrj8m",
+    "action": "forum.reply.create",
+    "actorId": "e1fb0w1bwnj8xi",
+    "targetType": "forum_reply",
+    "targetId": "egngo4e18zqhc4",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:38:13.486Z"
+  },
+  {
+    "id": "0f6al9jsaijgsd",
+    "action": "story.submit",
+    "actorId": "e1fb0w1bwnj8xi",
+    "targetType": "story",
+    "targetId": "t4tph7trfo37",
+    "metadata": {
+      "country": "global",
+      "language": "en",
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "crisis": 0,
+        "riskBand": "low",
+        "recommendations": []
+      }
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:38:14.779Z"
+  },
+  {
+    "id": "44hzvejt1eioe7",
+    "action": "moderation.action",
+    "actorId": "e1fb0w1bwnj8xi",
+    "targetType": "queue_entry",
+    "targetId": "story:t4tph7trfo37",
+    "metadata": {
+      "action": "approve",
+      "reason": "Playwright moderation approval"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:38:17.215Z"
+  },
+  {
+    "id": "7ryy90tbzv8m73",
+    "action": "auth.register",
+    "actorId": "7tmme9frza4v5h",
+    "targetType": "user",
+    "targetId": "7tmme9frza4v5h",
+    "metadata": {
+      "email": "pw_1770842333077_74425@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:38:58.189Z"
+  },
+  {
+    "id": "mhe18sbogibksk",
+    "action": "auth.phone.start",
+    "actorId": "7tmme9frza4v5h",
+    "targetType": "identity",
+    "targetId": "7tmme9frza4v5h",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:38:59.106Z"
+  },
+  {
+    "id": "msfho76h0h5q9f",
+    "action": "auth.phone.verified",
+    "actorId": "7tmme9frza4v5h",
+    "targetType": "identity",
+    "targetId": "7tmme9frza4v5h",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:00.173Z"
+  },
+  {
+    "id": "1yyip7w803zklu",
+    "action": "forum.topic.create",
+    "actorId": "7tmme9frza4v5h",
+    "targetType": "forum_topic",
+    "targetId": "or4ve2il9kqul4",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:00.980Z"
+  },
+  {
+    "id": "aquue2abzvg8b5",
+    "action": "forum.reply.create",
+    "actorId": "7tmme9frza4v5h",
+    "targetType": "forum_reply",
+    "targetId": "y88lhs8hwcm2fe",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:01.866Z"
+  },
+  {
+    "id": "o464d5ry49odsz",
+    "action": "forum.reply.create",
+    "actorId": "7tmme9frza4v5h",
+    "targetType": "forum_reply",
+    "targetId": "gtqjmx93ic7wyr",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:02.616Z"
+  },
+  {
+    "id": "fpocjfi2dtfxh8",
+    "action": "story.submit",
+    "actorId": "7tmme9frza4v5h",
+    "targetType": "story",
+    "targetId": "1fssvyun2w84",
+    "metadata": {
+      "country": "global",
+      "language": "en",
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "crisis": 0,
+        "riskBand": "low",
+        "recommendations": []
+      }
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:03.373Z"
+  },
+  {
+    "id": "aci6vl0bfdsuqv",
+    "action": "moderation.action",
+    "actorId": "7tmme9frza4v5h",
+    "targetType": "queue_entry",
+    "targetId": "story:1fssvyun2w84",
+    "metadata": {
+      "action": "approve",
+      "reason": "Playwright moderation approval"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:06.296Z"
+  },
+  {
+    "id": "b3l1itn4ley45z",
+    "action": "telegram.link.start",
+    "actorId": "7tmme9frza4v5h",
+    "targetType": "identity",
+    "targetId": "7tmme9frza4v5h",
+    "metadata": {
+      "expiresAt": "2026-02-11T20:54:11.405Z",
+      "alias": "link-code"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:11.406Z"
+  },
+  {
+    "id": "s8b5ehvnouavsw",
+    "action": "auth.logout",
+    "actorId": "7tmme9frza4v5h",
+    "targetType": "user",
+    "targetId": "7tmme9frza4v5h",
+    "metadata": {},
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:13.423Z"
+  },
+  {
+    "id": "x7ipjxlkbzkais",
+    "action": "auth.register",
+    "actorId": "ua42qffzu5h6t0",
+    "targetType": "user",
+    "targetId": "ua42qffzu5h6t0",
+    "metadata": {
+      "email": "pw_1770842366384_36775@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:31.666Z"
+  },
+  {
+    "id": "5u5caxaj3b4x5b",
+    "action": "auth.phone.start",
+    "actorId": "ua42qffzu5h6t0",
+    "targetType": "identity",
+    "targetId": "ua42qffzu5h6t0",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:32.579Z"
+  },
+  {
+    "id": "8zdzm5obpxnz46",
+    "action": "auth.phone.verified",
+    "actorId": "ua42qffzu5h6t0",
+    "targetType": "identity",
+    "targetId": "ua42qffzu5h6t0",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:33.844Z"
+  },
+  {
+    "id": "6s6e76qd3w0tp7",
+    "action": "forum.topic.create",
+    "actorId": "ua42qffzu5h6t0",
+    "targetType": "forum_topic",
+    "targetId": "c2vq3ea2t5x4xs",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:34.583Z"
+  },
+  {
+    "id": "m5hr27fwhiacpc",
+    "action": "forum.reply.create",
+    "actorId": "ua42qffzu5h6t0",
+    "targetType": "forum_reply",
+    "targetId": "wyv58n0zs0v8tb",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:35.252Z"
+  },
+  {
+    "id": "p379ihxmgjsybc",
+    "action": "forum.reply.create",
+    "actorId": "ua42qffzu5h6t0",
+    "targetType": "forum_reply",
+    "targetId": "r9p9c6lqw4gk7m",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:35.939Z"
+  },
+  {
+    "id": "xqq1pb6y1s7a12",
+    "action": "story.submit",
+    "actorId": "ua42qffzu5h6t0",
+    "targetType": "story",
+    "targetId": "rsrpu9oz77rz",
+    "metadata": {
+      "country": "global",
+      "language": "en",
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "crisis": 0,
+        "riskBand": "low",
+        "recommendations": []
+      }
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:36.730Z"
+  },
+  {
+    "id": "su8fzrd4pf3tkz",
+    "action": "moderation.action",
+    "actorId": "ua42qffzu5h6t0",
+    "targetType": "queue_entry",
+    "targetId": "story:rsrpu9oz77rz",
+    "metadata": {
+      "action": "approve",
+      "reason": "Playwright moderation approval"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:39.878Z"
+  },
+  {
+    "id": "bs1ym8ri9f1k55",
+    "action": "telegram.link.start",
+    "actorId": "ua42qffzu5h6t0",
+    "targetType": "identity",
+    "targetId": "ua42qffzu5h6t0",
+    "metadata": {
+      "expiresAt": "2026-02-11T20:54:44.922Z",
+      "alias": "link-code"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:44.923Z"
+  },
+  {
+    "id": "nx24haq3ydmeqh",
+    "action": "auth.logout",
+    "actorId": "ua42qffzu5h6t0",
+    "targetType": "user",
+    "targetId": "ua42qffzu5h6t0",
+    "metadata": {},
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T20:39:46.962Z"
+  },
+  {
+    "id": "l684pt2lppwclp",
+    "action": "auth.register",
+    "actorId": "oc6ybe8q6rfbw5",
+    "targetType": "user",
+    "targetId": "oc6ybe8q6rfbw5",
+    "metadata": {
+      "email": "pw_1770844790882_31215@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:19:56.936Z"
+  },
+  {
+    "id": "sr6o97kp15pnj6",
+    "action": "auth.phone.start",
+    "actorId": "oc6ybe8q6rfbw5",
+    "targetType": "identity",
+    "targetId": "oc6ybe8q6rfbw5",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:19:57.993Z"
+  },
+  {
+    "id": "uf3nip0bs0fkzt",
+    "action": "auth.phone.verified",
+    "actorId": "oc6ybe8q6rfbw5",
+    "targetType": "identity",
+    "targetId": "oc6ybe8q6rfbw5",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:19:59.019Z"
+  },
+  {
+    "id": "9gjnhsbhum3mnw",
+    "action": "forum.topic.create",
+    "actorId": "oc6ybe8q6rfbw5",
+    "targetType": "forum_topic",
+    "targetId": "9g859r6qk9x53u",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:19:59.771Z"
+  },
+  {
+    "id": "pbot0j2fyq5vbt",
+    "action": "forum.reply.create",
+    "actorId": "oc6ybe8q6rfbw5",
+    "targetType": "forum_reply",
+    "targetId": "eslpndjp6x6wai",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:00.542Z"
+  },
+  {
+    "id": "d2s45ta7p3uyln",
+    "action": "forum.reply.create",
+    "actorId": "oc6ybe8q6rfbw5",
+    "targetType": "forum_reply",
+    "targetId": "cc06axrgb1l8l7",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:01.360Z"
+  },
+  {
+    "id": "retluw2p4j8qxc",
+    "action": "story.submit",
+    "actorId": "oc6ybe8q6rfbw5",
+    "targetType": "story",
+    "targetId": "b3mgz2fcokpq",
+    "metadata": {
+      "country": "global",
+      "language": "en",
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "crisis": 0,
+        "riskBand": "low",
+        "recommendations": []
+      }
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:02.214Z"
+  },
+  {
+    "id": "7qjo03lx27hn91",
+    "action": "moderation.action",
+    "actorId": "oc6ybe8q6rfbw5",
+    "targetType": "queue_entry",
+    "targetId": "story:b3mgz2fcokpq",
+    "metadata": {
+      "action": "approve",
+      "reason": "Playwright moderation approval"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:04.590Z"
+  },
+  {
+    "id": "8pdgvuckitll9l",
+    "action": "telegram.link.start",
+    "actorId": "oc6ybe8q6rfbw5",
+    "targetType": "identity",
+    "targetId": "oc6ybe8q6rfbw5",
+    "metadata": {
+      "expiresAt": "2026-02-11T21:35:09.045Z",
+      "alias": "link-code"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:09.046Z"
+  },
+  {
+    "id": "rdhvusxve6b4ee",
+    "action": "auth.logout",
+    "actorId": "oc6ybe8q6rfbw5",
+    "targetType": "user",
+    "targetId": "oc6ybe8q6rfbw5",
+    "metadata": {},
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:11.161Z"
+  },
+  {
+    "id": "tmri67735lkmvl",
+    "action": "auth.register",
+    "actorId": "m1kylhpuoeifj6",
+    "targetType": "user",
+    "targetId": "m1kylhpuoeifj6",
+    "metadata": {
+      "email": "pw_1770844830629_20313@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:36.482Z"
+  },
+  {
+    "id": "yu7six5oq4epq5",
+    "action": "auth.phone.start",
+    "actorId": "m1kylhpuoeifj6",
+    "targetType": "identity",
+    "targetId": "m1kylhpuoeifj6",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:36.877Z"
+  },
+  {
+    "id": "x5j7n3pdxs0jxc",
+    "action": "auth.phone.verified",
+    "actorId": "m1kylhpuoeifj6",
+    "targetType": "identity",
+    "targetId": "m1kylhpuoeifj6",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:37.868Z"
+  },
+  {
+    "id": "a3fdp93u493nu0",
+    "action": "forum.topic.create",
+    "actorId": "m1kylhpuoeifj6",
+    "targetType": "forum_topic",
+    "targetId": "ls1q29og7uboj2",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:38.611Z"
+  },
+  {
+    "id": "9jen5ll8p3ntai",
+    "action": "forum.reply.create",
+    "actorId": "m1kylhpuoeifj6",
+    "targetType": "forum_reply",
+    "targetId": "f7yy25vvo0f60r",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:39.368Z"
+  },
+  {
+    "id": "ibpvlkusfu6t5c",
+    "action": "forum.reply.create",
+    "actorId": "m1kylhpuoeifj6",
+    "targetType": "forum_reply",
+    "targetId": "e5ibdyqfbmm4z7",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:40.547Z"
+  },
+  {
+    "id": "t353ykvx8z0mux",
+    "action": "story.submit",
+    "actorId": "m1kylhpuoeifj6",
+    "targetType": "story",
+    "targetId": "hgvckhbrlgkr",
+    "metadata": {
+      "country": "global",
+      "language": "en",
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "crisis": 0,
+        "riskBand": "low",
+        "recommendations": []
+      }
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:41.384Z"
+  },
+  {
+    "id": "t6iryj5s9e3pwm",
+    "action": "moderation.action",
+    "actorId": "m1kylhpuoeifj6",
+    "targetType": "queue_entry",
+    "targetId": "story:hgvckhbrlgkr",
+    "metadata": {
+      "action": "approve",
+      "reason": "Playwright moderation approval"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:44.212Z"
+  },
+  {
+    "id": "3x33lk2prumii3",
+    "action": "telegram.link.start",
+    "actorId": "m1kylhpuoeifj6",
+    "targetType": "identity",
+    "targetId": "m1kylhpuoeifj6",
+    "metadata": {
+      "expiresAt": "2026-02-11T21:35:49.323Z",
+      "alias": "link-code"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:49.323Z"
+  },
+  {
+    "id": "kbrgv3dkpp0fkn",
+    "action": "auth.logout",
+    "actorId": "m1kylhpuoeifj6",
+    "targetType": "user",
+    "targetId": "m1kylhpuoeifj6",
+    "metadata": {},
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:20:51.356Z"
+  },
+  {
+    "id": "rn6yohielty2lk",
+    "action": "auth.register",
+    "actorId": "ii29ht25b3lrry",
+    "targetType": "user",
+    "targetId": "ii29ht25b3lrry",
+    "metadata": {
+      "email": "pw_1770844913007_65214@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:21:59.495Z"
+  },
+  {
+    "id": "jypdgbgpgzbbrl",
+    "action": "auth.phone.start",
+    "actorId": "ii29ht25b3lrry",
+    "targetType": "identity",
+    "targetId": "ii29ht25b3lrry",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:22:00.646Z"
+  },
+  {
+    "id": "ekn52ckwlb24jq",
+    "action": "auth.phone.verified",
+    "actorId": "ii29ht25b3lrry",
+    "targetType": "identity",
+    "targetId": "ii29ht25b3lrry",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:22:01.702Z"
+  },
+  {
+    "id": "0pq96dljzcdjw2",
+    "action": "forum.topic.create",
+    "actorId": "ii29ht25b3lrry",
+    "targetType": "forum_topic",
+    "targetId": "vzid4ukt277u9l",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:22:02.377Z"
+  },
+  {
+    "id": "ib4m0796j0vc96",
+    "action": "forum.reply.create",
+    "actorId": "ii29ht25b3lrry",
+    "targetType": "forum_reply",
+    "targetId": "9k4ixrfkjmcg45",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:22:03.127Z"
+  },
+  {
+    "id": "72ug48qj7tv21j",
+    "action": "forum.reply.create",
+    "actorId": "ii29ht25b3lrry",
+    "targetType": "forum_reply",
+    "targetId": "akt5rciytk93r4",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:22:03.907Z"
+  },
+  {
+    "id": "kf8si36q05nplm",
+    "action": "story.submit",
+    "actorId": "ii29ht25b3lrry",
+    "targetType": "story",
+    "targetId": "o7wtvugucca8",
+    "metadata": {
+      "country": "global",
+      "language": "en",
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "crisis": 0,
+        "riskBand": "low",
+        "recommendations": []
+      }
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:22:04.972Z"
+  },
+  {
+    "id": "wgg5i6dika5nqu",
+    "action": "moderation.action",
+    "actorId": "ii29ht25b3lrry",
+    "targetType": "queue_entry",
+    "targetId": "story:o7wtvugucca8",
+    "metadata": {
+      "action": "approve",
+      "reason": "Playwright moderation approval"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:22:07.322Z"
+  },
+  {
+    "id": "h1yhm1s9u48n6q",
+    "action": "telegram.link.start",
+    "actorId": "ii29ht25b3lrry",
+    "targetType": "identity",
+    "targetId": "ii29ht25b3lrry",
+    "metadata": {
+      "expiresAt": "2026-02-11T21:37:11.153Z",
+      "alias": "link-code"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:22:11.155Z"
+  },
+  {
+    "id": "x4apwm0rscyq82",
+    "action": "auth.logout",
+    "actorId": "ii29ht25b3lrry",
+    "targetType": "user",
+    "targetId": "ii29ht25b3lrry",
+    "metadata": {},
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-11T21:22:12.597Z"
+  },
+  {
+    "id": "9udgqz67zy0ado",
+    "action": "auth.register",
+    "actorId": "ohbhe6s3tadv25",
+    "targetType": "user",
+    "targetId": "ohbhe6s3tadv25",
+    "metadata": {
+      "email": "pw_1770868809843_88684@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:00:16.113Z"
+  },
+  {
+    "id": "8kpqe224vnemzn",
+    "action": "auth.phone.start",
+    "actorId": "ohbhe6s3tadv25",
+    "targetType": "identity",
+    "targetId": "ohbhe6s3tadv25",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:00:16.907Z"
+  },
+  {
+    "id": "o5qk7zcujtuihy",
+    "action": "auth.phone.verified",
+    "actorId": "ohbhe6s3tadv25",
+    "targetType": "identity",
+    "targetId": "ohbhe6s3tadv25",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:00:18.187Z"
+  },
+  {
+    "id": "b3a5q3wb4649r0",
+    "action": "forum.topic.create",
+    "actorId": "ohbhe6s3tadv25",
+    "targetType": "forum_topic",
+    "targetId": "pjfbl9pr1pc4tt",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:00:18.821Z"
+  },
+  {
+    "id": "hqp7wtfy9529jc",
+    "action": "forum.reply.create",
+    "actorId": "ohbhe6s3tadv25",
+    "targetType": "forum_reply",
+    "targetId": "24udcw8lep00rz",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:00:19.936Z"
+  },
+  {
+    "id": "sedilymrhzj5fx",
+    "action": "forum.reply.create",
+    "actorId": "ohbhe6s3tadv25",
+    "targetType": "forum_reply",
+    "targetId": "frapb50ojlmeh8",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:00:21.031Z"
+  },
+  {
+    "id": "w7h56ne6xo42nb",
+    "action": "story.submit",
+    "actorId": "ohbhe6s3tadv25",
+    "targetType": "story",
+    "targetId": "sgfqf7tituni",
+    "metadata": {
+      "country": "global",
+      "language": "en",
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "crisis": 0,
+        "riskBand": "low",
+        "recommendations": []
+      }
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:00:21.737Z"
+  },
+  {
+    "id": "m6qvy4a3fvsib5",
+    "action": "moderation.action",
+    "actorId": "ohbhe6s3tadv25",
+    "targetType": "queue_entry",
+    "targetId": "story:sgfqf7tituni",
+    "metadata": {
+      "action": "approve",
+      "reason": "Playwright moderation approval"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:00:25.014Z"
+  },
+  {
+    "id": "me60ictyqi6tu8",
+    "action": "telegram.link.start",
+    "actorId": "ohbhe6s3tadv25",
+    "targetType": "identity",
+    "targetId": "ohbhe6s3tadv25",
+    "metadata": {
+      "expiresAt": "2026-02-12T04:15:30.098Z",
+      "alias": "link-code"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:00:30.099Z"
+  },
+  {
+    "id": "vjdavyzsegww31",
+    "action": "auth.logout",
+    "actorId": "ohbhe6s3tadv25",
+    "targetType": "user",
+    "targetId": "ohbhe6s3tadv25",
+    "metadata": {},
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:00:32.094Z"
+  },
+  {
+    "id": "cxrqpu78r55ktw",
+    "action": "auth.register",
+    "actorId": "091q1v0dzu0tlr",
+    "targetType": "user",
+    "targetId": "091q1v0dzu0tlr",
+    "metadata": {
+      "email": "pw_1770868898702_40650@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:01:44.989Z"
+  },
+  {
+    "id": "z8wgsk22hadq8s",
+    "action": "auth.phone.start",
+    "actorId": "091q1v0dzu0tlr",
+    "targetType": "identity",
+    "targetId": "091q1v0dzu0tlr",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:01:46.062Z"
+  },
+  {
+    "id": "6d9s8k530uhzw0",
+    "action": "auth.phone.verified",
+    "actorId": "091q1v0dzu0tlr",
+    "targetType": "identity",
+    "targetId": "091q1v0dzu0tlr",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:01:47.013Z"
+  },
+  {
+    "id": "in853if5wdwilw",
+    "action": "forum.topic.create",
+    "actorId": "091q1v0dzu0tlr",
+    "targetType": "forum_topic",
+    "targetId": "52rsl068nljis3",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:01:47.823Z"
+  },
+  {
+    "id": "7i8edn1aua9yf8",
+    "action": "forum.reply.create",
+    "actorId": "091q1v0dzu0tlr",
+    "targetType": "forum_reply",
+    "targetId": "07x0jc2kgyhti5",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:01:48.641Z"
+  },
+  {
+    "id": "3nac5bu2xuplb0",
+    "action": "forum.reply.create",
+    "actorId": "091q1v0dzu0tlr",
+    "targetType": "forum_reply",
+    "targetId": "rdhczlkr8pgfpi",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:01:49.553Z"
+  },
+  {
+    "id": "z5fifmx5y0s8lp",
+    "action": "story.submit",
+    "actorId": "091q1v0dzu0tlr",
+    "targetType": "story",
+    "targetId": "6s3njcybdfbm",
+    "metadata": {
+      "country": "global",
+      "language": "en",
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "crisis": 0,
+        "riskBand": "low",
+        "recommendations": []
+      }
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:01:50.849Z"
+  },
+  {
+    "id": "wfn6t0tv6wo31r",
+    "action": "moderation.action",
+    "actorId": "091q1v0dzu0tlr",
+    "targetType": "queue_entry",
+    "targetId": "story:6s3njcybdfbm",
+    "metadata": {
+      "action": "approve",
+      "reason": "Playwright moderation approval"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:01:53.382Z"
+  },
+  {
+    "id": "w7iegh6xgah39g",
+    "action": "telegram.link.start",
+    "actorId": "091q1v0dzu0tlr",
+    "targetType": "identity",
+    "targetId": "091q1v0dzu0tlr",
+    "metadata": {
+      "expiresAt": "2026-02-12T04:16:57.931Z",
+      "alias": "link-code"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:01:57.932Z"
+  },
+  {
+    "id": "i7njo84qsiedm2",
+    "action": "auth.logout",
+    "actorId": "091q1v0dzu0tlr",
+    "targetType": "user",
+    "targetId": "091q1v0dzu0tlr",
+    "metadata": {},
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:01:59.859Z"
+  },
+  {
+    "id": "8nqwt4g6tiu4qa",
+    "action": "auth.register",
+    "actorId": "9v1u0c8zu9cgui",
+    "targetType": "user",
+    "targetId": "9v1u0c8zu9cgui",
+    "metadata": {
+      "email": "pw_1770869090534_46209@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:04:56.599Z"
+  },
+  {
+    "id": "smvx1hf9ms4520",
+    "action": "auth.phone.start",
+    "actorId": "9v1u0c8zu9cgui",
+    "targetType": "identity",
+    "targetId": "9v1u0c8zu9cgui",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:04:57.601Z"
+  },
+  {
+    "id": "4lf43od2gin60u",
+    "action": "auth.phone.verified",
+    "actorId": "9v1u0c8zu9cgui",
+    "targetType": "identity",
+    "targetId": "9v1u0c8zu9cgui",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:04:58.508Z"
+  },
+  {
+    "id": "tpmfdf6sf3bbi0",
+    "action": "forum.topic.create",
+    "actorId": "9v1u0c8zu9cgui",
+    "targetType": "forum_topic",
+    "targetId": "of9w4bbgnyjf9c",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:04:59.283Z"
+  },
+  {
+    "id": "ibpehp2zyvy86w",
+    "action": "forum.reply.create",
+    "actorId": "9v1u0c8zu9cgui",
+    "targetType": "forum_reply",
+    "targetId": "hh5ldt0rp6hj5u",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:05:00.108Z"
+  },
+  {
+    "id": "ur48kii513z4oc",
+    "action": "forum.reply.create",
+    "actorId": "9v1u0c8zu9cgui",
+    "targetType": "forum_reply",
+    "targetId": "r4wda8nsh6zve6",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:05:00.934Z"
+  },
+  {
+    "id": "ximhsuj10slx6s",
+    "action": "story.submit",
+    "actorId": "9v1u0c8zu9cgui",
+    "targetType": "story",
+    "targetId": "2neuvtpk9647",
+    "metadata": {
+      "country": "global",
+      "language": "en",
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "crisis": 0,
+        "riskBand": "low",
+        "recommendations": []
+      }
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:05:01.857Z"
+  },
+  {
+    "id": "anzowbj36tlhfz",
+    "action": "moderation.action",
+    "actorId": "9v1u0c8zu9cgui",
+    "targetType": "queue_entry",
+    "targetId": "story:2neuvtpk9647",
+    "metadata": {
+      "action": "approve",
+      "reason": "Playwright moderation approval"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:05:04.231Z"
+  },
+  {
+    "id": "u8dbhxkhxbs2oh",
+    "action": "telegram.link.start",
+    "actorId": "9v1u0c8zu9cgui",
+    "targetType": "identity",
+    "targetId": "9v1u0c8zu9cgui",
+    "metadata": {
+      "expiresAt": "2026-02-12T04:20:08.185Z",
+      "alias": "link-code"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:05:08.187Z"
+  },
+  {
+    "id": "od3an6xkuoh69m",
+    "action": "auth.logout",
+    "actorId": "9v1u0c8zu9cgui",
+    "targetType": "user",
+    "targetId": "9v1u0c8zu9cgui",
+    "metadata": {},
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:05:09.439Z"
+  },
+  {
+    "id": "ensp6jnaua20xq",
+    "action": "auth.register",
+    "actorId": "pln74fcx6jv3x8",
+    "targetType": "user",
+    "targetId": "pln74fcx6jv3x8",
+    "metadata": {
+      "email": "pw_1770872211056_53459@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:56:58.216Z"
+  },
+  {
+    "id": "ad4q5s6hpqrvgn",
+    "action": "auth.phone.start",
+    "actorId": "pln74fcx6jv3x8",
+    "targetType": "identity",
+    "targetId": "pln74fcx6jv3x8",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:56:59.459Z"
+  },
+  {
+    "id": "3o17valn4pu341",
+    "action": "auth.phone.verified",
+    "actorId": "pln74fcx6jv3x8",
+    "targetType": "identity",
+    "targetId": "pln74fcx6jv3x8",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:57:00.542Z"
+  },
+  {
+    "id": "ow8pjprrxndoti",
+    "action": "forum.topic.create",
+    "actorId": "pln74fcx6jv3x8",
+    "targetType": "forum_topic",
+    "targetId": "ji30g63voes2pc",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:57:01.328Z"
+  },
+  {
+    "id": "770sip0wxta11p",
+    "action": "forum.reply.create",
+    "actorId": "pln74fcx6jv3x8",
+    "targetType": "forum_reply",
+    "targetId": "auwzm948xmccbs",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:57:02.200Z"
+  },
+  {
+    "id": "pi7yf96qen03qc",
+    "action": "forum.reply.create",
+    "actorId": "pln74fcx6jv3x8",
+    "targetType": "forum_reply",
+    "targetId": "cxiqiw47a3mu0k",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:57:03.095Z"
+  },
+  {
+    "id": "juhbdxkx91ruf7",
+    "action": "story.submit",
+    "actorId": "pln74fcx6jv3x8",
+    "targetType": "story",
+    "targetId": "9ksi0driwm16",
+    "metadata": {
+      "country": "global",
+      "language": "en",
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "crisis": 0,
+        "riskBand": "low",
+        "recommendations": []
+      }
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:57:04.430Z"
+  },
+  {
+    "id": "ckq49lc7gsnhc0",
+    "action": "moderation.action",
+    "actorId": "pln74fcx6jv3x8",
+    "targetType": "queue_entry",
+    "targetId": "story:9ksi0driwm16",
+    "metadata": {
+      "action": "approve",
+      "reason": "Playwright moderation approval"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:57:07.792Z"
+  },
+  {
+    "id": "mfdhdl56u492yu",
+    "action": "telegram.link.start",
+    "actorId": "pln74fcx6jv3x8",
+    "targetType": "identity",
+    "targetId": "pln74fcx6jv3x8",
+    "metadata": {
+      "expiresAt": "2026-02-12T05:12:12.339Z",
+      "alias": "link-code"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:57:12.344Z"
+  },
+  {
+    "id": "84g6r41irl3ewy",
+    "action": "auth.logout",
+    "actorId": "pln74fcx6jv3x8",
+    "targetType": "user",
+    "targetId": "pln74fcx6jv3x8",
+    "metadata": {},
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T04:57:14.216Z"
+  },
+  {
+    "id": "odgyfsjzfmjact",
+    "action": "auth.register",
+    "actorId": "jhyqv38zfz3scd",
+    "targetType": "user",
+    "targetId": "jhyqv38zfz3scd",
+    "metadata": {
+      "email": "pw_1770872577092_94867@example.com"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T05:03:03.516Z"
+  },
+  {
+    "id": "ta9n7qmwp6k50e",
+    "action": "auth.phone.start",
+    "actorId": "jhyqv38zfz3scd",
+    "targetType": "identity",
+    "targetId": "jhyqv38zfz3scd",
+    "metadata": {
+      "phone": "+15555550999",
+      "alias": "request-otp"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T05:03:04.814Z"
+  },
+  {
+    "id": "knk4diuf6l20xa",
+    "action": "auth.phone.verified",
+    "actorId": "jhyqv38zfz3scd",
+    "targetType": "identity",
+    "targetId": "jhyqv38zfz3scd",
+    "metadata": {
+      "phone": "+15555550999"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T05:03:05.844Z"
+  },
+  {
+    "id": "ec84u035uva8f8",
+    "action": "forum.topic.create",
+    "actorId": "jhyqv38zfz3scd",
+    "targetType": "forum_topic",
+    "targetId": "l9qvk4g1jh1hps",
+    "metadata": {
+      "categoryId": "dev"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T05:03:06.571Z"
+  },
+  {
+    "id": "e0yqr544a7enie",
+    "action": "forum.reply.create",
+    "actorId": "jhyqv38zfz3scd",
+    "targetType": "forum_reply",
+    "targetId": "vtdq3xknem94d4",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T05:03:07.378Z"
+  },
+  {
+    "id": "6uhdswl7948jwn",
+    "action": "forum.reply.create",
+    "actorId": "jhyqv38zfz3scd",
+    "targetType": "forum_reply",
+    "targetId": "8jigmo6t5nnpze",
+    "metadata": {
+      "topicId": "tnnqozoxvghquu"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T05:03:08.124Z"
+  },
+  {
+    "id": "mrn21vt2f04slm",
+    "action": "story.submit",
+    "actorId": "jhyqv38zfz3scd",
+    "targetType": "story",
+    "targetId": "gtfid9d1xwtx",
+    "metadata": {
+      "country": "global",
+      "language": "en",
+      "moderation": {
+        "toxicity": 0,
+        "spam": 0,
+        "pii": 0,
+        "deanonymization": 0,
+        "crisis": 0,
+        "riskBand": "low",
+        "recommendations": []
+      }
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T05:03:09.067Z"
+  },
+  {
+    "id": "t8lp7awa1k55j6",
+    "action": "moderation.action",
+    "actorId": "jhyqv38zfz3scd",
+    "targetType": "queue_entry",
+    "targetId": "story:gtfid9d1xwtx",
+    "metadata": {
+      "action": "approve",
+      "reason": "Playwright moderation approval"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T05:03:11.461Z"
+  },
+  {
+    "id": "2v73zz7v10gccl",
+    "action": "telegram.link.start",
+    "actorId": "jhyqv38zfz3scd",
+    "targetType": "identity",
+    "targetId": "jhyqv38zfz3scd",
+    "metadata": {
+      "expiresAt": "2026-02-12T05:18:15.024Z",
+      "alias": "link-code"
+    },
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T05:03:15.025Z"
+  },
+  {
+    "id": "wgne8aizcyrunj",
+    "action": "auth.logout",
+    "actorId": "jhyqv38zfz3scd",
+    "targetType": "user",
+    "targetId": "jhyqv38zfz3scd",
+    "metadata": {},
+    "ip": "::ffff:127.0.0.1",
+    "createdAt": "2026-02-12T05:03:15.997Z"
   }
 ]

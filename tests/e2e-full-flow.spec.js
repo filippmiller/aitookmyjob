@@ -80,6 +80,7 @@ test("full user/admin flow covers buttons, forms, and key scenarios", async ({ p
 
   await page.locator("#adminTokenForm input[name='token']").fill("change-me-admin-token");
   await page.locator("#adminTokenForm button[type='submit']").click();
+  await expect(page.locator("#admin")).toBeVisible();
   await expect(page.locator(".admin-pre").first()).toContainText("moderation");
 
   await page.getByRole("button", { name: "Load moderation queue" }).click();

@@ -1,13 +1,458 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Took My Job</title>
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <div id="app"></div>
-    <script src="/app.js" defer></script>
-  </body>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Took My Job - 2026 Edition</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet">
+  <script type="module" src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
+</head>
+<body class="gradient-bg">
+  <div id="app">
+    <!-- Loading skeleton -->
+    <div class="loading-skeleton">
+      <div class="skeleton-header"></div>
+      <div class="skeleton-hero"></div>
+      <div class="skeleton-grid"></div>
+    </div>
+    
+    <!-- Main app content will be injected here -->
+    <div id="main-content" class="hidden">
+      <header class="glass-nav">
+        <div class="nav-container">
+          <div class="logo-container">
+            <div class="logo-badge"></div>
+            <h1 class="brand-title">AI Took My Job</h1>
+          </div>
+          
+          <nav class="main-nav">
+            <a href="#dashboard" class="nav-link">Dashboard</a>
+            <a href="#stories" class="nav-link">Stories</a>
+            <a href="#community" class="nav-link">Community</a>
+            <a href="#resources" class="nav-link">Resources</a>
+            <a href="#analytics" class="nav-link">Analytics</a>
+          </nav>
+          
+          <div class="nav-controls">
+            <button class="theme-toggle" aria-label="Toggle theme">
+              <i class="ph ph-sun"></i>
+            </button>
+            <div class="locale-selector">
+              <select id="countrySelect">
+                <option value="global">🌍 Global</option>
+                <option value="us">🇺🇸 US</option>
+                <option value="de">🇩🇪 DE</option>
+                <option value="fr">🇫🇷 FR</option>
+              </select>
+              <select id="langSelect">
+                <option value="en">English</option>
+                <option value="ru">Русский</option>
+                <option value="de">Deutsch</option>
+              </select>
+            </div>
+            <button class="user-menu" aria-label="User menu">
+              <div class="avatar"></div>
+            </button>
+          </div>
+        </div>
+      </header>
+      
+      <main class="main-container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+          <div class="hero-content">
+            <h2 class="hero-title">The Future of Work in the Age of AI</h2>
+            <p class="hero-subtitle">Join millions sharing their AI-displacement stories and building resilience together</p>
+            
+            <div class="hero-stats">
+              <div class="stat-card floating-card">
+                <div class="stat-icon">
+                  <i class="ph ph-users-three"></i>
+                </div>
+                <div class="stat-content">
+                  <h3 class="stat-number" data-target="2458921">0</h3>
+                  <p class="stat-label">Affected Workers</p>
+                </div>
+              </div>
+              
+              <div class="stat-card floating-card">
+                <div class="stat-icon">
+                  <i class="ph ph-chat-circle-text"></i>
+                </div>
+                <div class="stat-content">
+                  <h3 class="stat-number" data-target="128456">0</h3>
+                  <p class="stat-label">Stories Shared</p>
+                </div>
+              </div>
+              
+              <div class="stat-card floating-card">
+                <div class="stat-icon">
+                  <i class="ph ph-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                  <h3 class="stat-number" data-target="584729">0</h3>
+                  <p class="stat-label">Jobs Found</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="hero-actions">
+              <button class="primary-btn btn-lg pulse-button">
+                <i class="ph ph-plus-circle"></i>
+                Share Your Story
+              </button>
+              <button class="secondary-btn btn-lg">
+                <i class="ph ph-chat-circle"></i>
+                Join Community
+              </button>
+            </div>
+          </div>
+          
+          <div class="hero-visual">
+            <div class="floating-elements">
+              <div class="floating-element element-1"></div>
+              <div class="floating-element element-2"></div>
+              <div class="floating-element element-3"></div>
+            </div>
+          </div>
+        </section>
+        
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="dashboard-section">
+          <div class="section-header">
+            <h2>Global Impact Dashboard</h2>
+            <div class="dashboard-filters">
+              <select class="filter-select">
+                <option>Last 30 Days</option>
+                <option>Last Quarter</option>
+                <option>Last Year</option>
+              </select>
+              <button class="export-btn">
+                <i class="ph ph-export"></i>
+                Export Data
+              </button>
+            </div>
+          </div>
+          
+          <div class="dashboard-grid">
+            <div class="dashboard-card glass-card">
+              <h3>Trend Analysis</h3>
+              <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+              </div>
+            </div>
+            
+            <div class="dashboard-card glass-card">
+              <h3>Geographic Distribution</h3>
+              <div class="chart-container">
+                <canvas id="geoChart"></canvas>
+              </div>
+            </div>
+            
+            <div class="dashboard-card glass-card">
+              <h3>Industry Impact</h3>
+              <div class="chart-container">
+                <canvas id="industryChart"></canvas>
+              </div>
+            </div>
+            
+            <div class="dashboard-card glass-card">
+              <h3>Recovery Metrics</h3>
+              <div class="chart-container">
+                <canvas id="recoveryChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        <!-- Stories Section -->
+        <section id="stories" class="stories-section">
+          <div class="section-header">
+            <h2>Recent Stories</h2>
+            <div class="stories-controls">
+              <input type="text" class="search-input" placeholder="Search stories..." />
+              <select class="filter-select">
+                <option>All Regions</option>
+                <option>North America</option>
+                <option>Europe</option>
+                <option>Asia</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="stories-grid" id="storiesContainer">
+            <!-- Stories will be dynamically loaded here -->
+          </div>
+        </section>
+        
+        <!-- Forum Section -->
+        <section id="forum" class="forum-section">
+          <div class="section-header">
+            <h2>Community Forum</h2>
+            <div class="forum-controls">
+              <input type="text" class="glass-input" placeholder="Search discussions..." />
+              <select class="glass-input">
+                <option>All Categories</option>
+                <option>Developers & QA</option>
+                <option>Designers & Artists</option>
+                <option>Legal Rights</option>
+                <option>Reskilling</option>
+              </select>
+              <button class="glass-button">
+                <i class="ph ph-plus"></i>
+                New Topic
+              </button>
+            </div>
+          </div>
+          
+          <div class="forum-container">
+            <div class="forum-sidebar glass-card">
+              <h3>Categories</h3>
+              <ul class="category-list">
+                <li class="category-item active">
+                  <a href="#" class="category-link">
+                    <i class="ph ph-chat-centered-text"></i>
+                    General Discussion
+                    <span class="badge">1,243</span>
+                  </a>
+                </li>
+                <li class="category-item">
+                  <a href="#" class="category-link">
+                    <i class="ph ph-code"></i>
+                    Developers & QA
+                    <span class="badge">892</span>
+                  </a>
+                </li>
+                <li class="category-item">
+                  <a href="#" class="category-link">
+                    <i class="ph ph-paint-brush-broad"></i>
+                    Designers & Artists
+                    <span class="badge">654</span>
+                  </a>
+                </li>
+                <li class="category-item">
+                  <a href="#" class="category-link">
+                    <i class="ph ph-scale"></i>
+                    Legal Rights
+                    <span class="badge">421</span>
+                  </a>
+                </li>
+                <li class="category-item">
+                  <a href="#" class="category-link">
+                    <i class="ph ph-arrow-u-up-left"></i>
+                    Reskilling
+                    <span class="badge">789</span>
+                  </a>
+                </li>
+                <li class="category-item">
+                  <a href="#" class="category-link">
+                    <i class="ph ph-trophy"></i>
+                    Success Stories
+                    <span class="badge">342</span>
+                  </a>
+                </li>
+              </ul>
+              
+              <div class="forum-stats glass-card">
+                <h4>Forum Stats</h4>
+                <div class="stat-item">
+                  <span>Total Posts</span>
+                  <span class="stat-value">24,589</span>
+                </div>
+                <div class="stat-item">
+                  <span>Total Topics</span>
+                  <span class="stat-value">5,847</span>
+                </div>
+                <div class="stat-item">
+                  <span>Active Users</span>
+                  <span class="stat-value">3,245</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="forum-main">
+              <div class="forum-topics">
+                <div class="topic-item glass-card">
+                  <div class="topic-avatar">
+                    <div class="avatar">JD</div>
+                  </div>
+                  <div class="topic-content">
+                    <h3 class="topic-title">
+                      <a href="#">How to pivot from copywriting to UX writing?</a>
+                      <span class="topic-badge glass-badge">Popular</span>
+                    </h3>
+                    <p class="topic-excerpt">Looking for advice on transitioning from copywriting to UX writing. What skills should I focus on?</p>
+                    <div class="topic-meta">
+                      <span class="topic-category">Copywriters</span>
+                      <span class="topic-author">Started by John Doe</span>
+                      <span class="topic-date">2 hours ago</span>
+                    </div>
+                  </div>
+                  <div class="topic-stats">
+                    <div class="stat">
+                      <i class="ph ph-chat"></i>
+                      <span>38</span>
+                    </div>
+                    <div class="stat">
+                      <i class="ph ph-eye"></i>
+                      <span>245</span>
+                    </div>
+                    <div class="stat">
+                      <i class="ph ph-heart"></i>
+                      <span>12</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="topic-item glass-card">
+                  <div class="topic-avatar">
+                    <div class="avatar">JS</div>
+                  </div>
+                  <div class="topic-content">
+                    <h3 class="topic-title">
+                      <a href="#">Junior developers: where to get first role in AI-first market</a>
+                    </h3>
+                    <p class="topic-excerpt">As a junior developer, I'm struggling to find opportunities in companies that are embracing AI tools.</p>
+                    <div class="topic-meta">
+                      <span class="topic-category">Developers</span>
+                      <span class="topic-author">Started by Jane Smith</span>
+                      <span class="topic-date">4 hours ago</span>
+                    </div>
+                  </div>
+                  <div class="topic-stats">
+                    <div class="stat">
+                      <i class="ph ph-chat"></i>
+                      <span>54</span>
+                    </div>
+                    <div class="stat">
+                      <i class="ph ph-eye"></i>
+                      <span>421</span>
+                    </div>
+                    <div class="stat">
+                      <i class="ph ph-heart"></i>
+                      <span>23</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="topic-item glass-card">
+                  <div class="topic-avatar">
+                    <div class="avatar">MR</div>
+                  </div>
+                  <div class="topic-content">
+                    <h3 class="topic-title">
+                      <a href="#">Can my company train model on my work without consent?</a>
+                      <span class="topic-badge glass-badge">Legal</span>
+                    </h3>
+                    <p class="topic-excerpt">My former employer is using my work to train their AI model. Do I have any legal recourse?</p>
+                    <div class="topic-meta">
+                      <span class="topic-category">Legal Rights</span>
+                      <span class="topic-author">Started by Mike Roberts</span>
+                      <span class="topic-date">6 hours ago</span>
+                    </div>
+                  </div>
+                  <div class="topic-stats">
+                    <div class="stat">
+                      <i class="ph ph-chat"></i>
+                      <span>19</span>
+                    </div>
+                    <div class="stat">
+                      <i class="ph ph-eye"></i>
+                      <span>187</span>
+                    </div>
+                    <div class="stat">
+                      <i class="ph ph-heart"></i>
+                      <span>8</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="topic-item glass-card">
+                  <div class="topic-avatar">
+                    <div class="avatar">AS</div>
+                  </div>
+                  <div class="topic-content">
+                    <h3 class="topic-title">
+                      <a href="#">Call-center layoffs: what countries still hire humans</a>
+                    </h3>
+                    <p class="topic-excerpt">Looking for opportunities in customer service where human interaction is still valued.</p>
+                    <div class="topic-meta">
+                      <span class="topic-category">Support</span>
+                      <span class="topic-author">Started by Anna Smith</span>
+                      <span class="topic-date">Yesterday</span>
+                    </div>
+                  </div>
+                  <div class="topic-stats">
+                    <div class="stat">
+                      <i class="ph ph-chat"></i>
+                      <span>27</span>
+                    </div>
+                    <div class="stat">
+                      <i class="ph ph-eye"></i>
+                      <span>312</span>
+                    </div>
+                    <div class="stat">
+                      <i class="ph ph-heart"></i>
+                      <span>15</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="pagination">
+                <button class="glass-button">Previous</button>
+                <button class="glass-button active">1</button>
+                <button class="glass-button">2</button>
+                <button class="glass-button">3</button>
+                <button class="glass-button">Next</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+      
+      <footer class="glass-footer">
+        <div class="footer-content">
+          <div class="footer-section">
+            <h4>About</h4>
+            <ul>
+              <li><a href="#">Mission</a></li>
+              <li><a href="#">Methodology</a></li>
+              <li><a href="#">Transparency</a></li>
+              <li><a href="#">Privacy</a></li>
+            </ul>
+          </div>
+          <div class="footer-section">
+            <h4>Resources</h4>
+            <ul>
+              <li><a href="#">Reskilling</a></li>
+              <li><a href="#">Legal Aid</a></li>
+              <li><a href="#">Job Boards</a></li>
+              <li><a href="#">Counseling</a></li>
+            </ul>
+          </div>
+          <div class="footer-section">
+            <h4>Connect</h4>
+            <ul>
+              <li><a href="#">Telegram</a></li>
+              <li><a href="#">Discord</a></li>
+              <li><a href="#">LinkedIn</a></li>
+              <li><a href="#">GitHub</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>&copy; 2026 AI Took My Job. All rights reserved. Built for resilience.</p>
+        </div>
+      </footer>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/app.js" defer></script>
+  <script src="/forum.js" defer></script>
+</body>
 </html>

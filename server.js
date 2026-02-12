@@ -3034,6 +3034,141 @@ app.post("/api/forum/topics/:id/replies", requireAuth, async (req, res) => {
   res.status(201).json({ id: reply.id, topicId: topic.id });
 });
 
+// Enhanced forum API endpoints
+app.get("/api/forum/topics/:id", async (req, res) => {
+  const topicId = sanitizeText(req.params.id);
+  const topics = await storageGetForumTopics(null);
+  const topic = topics.find(t => t.id === topicId);
+  
+  if (!topic) {
+    res.status(404).json({ message: "Topic not found" });
+    return;
+  }
+  
+  // Get replies for this topic
+  const replies = await storageGetForumReplies(topicId);
+  
+  res.json({
+    ...topic,
+    replies: replies.map(reply => ({
+      id: reply.id,
+      body: reply.body,
+      author: reply.createdBy,
+      createdAt: reply.createdAt,
+      likes: reply.likes || 0
+    }))
+  });
+});
+
+app.put("/api/forum/topics/:id", requireAuth, async (req, res) => {
+  const topicId = sanitizeText(req.params.id);
+  const topics = await storageGetForumTopics(null);
+  const topicIndex = topics.findIndex(t => t.id === topicId);
+  
+  if (topicIndex === -1) {
+    res.status(404).json({ message: "Topic not found" });
+    return;
+  }
+  
+  if (topics[topicIndex].createdBy !== req.user.id && !hasModeratorRole(req.user)) {
+    res.status(403).json({ message: "Not authorized to edit this topic" });
+    return;
+  }
+  
+  const updates = {
+    title: sanitizeText(req.body.title) || topics[topicIndex].title,
+    body: sanitizeText(req.body.body) || topics[topicIndex].body,
+    categoryId: sanitizeText(req.body.categoryId) || topics[topicIndex].categoryId,
+    updatedAt: new Date().toISOString()
+  };
+  
+  topics[topicIndex] = { ...topics[topicIndex], ...updates };
+  
+  if (usePostgres) {
+    await pgPool.query(
+      "UPDATE forum_topics SET title = $1, body = $2, category_id = $3, updated_at = $4 WHERE id = $5",
+      [updates.title, updates.body, updates.categoryId, updates.updatedAt, topicId]
+    );
+  } else {
+    writeJsonArray(forumTopicsPath, topics);
+  }
+  
+  await storageAudit({
+    action: "forum.topic.update",
+    actorId: req.user.id,
+    targetType: "forum_topic",
+    targetId: topicId,
+    metadata: { updates },
+    ip: req.ip
+  });
+  
+  res.json({ ...topics[topicIndex] });
+});
+
+app.delete("/api/forum/topics/:id", requireAuth, async (req, res) => {
+  const topicId = sanitizeText(req.params.id);
+  const topics = await storageGetForumTopics(null);
+  const topicIndex = topics.findIndex(t => t.id === topicId);
+  
+  if (topicIndex === -1) {
+    res.status(404).json({ message: "Topic not found" });
+    return;
+  }
+  
+  if (topics[topicIndex].createdBy !== req.user.id && !hasModeratorRole(req.user)) {
+    res.status(403).json({ message: "Not authorized to delete this topic" });
+    return;
+  }
+  
+  // Remove topic and its replies
+  topics.splice(topicIndex, 1);
+  
+  if (usePostgres) {
+    await pgPool.query("DELETE FROM forum_topics WHERE id = $1", [topicId]);
+    await pgPool.query("DELETE FROM forum_posts WHERE topic_id = $1", [topicId]);
+  } else {
+    writeJsonArray(forumTopicsPath, topics);
+    const replies = readJsonArray(forumRepliesPath);
+    const filteredReplies = replies.filter(r => r.topicId !== topicId);
+    writeJsonArray(forumRepliesPath, filteredReplies);
+  }
+  
+  await storageAudit({
+    action: "forum.topic.delete",
+    actorId: req.user.id,
+    targetType: "forum_topic",
+    targetId: topicId,
+    ip: req.ip
+  });
+  
+  res.json({ message: "Topic deleted successfully" });
+});
+
+app.post("/api/forum/topics/:id/like", requireAuth, async (req, res) => {
+  const topicId = sanitizeText(req.params.id);
+  // Implementation for liking a topic
+  // This would typically update a likes table/collection
+  res.json({ message: "Topic liked", topicId });
+});
+
+app.get("/api/forum/recent-activity", async (req, res) => {
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = parseInt(req.query.offset) || 0;
+  
+  // Get recent topics and replies
+  const topics = await storageGetForumTopics(null);
+  const replies = await storageGetForumReplies(null);
+  
+  // Combine and sort by date
+  const activities = [
+    ...topics.map(t => ({ ...t, type: 'topic' })),
+    ...replies.map(r => ({ ...r, type: 'reply' }))
+  ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(offset, offset + limit);
+  
+  res.json({ activities, total: topics.length + replies.length });
+});
+
 app.get("/api/admin/overview", async (req, res) => {
   if (!(hasAdminToken(req) || hasModeratorRole(req.user))) {
     res.status(401).json({ message: "Unauthorized" });
@@ -3373,6 +3508,37 @@ app.get("/api/transparency/report", async (req, res) => {
       label: period || null
     },
     totals
+  });
+});
+
+// Serve PWA assets
+app.get("/manifest.json", (req, res) => {
+  res.sendFile(path.join(publicDir, "manifest.json"));
+});
+
+app.get("/sw.js", (req, res) => {
+  res.set("Content-Type", "application/javascript");
+  res.sendFile(path.join(publicDir, "sw.js"));
+});
+
+// Serve API for real-time events
+app.get("/api/events", (req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    "Access-Control-Allow-Origin": "*"
+  });
+
+  const interval = setInterval(() => {
+    res.write(`data: ${JSON.stringify({ 
+      type: "heartbeat", 
+      timestamp: new Date().toISOString() 
+    })}\n\n`);
+  }, 30000); // Send heartbeat every 30 seconds
+
+  req.on("close", () => {
+    clearInterval(interval);
   });
 });
 

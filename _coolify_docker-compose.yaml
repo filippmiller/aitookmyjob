@@ -1,0 +1,56 @@
+services:
+    wk848wc4oo88swk0g8oc8ksw-162252091278:
+        image: 'wk848wc4oo88swk0g8oc8ksw:c0dedeef350730877d95aa231f77a535f01a3616'
+        container_name: wk848wc4oo88swk0g8oc8ksw-162252091278
+        restart: unless-stopped
+        expose:
+            - '8080'
+        networks:
+            coolify:
+                aliases:
+                    - wk848wc4oo88swk0g8oc8ksw-162252091278
+        mem_limit: '0'
+        memswap_limit: '0'
+        mem_swappiness: 60
+        mem_reservation: '0'
+        cpus: 0.0
+        cpu_shares: 1024
+        env_file:
+            - .env
+        labels:
+            - traefik.enable=true
+            - traefik.http.middlewares.gzip.compress=true
+            - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+            - traefik.http.routers.http-0-wk848wc4oo88swk0g8oc8ksw.entryPoints=http
+            - traefik.http.routers.http-0-wk848wc4oo88swk0g8oc8ksw.middlewares=gzip
+            - 'traefik.http.routers.http-0-wk848wc4oo88swk0g8oc8ksw.rule=Host(`wk848wc4oo88swk0g8oc8ksw.89.167.42.128.sslip.io`) && PathPrefix(`/`)'
+            - traefik.http.routers.http-0-wk848wc4oo88swk0g8oc8ksw.service=http-0-wk848wc4oo88swk0g8oc8ksw
+            - traefik.http.routers.https-0-wk848wc4oo88swk0g8oc8ksw.entryPoints=https
+            - traefik.http.routers.https-0-wk848wc4oo88swk0g8oc8ksw.middlewares=gzip
+            - 'traefik.http.routers.https-0-wk848wc4oo88swk0g8oc8ksw.rule=Host(`wk848wc4oo88swk0g8oc8ksw.89.167.42.128.sslip.io`) && PathPrefix(`/`)'
+            - traefik.http.routers.https-0-wk848wc4oo88swk0g8oc8ksw.service=http-0-wk848wc4oo88swk0g8oc8ksw
+            - traefik.http.routers.https-0-wk848wc4oo88swk0g8oc8ksw.tls=true
+            - traefik.http.routers.https-0-wk848wc4oo88swk0g8oc8ksw.tls.certresolver=letsencrypt
+            - traefik.http.services.http-0-wk848wc4oo88swk0g8oc8ksw.loadbalancer.server.port=8080
+            - 'caddy_0.encode=zstd gzip'
+            - 'caddy_0.handle_path.0_reverse_proxy={{upstreams 8080}}'
+            - 'caddy_0.handle_path=/*'
+            - caddy_0.header=-Server
+            - 'caddy_0.try_files={path} /index.html /index.php'
+            - 'caddy_0=http://wk848wc4oo88swk0g8oc8ksw.89.167.42.128.sslip.io'
+            - caddy_ingress_network=coolify
+            - coolify.managed=true
+            - coolify.version=4.0.0-beta.462
+            - coolify.applicationId=18
+            - coolify.type=application
+            - coolify.name=wk848wc4oo88swk0g8oc8ksw
+            - coolify.resourceName=aitookmyjob
+            - coolify.projectName=aitookmyjob
+            - coolify.serviceName=aitookmyjob
+            - coolify.environmentName=production
+            - coolify.pullRequestId=0
+networks:
+    coolify:
+        external: true
+        name: coolify
+        attachable: true
