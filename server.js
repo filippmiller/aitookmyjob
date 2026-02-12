@@ -3569,6 +3569,31 @@ app.get(/^\/([a-z]{2,10})\/([a-z]{2})(?:\/.*)?$/i, (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
+// Serve forum page
+app.get("/forum", (req, res) => {
+  res.sendFile(path.join(publicDir, "forum.html"));
+});
+
+app.get("/support", (req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
+app.get("/events", (req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
+app.get("/dashboard", (req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
+app.get("/stories", (req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
+app.get("/resources", (req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
 app.use((err, _req, res, _next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ message: "Internal server error" });
