@@ -494,7 +494,9 @@ function ensureStoryDefaults(story) {
 }
 
 function makeDbSslConfig() {
-  return PG_SSL ? { rejectUnauthorized: false } : undefined;
+  if (!PG_SSL) return undefined;
+  const rejectUnauthorized = String(process.env.PG_SSL_REJECT_UNAUTHORIZED || "true").toLowerCase() !== "false";
+  return { rejectUnauthorized };
 }
 
 async function testPgConnection(connectionString) {
@@ -1710,7 +1712,8 @@ async function requireVerifiedPhone(req, res, next) {
 }
 
 function hasAdminToken(req) {
-  const token = req.headers.authorization?.replace("Bearer ", "") || req.query.token;
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return false;
   return token === ADMIN_TOKEN;
 }
 
@@ -1735,9 +1738,9 @@ app.use(
       useDefaults: false,
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'"],
-        fontSrc: ["'self'", "data:"],
+        scriptSrc: ["'self'", "https://unpkg.com"],
+        styleSrc: ["'self'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:"],
         connectSrc: ["'self'"],
         formAction: ["'self'"],
@@ -3526,8 +3529,7 @@ app.get("/api/events", (req, res) => {
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
-    "Connection": "keep-alive",
-    "Access-Control-Allow-Origin": "*"
+    "Connection": "keep-alive"
   });
 
   const interval = setInterval(() => {
@@ -3599,6 +3601,16 @@ app.use((err, _req, res, _next) => {
 });
 
 async function start() {
+  if (isProduction) {
+    const weakSecrets = [];
+    if (ADMIN_TOKEN === "change-me-admin-token") weakSecrets.push("ADMIN_TOKEN");
+    if (AUTH_SECRET === "change-me-auth-secret") weakSecrets.push("AUTH_SECRET");
+    if (weakSecrets.length > 0) {
+      console.error(`FATAL: Refusing to start in production with default secrets: ${weakSecrets.join(", ")}`);
+      process.exit(1);
+    }
+  }
+
   if (usePostgres) {
     pgPool = await buildPgPool();
     await initStorage();
