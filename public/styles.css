@@ -533,6 +533,120 @@
     transform: translate(-50%, -50%);
     z-index: 1000;
     overflow: hidden;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: color-mix(in srgb, black 60%, transparent);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  
+  .auth-modal {
+    width: 100%;
+    max-width: 450px;
+    padding: var(--spacing-xl);
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    
+    h3 {
+      margin: 0;
+      color: var(--text);
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: var(--transition-fast);
+      
+      &:hover {
+        background: color-mix(in srgb, var(--primary) 10%, transparent);
+        color: var(--primary);
+      }
+    }
+  }
+  
+  .auth-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: var(--spacing-lg);
+  }
+  
+  .tab-btn {
+    background: transparent;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    transition: var(--transition-fast);
+    
+    &.active {
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+    }
+    
+    &:hover:not(.active) {
+      color: var(--text);
+    }
+  }
+  
+  .tab-content {
+    .tab-pane {
+      display: none;
+      
+      &.active {
+        display: block;
+      }
+    }
+  }
+  
+  .auth-form {
+    .form-group {
+      margin-bottom: var(--spacing-md);
+      
+      label {
+        display: block;
+        margin-bottom: var(--spacing-xs);
+        color: var(--text);
+        font-weight: 500;
+      }
+      
+      input {
+        width: 100%;
+        box-sizing: border-box;
+      }
+    }
+  }
+  
+  .full-width {
+    width: 100%;
   }
   
   .glass-badge {

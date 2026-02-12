@@ -104,10 +104,56 @@
                 <i class="ph ph-plus-circle"></i>
                 Share Your Story
               </button>
-              <button class="secondary-btn btn-lg">
-                <i class="ph ph-chat-circle"></i>
-                Join Community
+              <button class="secondary-btn btn-lg" id="authTriggerBtn">
+                <i class="ph ph-user"></i>
+                Account Access
               </button>
+            </div>
+            
+            <!-- Auth Modal -->
+            <div class="modal-overlay" id="authModal" style="display: none;">
+              <div class="glass-modal auth-modal">
+                <div class="modal-header">
+                  <h3>Account Access</h3>
+                  <button class="modal-close">&times;</button>
+                </div>
+                <div class="auth-tabs">
+                  <button class="tab-btn active" data-tab="login">Login</button>
+                  <button class="tab-btn" data-tab="register">Register</button>
+                </div>
+                <div class="tab-content">
+                  <div class="tab-pane active" id="loginTab">
+                    <form id="loginForm" class="auth-form">
+                      <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" class="glass-input" placeholder="Enter your email" required>
+                      </div>
+                      <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" class="glass-input" placeholder="Enter your password" required>
+                      </div>
+                      <button type="submit" class="primary-btn full-width">Sign In</button>
+                    </form>
+                  </div>
+                  <div class="tab-pane" id="registerTab">
+                    <form id="registerForm" class="auth-form">
+                      <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" class="glass-input" placeholder="Enter your email" required>
+                      </div>
+                      <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" class="glass-input" placeholder="Create a password" required>
+                      </div>
+                      <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" class="glass-input" placeholder="Confirm your password" required>
+                      </div>
+                      <button type="submit" class="primary-btn full-width">Create Account</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           

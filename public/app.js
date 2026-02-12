@@ -327,6 +327,22 @@ class AITookMyJobApp {
       if (target.matches('.pulse-button')) {
         this.handleShareStory();
       }
+      
+      // Auth modal trigger
+      if (target.closest('#authTriggerBtn')) {
+        this.showAuthModal();
+      }
+      
+      // Modal close button
+      if (target.closest('.modal-close')) {
+        this.hideAuthModal();
+      }
+      
+      // Tab switching
+      if (target.closest('.tab-btn')) {
+        const tabBtn = target.closest('.tab-btn');
+        this.switchAuthTab(tabBtn.dataset.tab);
+      }
     });
 
     // Form submissions with enhanced validation
@@ -337,6 +353,16 @@ class AITookMyJobApp {
       if (form.id === 'storySubmissionForm') {
         this.handleSubmitStory(new FormData(form));
       }
+      
+      // Login form
+      if (form.id === 'loginForm') {
+        this.handleLogin(new FormData(form));
+      }
+      
+      // Register form
+      if (form.id === 'registerForm') {
+        this.handleRegister(new FormData(form));
+      }
     });
 
     // Dynamic content updates
@@ -346,6 +372,13 @@ class AITookMyJobApp {
       }
       if (event.target.id === 'langSelect') {
         this.handleLanguageChange(event.target.value);
+      }
+    });
+    
+    // Close modal when clicking overlay
+    document.addEventListener('click', (event) => {
+      if (event.target.classList.contains('modal-overlay')) {
+        this.hideAuthModal();
       }
     });
   }
@@ -582,8 +615,128 @@ class AITookMyJobApp {
     
     setTimeout(() => {
       toast.style.animation = 'slideOut 0.3s ease-out';
-      setTimeout(() => toast.remove(), 300);
+      setTimeout(() => toast.remove(), 3000);
     }, 3000);
+  }
+
+  // Auth Modal Methods
+  showAuthModal() {
+    const modal = document.getElementById('authModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  hideAuthModal() {
+    const modal = document.getElementById('authModal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  }
+
+  switchAuthTab(tabName) {
+    // Update active tab button
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tabName);
+    });
+    
+    // Update active tab pane
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+      pane.classList.toggle('active', pane.id === `${tabName}Tab`);
+    });
+  }
+
+  async handleLogin(formData) {
+    const email = formData.get('loginEmail');
+    const password = formData.get('loginPassword');
+    
+    // Basic validation
+    if (!email || !password) {
+      this.showMessage('Please enter both email and password', 'error');
+      return;
+    }
+    
+    // Show loading state
+    this.updateAuthButtonState('login', true);
+    
+    try {
+      const res = await this.requestJSON('/api/auth/login', {
+        method: 'POST',
+        body: { email, password }
+      });
+      
+      if (res.ok) {
+        this.showMessage('Login successful!', 'success');
+        this.state.authUser = res.data;
+        this.hideAuthModal();
+        // Reset form
+        document.getElementById('loginForm').reset();
+      } else {
+        this.showMessage(res.error || 'Login failed', 'error');
+      }
+    } catch (error) {
+      this.showMessage('Network error. Please try again.', 'error');
+    } finally {
+      this.updateAuthButtonState('login', false);
+    }
+  }
+
+  async handleRegister(formData) {
+    const email = formData.get('registerEmail');
+    const password = formData.get('registerPassword');
+    const confirmPassword = formData.get('confirmPassword');
+    
+    // Basic validation
+    if (!email || !password || !confirmPassword) {
+      this.showMessage('Please fill in all fields', 'error');
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      this.showMessage('Passwords do not match', 'error');
+      return;
+    }
+    
+    if (password.length < 8) {
+      this.showMessage('Password must be at least 8 characters', 'error');
+      return;
+    }
+    
+    // Show loading state
+    this.updateAuthButtonState('register', true);
+    
+    try {
+      const res = await this.requestJSON('/api/auth/register', {
+        method: 'POST',
+        body: { email, password }
+      });
+      
+      if (res.ok) {
+        this.showMessage('Registration successful! Please log in.', 'success');
+        // Switch to login tab after successful registration
+        this.switchAuthTab('login');
+        // Reset form
+        document.getElementById('registerForm').reset();
+      } else {
+        this.showMessage(res.error || 'Registration failed', 'error');
+      }
+    } catch (error) {
+      this.showMessage('Network error. Please try again.', 'error');
+    } finally {
+      this.updateAuthButtonState('register', false);
+    }
+  }
+
+  updateAuthButtonState(formType, isLoading) {
+    const button = document.querySelector(`#${formType}Form .primary-btn`);
+    if (button) {
+      button.disabled = isLoading;
+      button.textContent = isLoading ? 
+        (formType === 'login' ? 'Signing In...' : 'Creating Account...') : 
+        (formType === 'login' ? 'Sign In' : 'Create Account');
+    }
   }
 
   updateUIState(state, value) {
@@ -684,6 +837,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.modernForum = new ModernForum('forum-container');
   }
 });
+
+// Close the AITookMyJobApp class
+}
 
 // Service Worker for offline functionality
 if ('serviceWorker' in navigator) {
