@@ -1,896 +1,614 @@
-// AI Took My Job - 2026 Edition
-// Revolutionary JavaScript with cutting-edge features
+// AI Took My Job — Human Signal Edition
+// Frontend application matching the "Human Signal" design system
 
-// Modern ES2026+ features and Web APIs
 class AITookMyJobApp {
   constructor() {
     this.state = {
-      route: { country: "global", lang: "en" },
-      country: "global",
-      lang: "en",
-      meta: { countries: [], languages: ["en"] },
+      country: 'global',
+      lang: 'en',
+      meta: { countries: [], languages: ['en'] },
       t: {},
       stats: { counters: {} },
       stories: [],
-      companies: [],
       authUser: null,
-      dashboard: null,
-      topics: [],
-      resources: [],
-      news: [],
-      petitions: [],
-      cohorts: [],
-      transparencyReport: null,
-      moderationQueue: [],
-      anomalySignals: [],
-      telegramStatus: null,
-      cookieConsent: localStorage.getItem("cookieConsent") || "",
-      messages: {
-        auth: "",
-        story: "",
-        forumCreate: "",
-        admin: "",
-        queue: "",
-        sanction: "",
-        transparency: "",
-        anomaly: "",
-        integrations: "",
-        anonymous: "",
-        legal: "",
-        companyBoard: "",
-        campaigns: ""
-      }
+      dashboard: null
     };
-    
-    this.theme = localStorage.getItem('theme') || 'light';
+
+    this.theme = localStorage.getItem('theme') || 'dark';
     this.init();
   }
 
   async init() {
-    // Initialize with modern async patterns
-    await this.loadInitialData();
-    this.setupEventListeners();
-    this.setupAnimations();
     this.setupTheme();
+    this.bindStaticListeners();
+    await this.loadInitialData();
     this.render();
     this.startRealTimeUpdates();
   }
 
-  // Modern data fetching with AbortController and streaming
-  async fetchWithTimeout(resource, options = {}) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), options.timeout || 10000);
-    
-    const response = await fetch(resource, {
-      ...options,
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    return response;
-  }
+  // ── Data fetching ──
 
-  async getJSON(url, fallback = {}) {
+  async fetchJSON(url, fallback = {}) {
     try {
-      const res = await this.fetchWithTimeout(url, { 
-        credentials: "include",
-        headers: { "Accept": "application/json" }
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 10000);
+      const res = await fetch(url, {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+        signal: ctrl.signal
       });
+      clearTimeout(timer);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
-    } catch (error) {
-      console.warn(`Failed to fetch ${url}:`, error);
+    } catch (e) {
+      console.warn(`Fetch ${url}:`, e.message);
       return fallback;
     }
   }
 
-  async requestJSON(url, options = {}) {
-    const { method = "GET", body, headers = {}, timeout = 10000 } = options;
-    const init = {
-      method,
-      credentials: "include",
-      headers: { 
-        "Content-Type": "application/json",
-        ...headers 
-      }
-    };
-
-    if (body !== undefined) {
-      init.body = JSON.stringify(body);
-    }
-
+  async postJSON(url, body) {
     try {
-      const res = await this.fetchWithTimeout(url, { ...init, timeout });
-      const contentType = res.headers.get("content-type") || "";
-      let data = null;
-
-      if (contentType.includes("application/json")) {
-        data = await res.json();
-      } else {
-        const text = await res.text();
-        data = text ? { message: text } : null;
-      }
-
-      return {
-        ok: res.ok,
-        status: res.status,
-        data,
-        error: res.ok ? "" : (data?.message) || `Request failed (${res.status})`
-      };
-    } catch (error) {
-      return { 
-        ok: false, 
-        status: 0, 
-        data: null, 
-        error: error.name === 'AbortError' ? 'Request timeout' : 'Network error' 
-      };
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 10000);
+      const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: ctrl.signal
+      });
+      clearTimeout(timer);
+      const ct = res.headers.get('content-type') || '';
+      const data = ct.includes('json') ? await res.json() : await res.text();
+      return { ok: res.ok, status: res.status, data, error: res.ok ? '' : (data?.message || data || `Error ${res.status}`) };
+    } catch (e) {
+      return { ok: false, status: 0, data: null, error: e.name === 'AbortError' ? 'Request timeout' : 'Network error' };
     }
   }
 
-  // Enhanced string escaping with template literals
+  // ── Utilities ──
+
   esc(text) {
-    return String(text || "")
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
+    const d = document.createElement('div');
+    d.textContent = String(text || '');
+    return d.innerHTML;
   }
 
-  // Modern number formatting with Intl
   fmt(n) {
-    return new Intl.NumberFormat('en-US', {
-      notation: 'compact',
-      maximumFractionDigits: 1
-    }).format(Number(n || 0));
+    return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(n || 0));
   }
 
-  // Enhanced internationalization
-  t(key) {
-    return this.state.t[key] || key;
-  }
+  // ── Theme ──
 
-  // Modern routing with URLPattern (when available) or fallback
-  parseRoute() {
-    const path = window.location.pathname;
-    const parts = path.split('/').filter(Boolean);
-    return { 
-      country: parts[0] || "global", 
-      lang: parts[1] || "en" 
-    };
-  }
-
-  // Advanced animation setup using Web Animations API
-  setupAnimations() {
-    // Intersection Observer for scroll animations
-    this.observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.animation = 'fadeInUp 0.6s ease-out forwards';
-          this.observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1 });
-
-    // Observe elements for animation
-    document.querySelectorAll('.glass-card, .stat-card, .story-card').forEach(el => {
-      this.observer.observe(el);
-    });
-  }
-
-  // Theme management with CSS custom properties
   setupTheme() {
     document.documentElement.setAttribute('data-theme', this.theme);
-    this.applyThemeVariables();
-  }
-
-  applyThemeVariables() {
-    const root = document.documentElement;
-    if (this.theme === 'dark') {
-      root.style.setProperty('--bg-primary', '#0f0f15');
-      root.style.setProperty('--bg-secondary', '#1a1a25');
-      root.style.setProperty('--text-primary', '#ffffff');
-      root.style.setProperty('--text-secondary', '#a0a0b0');
-    } else {
-      root.style.setProperty('--bg-primary', '#ffffff');
-      root.style.setProperty('--bg-secondary', '#f8fafc');
-      root.style.setProperty('--text-primary', '#0f0f15');
-      root.style.setProperty('--text-secondary', '#475569');
-    }
+    this.updateThemeIcon();
   }
 
   toggleTheme() {
-    this.theme = this.theme === 'light' ? 'dark' : 'light';
+    this.theme = this.theme === 'dark' ? 'light' : 'dark';
     localStorage.setItem('theme', this.theme);
-    this.setupTheme();
+    document.documentElement.setAttribute('data-theme', this.theme);
+    this.updateThemeIcon();
   }
 
-  // Advanced data loading with progressive enhancement
-  async loadInitialData() {
-    this.state.route = this.parseRoute();
-    this.state.meta = await this.getJSON("/api/meta", { 
-      countries: [], 
-      languages: ["en"] 
-    });
-
-    const lang = this.state.meta.languages.includes(this.state.route.lang) ? 
-      this.state.route.lang : "en";
-    const country = this.state.meta.countries.some((c) => c.code === this.state.route.country) ? 
-      this.state.route.country : "global";
-
-    if (this.state.route.lang !== lang || this.state.route.country !== country) {
-      window.location.replace(`/${country}/${lang}/`);
-      return false;
-    }
-
-    this.state.lang = lang;
-    this.state.country = country;
-
-    // Load translations with fallback chain
-    const [en, localized] = await Promise.allSettled([
-      this.getJSON("/i18n/en.json", {}),
-      this.getJSON(`/i18n/${lang}.json`, {})
-    ]);
-
-    this.state.t = {
-      ...en.status === 'fulfilled' ? en.value : {},
-      ...localized.status === 'fulfilled' ? localized.value : {}
-    };
-
-    // Parallel data loading for optimal performance
-    const [
-      statsData,
-      storiesData,
-      companiesData,
-      forumData,
-      forumTopicsData,
-      dashboardData,
-      resourcesData,
-      newsData,
-      petitionsData,
-      cohortsData
-    ] = await Promise.allSettled([
-      this.getJSON(`/api/stats?country=${country}`, { counters: {} }),
-      this.getJSON(`/api/stories?country=${country}&limit=12`, { stories: [] }),
-      this.getJSON(`/api/companies/top?country=${country}`, { companies: [] }),
-      this.getJSON("/api/forum/categories", { categories: [] }),
-      this.getJSON(`/api/forum/topics?country=${country}`, { topics: [] }),
-      this.getJSON(`/api/statistics/dashboard?country=${country}`, {}),
-      this.getJSON(`/api/resources?country=${country}`, { resources: [] }),
-      this.getJSON(`/api/news?country=${country}`, { news: [] }),
-      this.getJSON("/api/campaigns/petitions", { petitions: [] }),
-      this.getJSON(`/api/cohorts?country=${country}`, { cohorts: [] })
-    ]);
-
-    // Handle results with error boundaries
-    this.state.stats = statsData.status === 'fulfilled' ? statsData.value : { counters: {} };
-    this.state.stories = storiesData.status === 'fulfilled' ? 
-      (storiesData.value.stories || []) : [];
-    this.state.companies = companiesData.status === 'fulfilled' ? 
-      (companiesData.value.companies || []) : [];
-    this.state.categories = forumData.status === 'fulfilled' ? 
-      (forumData.value.categories || []) : [];
-    this.state.topics = forumTopicsData.status === 'fulfilled' ? 
-      (forumTopicsData.value.topics || []) : [];
-    this.state.dashboard = dashboardData.status === 'fulfilled' ? 
-      dashboardData.value : null;
-    this.state.resources = resourcesData.status === 'fulfilled' ? 
-      (resourcesData.value.resources || []) : [];
-    this.state.news = newsData.status === 'fulfilled' ? 
-      (newsData.value.news || []) : [];
-    this.state.petitions = petitionsData.status === 'fulfilled' ? 
-      (petitionsData.value.petitions || []) : [];
-    this.state.cohorts = cohortsData.status === 'fulfilled' ? 
-      (cohortsData.value.cohorts || []) : [];
-
-    // Load user session
-    await this.refreshAuthMe();
-    return true;
-  }
-
-  // Enhanced authentication management
-  async refreshAuthMe() {
-    const meRes = await this.requestJSON("/api/auth/me");
-    this.state.authUser = meRes.ok ? meRes.data : null;
-    if (!meRes.ok && ![401, 404].includes(meRes.status)) {
-      this.state.messages.auth = meRes.error || "Failed to load session";
+  updateThemeIcon() {
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    const icon = btn.querySelector('i');
+    if (icon) {
+      icon.className = this.theme === 'dark' ? 'ph ph-sun-dim' : 'ph ph-moon';
     }
   }
 
-  // Modern event delegation system
-  setupEventListeners() {
-    const appElement = document.getElementById('app');
-    
-    // Handle navigation
-    appElement.addEventListener('click', (event) => {
-      const target = event.target;
-      
-      // Smooth scrolling for anchor links
-      if (target.matches('[href^="#"]')) {
-        event.preventDefault();
-        const targetId = target.getAttribute('href').substring(1);
-        const targetElement = document.getElementById(targetId);
-        if (targetElement) {
-          targetElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
-          });
+  // ── Event listeners ──
+
+  bindStaticListeners() {
+    // Theme toggle
+    const themeBtn = document.getElementById('themeToggle');
+    if (themeBtn) themeBtn.addEventListener('click', () => this.toggleTheme());
+
+    // Mobile menu
+    const mobileToggle = document.getElementById('mobileMenuToggle');
+    const navLinks = document.getElementById('navLinks');
+    if (mobileToggle && navLinks) {
+      mobileToggle.addEventListener('click', () => {
+        navLinks.classList.toggle('is-open');
+        const icon = mobileToggle.querySelector('i');
+        if (icon) {
+          icon.className = navLinks.classList.contains('is-open') ? 'ph ph-x' : 'ph ph-list';
         }
-      }
-      
-      // Theme toggle
-      if (target.closest('.theme-toggle')) {
-        this.toggleTheme();
-      }
-      
-      // Action buttons
-      if (target.matches('.pulse-button')) {
-        this.handleShareStory();
-      }
-      
-      // Auth modal trigger
-      if (target.closest('#authTriggerBtn')) {
-        this.showAuthModal();
-      }
-      
-      // Modal close button
-      if (target.closest('.modal-close')) {
-        this.hideAuthModal();
-      }
-      
-      // Tab switching
-      if (target.closest('.tab-btn')) {
-        const tabBtn = target.closest('.tab-btn');
-        this.switchAuthTab(tabBtn.dataset.tab);
-      }
-    });
-
-    // Form submissions with enhanced validation
-    appElement.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const form = event.target;
-      
-      if (form.id === 'storySubmissionForm') {
-        this.handleSubmitStory(new FormData(form));
-      }
-      
-      // Login form
-      if (form.id === 'loginForm') {
-        this.handleLogin(new FormData(form));
-      }
-      
-      // Register form
-      if (form.id === 'registerForm') {
-        this.handleRegister(new FormData(form));
-      }
-    });
-
-    // Dynamic content updates
-    appElement.addEventListener('change', (event) => {
-      if (event.target.id === 'countrySelect') {
-        this.handleCountryChange(event.target.value);
-      }
-      if (event.target.id === 'langSelect') {
-        this.handleLanguageChange(event.target.value);
-      }
-    });
-    
-    // Close modal when clicking overlay
-    document.addEventListener('click', (event) => {
-      if (event.target.classList.contains('modal-overlay')) {
-        this.hideAuthModal();
-      }
-    });
-  }
-
-  // Enhanced story submission with real-time validation
-  async handleSubmitStory(formData) {
-    const payload = Object.fromEntries(formData);
-    
-    // Client-side validation with detailed feedback
-    const validationErrors = this.validateStoryPayload(payload);
-    if (validationErrors.length > 0) {
-      this.showValidationErrors(validationErrors);
-      return;
+      });
     }
 
-    // Show loading state
-    this.updateUIState('submitting', true);
-    
-    const res = await this.requestJSON("/api/stories", { 
-      method: "POST", 
-      body: payload 
+    // Auth modal — index.html
+    const authTrigger = document.getElementById('authTriggerBtn');
+    const authModal = document.getElementById('authModal');
+    const authClose = document.getElementById('authModalClose');
+
+    if (authTrigger && authModal) {
+      authTrigger.addEventListener('click', () => this.openModal(authModal));
+    }
+    if (authClose && authModal) {
+      authClose.addEventListener('click', () => this.closeModal(authModal));
+    }
+    if (authModal) {
+      authModal.addEventListener('click', (e) => {
+        if (e.target === authModal) this.closeModal(authModal);
+      });
+    }
+
+    // Share Story button — scrolls to stories or opens modal
+    const shareBtn = document.getElementById('shareStoryBtn');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', () => {
+        const stories = document.getElementById('stories');
+        if (stories) stories.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    // Tab switching (works on both pages)
+    document.addEventListener('click', (e) => {
+      const tabBtn = e.target.closest('.tab-btn');
+      if (!tabBtn) return;
+      const tabName = tabBtn.dataset.tab;
+      if (!tabName) return;
+
+      // Find the closest parent that contains tabs
+      const tabContainer = tabBtn.closest('.card, .modal-panel');
+      if (!tabContainer) return;
+
+      tabContainer.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+      });
+      tabContainer.querySelectorAll('.tab-pane').forEach(pane => {
+        pane.classList.toggle('active', pane.id === `${tabName}Tab`);
+      });
     });
-    
+
+    // Login form
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.handleLogin(loginForm);
+      });
+    }
+
+    // Register form
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+      registerForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.handleRegister(registerForm);
+      });
+    }
+
+    // Country / Language selectors
+    const countrySelect = document.getElementById('countrySelect');
+    if (countrySelect) {
+      countrySelect.addEventListener('change', (e) => {
+        this.state.country = e.target.value;
+        this.loadInitialData().then(() => this.render());
+      });
+    }
+    const langSelect = document.getElementById('langSelect');
+    if (langSelect) {
+      langSelect.addEventListener('change', (e) => {
+        this.state.lang = e.target.value;
+      });
+    }
+
+    // Smooth scroll for anchor links
+    document.addEventListener('click', (e) => {
+      const anchor = e.target.closest('a[href^="#"]');
+      if (!anchor) return;
+      const id = anchor.getAttribute('href').substring(1);
+      const target = document.getElementById(id);
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
+    // Close mobile menu when clicking a nav link
+    if (navLinks) {
+      navLinks.addEventListener('click', (e) => {
+        if (e.target.closest('.nav-link')) {
+          navLinks.classList.remove('is-open');
+          const icon = mobileToggle?.querySelector('i');
+          if (icon) icon.className = 'ph ph-list';
+        }
+      });
+    }
+  }
+
+  // ── Modal helpers ──
+
+  openModal(el) {
+    el.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeModal(el) {
+    el.classList.remove('is-open');
+    document.body.style.overflow = '';
+  }
+
+  // ── Auth ──
+
+  async handleLogin(form) {
+    const email = form.loginEmail.value.trim();
+    const password = form.loginPassword.value;
+    if (!email || !password) return this.toast('Enter email and password', 'error');
+
+    const btn = form.querySelector('button[type="submit"]');
+    this.setLoading(btn, true, 'Signing in...');
+
+    const res = await this.postJSON('/api/auth/login', { email, password });
+
     if (res.ok) {
-      this.showMessage('Story submitted successfully!', 'success');
-      this.resetForm('storySubmissionForm');
-      // Reload stories to show the new one
-      await this.loadStories();
+      this.toast('Signed in successfully', 'success');
+      this.state.authUser = res.data;
+      form.reset();
+      const modal = document.getElementById('authModal');
+      if (modal) this.closeModal(modal);
+      this.onAuthChange();
     } else {
-      this.showMessage(res.error || 'Submission failed', 'error');
+      this.toast(res.error || 'Login failed', 'error');
     }
-    
-    this.updateUIState('submitting', false);
+
+    this.setLoading(btn, false, 'Sign In');
   }
 
-  validateStoryPayload(payload) {
-    const errors = [];
-    
-    if (!payload.name || payload.name.length < 2) {
-      errors.push('Name must be at least 2 characters');
+  async handleRegister(form) {
+    const email = form.registerEmail.value.trim();
+    const password = form.registerPassword.value;
+    const confirm = form.confirmPassword.value;
+
+    if (!email || !password || !confirm) return this.toast('Fill in all fields', 'error');
+    if (password !== confirm) return this.toast('Passwords do not match', 'error');
+    if (password.length < 10) return this.toast('Password must be at least 10 characters', 'error');
+
+    const btn = form.querySelector('button[type="submit"]');
+    this.setLoading(btn, true, 'Creating account...');
+
+    const res = await this.postJSON('/api/auth/register', { email, password });
+
+    if (res.ok) {
+      this.toast('Account created! Please sign in.', 'success');
+      form.reset();
+      // Switch to login tab
+      const container = form.closest('.card, .modal-panel');
+      if (container) {
+        container.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'login'));
+        container.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'loginTab'));
+      }
+    } else {
+      this.toast(res.error || 'Registration failed', 'error');
     }
-    
-    if (!payload.profession || payload.profession.length < 2) {
-      errors.push('Profession must be at least 2 characters');
-    }
-    
-    if (!payload.company || payload.company.length < 1) {
-      errors.push('Company is required');
-    }
-    
-    if (!payload.laidOffAt || !/^\d{4}-\d{2}$/.test(payload.laidOffAt)) {
-      errors.push('Valid layoff date (YYYY-MM) is required');
-    }
-    
-    if (!payload.reason || payload.reason.length < 8) {
-      errors.push('Reason must be at least 8 characters');
-    }
-    
-    if (!payload.story || payload.story.length < 40) {
-      errors.push('Story must be at least 40 characters');
-    }
-    
-    return errors;
+
+    this.setLoading(btn, false, 'Create Account');
   }
 
-  // Real-time data updates with Server-Sent Events
-  startRealTimeUpdates() {
-    try {
-      const eventSource = new EventSource('/api/events');
-      
-      eventSource.addEventListener('stats-update', (event) => {
-        const data = JSON.parse(event.data);
-        this.updateStats(data);
-      });
-      
-      eventSource.addEventListener('story-added', (event) => {
-        const data = JSON.parse(event.data);
-        this.addStory(data);
-      });
-      
-      eventSource.onerror = () => {
-        console.warn('EventSource connection lost, reconnecting...');
-        setTimeout(() => this.startRealTimeUpdates(), 5000);
-      };
-    } catch (error) {
-      console.warn('Server-Sent Events not supported, falling back to polling');
-      this.startPollingUpdates();
+  setLoading(btn, loading, text) {
+    if (!btn) return;
+    btn.disabled = loading;
+    btn.textContent = text;
+  }
+
+  onAuthChange() {
+    // Forum page: show forum, hide cabinet
+    const cabinet = document.getElementById('user-cabinet');
+    const forum = document.getElementById('forum-preview');
+    if (this.state.authUser) {
+      if (cabinet) cabinet.classList.add('hidden');
+      if (forum) forum.classList.remove('hidden');
+    } else {
+      if (cabinet) cabinet.classList.remove('hidden');
+      if (forum) forum.classList.add('hidden');
     }
   }
 
-  startPollingUpdates() {
-    setInterval(async () => {
-      const stats = await this.getJSON(`/api/stats?country=${this.state.country}`);
-      this.updateStats(stats);
-    }, 30000); // Poll every 30 seconds
-  }
+  // ── Toast notifications ──
 
-  // Advanced rendering with virtual DOM concepts
-  render() {
-    // Hide skeleton loader
-    document.querySelector('.loading-skeleton')?.classList.add('hidden');
-    document.getElementById('main-content')?.classList.remove('hidden');
-    
-    // Animate stat counters
-    this.animateStatNumbers();
-    
-    // Initialize charts if Chart.js is available
-    if (window.Chart) {
-      this.initializeCharts();
-    }
-    
-    // Set up infinite scroll for stories
-    this.setupInfiniteScroll();
-  }
-
-  animateStatNumbers() {
-    document.querySelectorAll('[data-target]').forEach(el => {
-      const target = parseInt(el.getAttribute('data-target'));
-      const duration = 2000; // ms
-      const increment = target / (duration / 16); // ~60fps
-      let current = 0;
-      
-      const timer = setInterval(() => {
-        current += increment;
-        if (current >= target) {
-          current = target;
-          clearInterval(timer);
-        }
-        el.textContent = this.fmt(Math.floor(current));
-      }, 16);
-    });
-  }
-
-  initializeCharts() {
-    // Trend chart
-    const trendCtx = document.getElementById('trendChart')?.getContext('2d');
-    if (trendCtx) {
-      new Chart(trendCtx, {
-        type: 'line',
-        data: {
-          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-          datasets: [{
-            label: 'Layoffs',
-            data: [1200, 1900, 1500, 2100, 1800, 2400],
-            borderColor: '#8b5cf6',
-            backgroundColor: 'rgba(139, 92, 246, 0.1)',
-            tension: 0.4
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            y: { beginAtZero: true }
-          }
-        }
-      });
-    }
-
-    // Geographic distribution chart
-    const geoCtx = document.getElementById('geoChart')?.getContext('2d');
-    if (geoCtx) {
-      new Chart(geoCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['US', 'EU', 'Asia', 'Other'],
-          datasets: [{
-            data: [45, 30, 20, 5],
-            backgroundColor: ['#a78bfa', '#c084fc', '#e879f9', '#f0abfc']
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { position: 'bottom' }
-          }
-        }
-      });
-    }
-  }
-
-  setupInfiniteScroll() {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && !this.loadingMore) {
-          this.loadMoreStories();
-        }
-      });
-    });
-    
-    const sentinel = document.createElement('div');
-    sentinel.id = 'sentinel';
-    document.body.appendChild(sentinel);
-    observer.observe(sentinel);
-  }
-
-  async loadMoreStories() {
-    this.loadingMore = true;
-    // Implementation for loading more stories
-    this.loadingMore = false;
-  }
-
-  // Utility methods
-  updateStats(newStats) {
-    this.state.stats = { ...this.state.stats, ...newStats };
-    this.animateStatNumbers();
-  }
-
-  addStory(story) {
-    this.state.stories.unshift(story);
-    this.renderStories();
-  }
-
-  showMessage(message, type = 'info') {
-    // Create toast notification
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    toast.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 12px 20px;
-      border-radius: 8px;
-      color: white;
-      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-      z-index: 1000;
-      animation: slideIn 0.3s ease-out;
-    `;
-    
-    document.body.appendChild(toast);
-    
+  toast(message, type = 'info') {
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.textContent = message;
+    document.body.appendChild(el);
     setTimeout(() => {
-      toast.style.animation = 'slideOut 0.3s ease-out';
-      setTimeout(() => toast.remove(), 3000);
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(20px)';
+      el.style.transition = 'all 0.3s ease';
+      setTimeout(() => el.remove(), 300);
     }, 3000);
   }
 
-  // Auth Modal Methods
-  showAuthModal() {
-    const modal = document.getElementById('authModal');
-    if (modal) {
-      modal.style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-    }
+  // ── Data loading ──
+
+  async loadInitialData() {
+    const country = this.state.country;
+
+    const [statsData, storiesData, meData] = await Promise.allSettled([
+      this.fetchJSON(`/api/stats?country=${country}`, { counters: {} }),
+      this.fetchJSON(`/api/stories?country=${country}&limit=12`, { stories: [] }),
+      this.fetchJSON('/api/auth/me', null)
+    ]);
+
+    this.state.stats = statsData.status === 'fulfilled' ? statsData.value : { counters: {} };
+    this.state.stories = storiesData.status === 'fulfilled' ? (storiesData.value.stories || []) : [];
+
+    const me = meData.status === 'fulfilled' ? meData.value : null;
+    this.state.authUser = me && me.id ? me : null;
   }
 
-  hideAuthModal() {
-    const modal = document.getElementById('authModal');
-    if (modal) {
-      modal.style.display = 'none';
-      document.body.style.overflow = '';
-    }
-  }
+  // ── Rendering ──
 
-  switchAuthTab(tabName) {
-    // Update active tab button
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tab === tabName);
-    });
-    
-    // Update active tab pane
-    document.querySelectorAll('.tab-pane').forEach(pane => {
-      pane.classList.toggle('active', pane.id === `${tabName}Tab`);
-    });
-  }
-
-  async handleLogin(formData) {
-    const email = formData.get('loginEmail');
-    const password = formData.get('loginPassword');
-    
-    // Basic validation
-    if (!email || !password) {
-      this.showMessage('Please enter both email and password', 'error');
-      return;
-    }
-    
-    // Show loading state
-    this.updateAuthButtonState('login', true);
-    
-    try {
-      const res = await this.requestJSON('/api/auth/login', {
-        method: 'POST',
-        body: { email, password }
-      });
-      
-      if (res.ok) {
-        this.showMessage('Login successful!', 'success');
-        this.state.authUser = res.data;
-        this.hideAuthModal();
-        // Reset form
-        document.getElementById('loginForm').reset();
-      } else {
-        this.showMessage(res.error || 'Login failed', 'error');
-      }
-    } catch (error) {
-      this.showMessage('Network error. Please try again.', 'error');
-    } finally {
-      this.updateAuthButtonState('login', false);
-    }
-  }
-
-  async handleRegister(formData) {
-    const email = formData.get('registerEmail');
-    const password = formData.get('registerPassword');
-    const confirmPassword = formData.get('confirmPassword');
-    
-    // Basic validation
-    if (!email || !password || !confirmPassword) {
-      this.showMessage('Please fill in all fields', 'error');
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      this.showMessage('Passwords do not match', 'error');
-      return;
-    }
-    
-    if (password.length < 8) {
-      this.showMessage('Password must be at least 8 characters', 'error');
-      return;
-    }
-    
-    // Show loading state
-    this.updateAuthButtonState('register', true);
-    
-    try {
-      const res = await this.requestJSON('/api/auth/register', {
-        method: 'POST',
-        body: { email, password }
-      });
-      
-      if (res.ok) {
-        this.showMessage('Registration successful! Please log in.', 'success');
-        // Switch to login tab after successful registration
-        this.switchAuthTab('login');
-        // Reset form
-        document.getElementById('registerForm').reset();
-      } else {
-        this.showMessage(res.error || 'Registration failed', 'error');
-      }
-    } catch (error) {
-      this.showMessage('Network error. Please try again.', 'error');
-    } finally {
-      this.updateAuthButtonState('register', false);
-    }
-  }
-
-  updateAuthButtonState(formType, isLoading) {
-    const button = document.querySelector(`#${formType}Form .primary-btn`);
-    if (button) {
-      button.disabled = isLoading;
-      button.textContent = isLoading ? 
-        (formType === 'login' ? 'Signing In...' : 'Creating Account...') : 
-        (formType === 'login' ? 'Sign In' : 'Create Account');
-    }
-  }
-
-  updateUIState(state, value) {
-    // Update loading states, disabled states, etc.
-    const submitBtn = document.querySelector('.pulse-button');
-    if (submitBtn) {
-      submitBtn.disabled = value;
-      submitBtn.textContent = value ? 'Submitting...' : 'Share Your Story';
-    }
-  }
-
-  resetForm(formId) {
-    const form = document.getElementById(formId);
-    if (form) {
-      form.reset();
-    }
-  }
-
-  showValidationErrors(errors) {
-    // Display validation errors in a user-friendly way
-    errors.forEach(error => this.showMessage(error, 'error'));
-  }
-
-  handleCountryChange(country) {
-    window.location.href = `/${country}/${this.state.lang}/`;
-  }
-
-  handleLanguageChange(lang) {
-    window.location.href = `/${this.state.country}/${lang}/`;
-  }
-
-  handleShareStory() {
-    // Scroll to story form and focus
-    const storyForm = document.querySelector('#storySubmissionForm');
-    if (storyForm) {
-      storyForm.scrollIntoView({ behavior: 'smooth' });
-      storyForm.focus();
-    }
-  }
-
-  async loadStories() {
-    const storiesData = await this.getJSON(
-      `/api/stories?country=${this.state.country}&limit=12`
-    );
-    this.state.stories = storiesData.stories || [];
+  render() {
+    this.animateCounters();
     this.renderStories();
+    this.initCharts();
+    this.onAuthChange();
+    this.setupScrollAnimations();
+  }
+
+  animateCounters() {
+    document.querySelectorAll('[data-target]').forEach(el => {
+      const target = parseInt(el.dataset.target, 10);
+      if (!target || el._animated) return;
+      el._animated = true;
+
+      const duration = 2000;
+      const step = target / (duration / 16);
+      let current = 0;
+
+      const tick = () => {
+        current += step;
+        if (current >= target) {
+          el.textContent = this.fmt(target);
+          return;
+        }
+        el.textContent = this.fmt(Math.floor(current));
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
   }
 
   renderStories() {
     const container = document.getElementById('storiesContainer');
-    if (!container) return;
-    
+    if (!container || !this.state.stories.length) return;
+
     container.innerHTML = this.state.stories.map(story => `
-      <article class="story-card glass-card">
-        <div class="story-header">
-          <div class="story-author">${this.esc(story.name)}</div>
-          <div class="story-company">${this.esc(story.company)}</div>
+      <article class="story-card">
+        <div class="story-card-header">
+          <div>
+            <div class="story-author">${this.esc(story.name)}</div>
+            <div class="story-company">${this.esc(story.company)}</div>
+          </div>
+          <span class="tag tag-amber">${this.esc(story.profession)}</span>
         </div>
-        <div class="story-content">
-          <p>${this.esc(story.story.substring(0, 150))}...</p>
-        </div>
+        <div class="story-body">${this.esc(story.story)}</div>
         <div class="story-meta">
-          <span>${this.esc(story.profession)}</span>
-          <span>${this.esc(story.laidOffAt)}</span>
-          <span>Views: ${this.fmt(story.views || 0)}</span>
+          <span class="story-meta-item">
+            <i class="ph ph-calendar-blank"></i> ${this.esc(story.laidOffAt)}
+          </span>
+          <span class="story-meta-item">
+            <i class="ph ph-eye"></i> ${this.fmt(story.views || 0)}
+          </span>
+          <span class="story-meta-item">
+            <i class="ph ph-map-pin"></i> ${this.esc(story.country || 'Global')}
+          </span>
         </div>
       </article>
     `).join('');
   }
-}
 
-// Initialize the app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  // Enable View Transitions API if supported
-  if (document.startViewTransition) {
-    // Enhance navigation with view transitions
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetId = anchor.getAttribute('href').substring(1);
-        const targetElement = document.getElementById(targetId);
-        
-        document.startViewTransition(() => {
-          targetElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
-          });
-        });
-      });
+  // ── Charts ──
+
+  initCharts() {
+    if (typeof Chart === 'undefined') return;
+
+    // Global chart defaults matching the design system
+    Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#8A8A90';
+    Chart.defaults.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-subtle').trim() || 'rgba(255,255,255,0.06)';
+    Chart.defaults.font.family = "'DM Sans', system-ui, sans-serif";
+
+    const amber = '#D4956B';
+    const amberLight = '#E8B98A';
+    const teal = '#4A9A8A';
+    const signalRed = '#D45454';
+    const signalGreen = '#5AA86C';
+
+    this.createChart('trendChart', {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [{
+          label: 'AI Layoffs',
+          data: [1200, 1900, 1500, 2100, 1800, 2400],
+          borderColor: amber,
+          backgroundColor: 'rgba(212,149,107,0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 3,
+          pointBackgroundColor: amber
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    this.createChart('geoChart', {
+      type: 'doughnut',
+      data: {
+        labels: ['US', 'Europe', 'Asia', 'Other'],
+        datasets: [{
+          data: [45, 30, 20, 5],
+          backgroundColor: [amber, teal, amberLight, signalGreen],
+          borderWidth: 0,
+          spacing: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: { legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyle: 'circle' } } }
+      }
+    });
+
+    this.createChart('industryChart', {
+      type: 'bar',
+      data: {
+        labels: ['Tech', 'Finance', 'Media', 'Support', 'Legal', 'Design'],
+        datasets: [{
+          label: 'Jobs Lost',
+          data: [4200, 2800, 2100, 1900, 1200, 1100],
+          backgroundColor: [amber, amberLight, teal, signalRed, signalGreen, '#A06840'],
+          borderRadius: 4,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+
+    this.createChart('recoveryChart', {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [
+          {
+            label: 'Found New Role',
+            data: [18, 22, 28, 32, 38, 42],
+            borderColor: signalGreen,
+            backgroundColor: 'rgba(90,168,108,0.1)',
+            tension: 0.4,
+            fill: true
+          },
+          {
+            label: 'Still Searching',
+            data: [82, 78, 72, 68, 62, 58],
+            borderColor: signalRed,
+            backgroundColor: 'rgba(212,84,84,0.05)',
+            tension: 0.4,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyle: 'circle' } } },
+        scales: {
+          y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: v => v + '%' } },
+          x: { grid: { display: false } }
+        }
+      }
     });
   }
-  
-  // Initialize the application
+
+  createChart(canvasId, config) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    // Destroy existing chart on that canvas if any
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+    new Chart(ctx, config);
+  }
+
+  // ── Scroll animations ──
+
+  setupScrollAnimations() {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.card, .story-card, .topic-item').forEach(el => {
+      if (!el.dataset.observed) {
+        el.dataset.observed = '1';
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(16px)';
+        el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        observer.observe(el);
+      }
+    });
+  }
+
+  // ── Real-time updates ──
+
+  startRealTimeUpdates() {
+    try {
+      const es = new EventSource('/api/events');
+      es.addEventListener('stats-update', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          this.state.stats = { ...this.state.stats, ...data };
+          // Re-animate counters if stat values updated
+          document.querySelectorAll('[data-target]').forEach(el => { el._animated = false; });
+          this.animateCounters();
+        } catch (err) { /* ignore parse errors */ }
+      });
+      es.addEventListener('story-added', (e) => {
+        try {
+          const story = JSON.parse(e.data);
+          this.state.stories.unshift(story);
+          this.renderStories();
+        } catch (err) { /* ignore */ }
+      });
+      es.onerror = () => {
+        es.close();
+        setTimeout(() => this.startRealTimeUpdates(), 10000);
+      };
+    } catch (e) {
+      // SSE not supported; fall back to polling
+      setInterval(async () => {
+        const stats = await this.fetchJSON(`/api/stats?country=${this.state.country}`, null);
+        if (stats) {
+          this.state.stats = stats;
+          document.querySelectorAll('[data-target]').forEach(el => { el._animated = false; });
+          this.animateCounters();
+        }
+      }, 30000);
+    }
+  }
+}
+
+// ── Bootstrap ──
+
+document.addEventListener('DOMContentLoaded', () => {
   window.app = new AITookMyJobApp();
-  
-  // Initialize forum if forum section exists
-  if (document.getElementById('forum-container')) {
-    window.modernForum = new ModernForum('forum-container');
-  }
-  
-  // Ensure auth modal is hidden by default
-  const authModal = document.getElementById('authModal');
-  if (authModal) {
-    authModal.style.display = 'none';
-  }
 });
 
+// ── Service Worker registration ──
 
-// Service Worker for offline functionality
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => console.log('SW registered'))
-      .catch(err => console.log('SW registration failed'));
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
   });
 }
-
-// Web Share API integration
-async function shareStory(story) {
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: 'AI Took My Job - Story Share',
-        text: story.story,
-        url: window.location.href
-      });
-    } catch (error) {
-      console.log('Sharing failed:', error);
-    }
-  } else {
-    // Fallback to clipboard API
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
-    } catch (error) {
-      console.log('Clipboard copy failed:', error);
-    }
-  }
-}
-
-// Web Animations API for enhanced interactions
-function createFloatingAnimation(element) {
-  element.animate([
-    { transform: 'translateY(0px)' },
-    { transform: 'translateY(-20px)' },
-    { transform: 'translateY(0px)' }
-  ], {
-    duration: 3000,
-    iterations: Infinity,
-    easing: 'ease-in-out'
-  });
-}
-
-// Initialize floating animations for elements
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.floating-element').forEach(createFloatingAnimation);
-});

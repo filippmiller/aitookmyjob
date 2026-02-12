@@ -1,134 +1,128 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User Cabinet - AI Took My Job</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forum &amp; Account - AI Took My Job</title>
+  <link rel="stylesheet" href="/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet">
   <script type="module" src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
 </head>
-<body class="gradient-bg">
-  <div id="app">
-    <header class="glass-nav">
-      <div class="nav-container">
-        <a href="/" class="logo-container">
-          <div class="logo-badge"></div>
-          <h1 class="brand-title">AI Took My Job</h1>
-        </a>
-        
-        <nav class="main-nav">
-          <a href="/" class="nav-link">Home</a>
-          <a href="/dashboard" class="nav-link">Dashboard</a>
-          <a href="/stories" class="nav-link">Stories</a>
-          <a href="/forum" class="nav-link active">Forum</a>
-          <a href="/resources" class="nav-link">Resources</a>
-        </nav>
-        
-        <div class="nav-controls">
-          <button class="theme-toggle" aria-label="Toggle theme">
-            <i class="ph ph-sun"></i>
-          </button>
-          <div class="locale-selector">
-            <select id="countrySelect">
-              <option value="global">🌍 Global</option>
-              <option value="us">🇺🇸 US</option>
-              <option value="de">🇩🇪 DE</option>
-              <option value="fr">🇫🇷 FR</option>
-            </select>
-            <select id="langSelect">
-              <option value="en">English</option>
-              <option value="ru">Русский</option>
-              <option value="de">Deutsch</option>
-            </select>
-          </div>
-          <a href="/forum" class="primary-btn">
-            <i class="ph ph-user"></i>
-            Login
-          </a>
-          <button class="user-menu" aria-label="User menu">
-            <div class="avatar"></div>
-          </button>
-        </div>
+<body>
+
+  <!-- Navigation -->
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">
+        <div class="nav-brand-mark"></div>
+        <span class="nav-brand-name">AI Took My Job</span>
+      </a>
+
+      <div class="nav-links" id="navLinks">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+        <a href="/stories" class="nav-link">Stories</a>
+        <a href="/forum" class="nav-link active">Forum</a>
+        <a href="/resources" class="nav-link">Resources</a>
       </div>
-    </header>
-    
-    <main class="main-container">
-      <!-- User Cabinet Section -->
-      <section id="user-cabinet" class="cabinet-section">
+
+      <div class="nav-actions">
+        <select class="select" id="countrySelect">
+          <option value="global">Global</option>
+          <option value="us">US</option>
+          <option value="de">DE</option>
+          <option value="fr">FR</option>
+        </select>
+        <select class="select" id="langSelect">
+          <option value="en">EN</option>
+          <option value="ru">RU</option>
+          <option value="de">DE</option>
+        </select>
+        <button class="btn-icon" id="themeToggle" aria-label="Toggle theme">
+          <i class="ph ph-sun-dim"></i>
+        </button>
+        <button class="nav-mobile-toggle" id="mobileMenuToggle" aria-label="Menu">
+          <i class="ph ph-list"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+  <main class="section">
+    <div class="container">
+
+      <!-- User Cabinet (shown when not logged in) -->
+      <section id="user-cabinet">
         <div class="section-header">
-          <h2>User Cabinet</h2>
+          <div>
+            <h2 class="section-title">Account &amp; Forum</h2>
+            <p class="section-subtitle">Sign in to participate in discussions and manage your stories</p>
+          </div>
         </div>
-        
-        <div class="cabinet-content">
-          <div class="auth-prompt glass-card">
-            <h3>Welcome! Please Log In</h3>
-            <p>Access your personal dashboard, manage your stories, and participate in community discussions.</p>
-            
-            <div class="auth-forms">
-              <div class="auth-tabs">
-                <button class="tab-btn active" data-tab="login">Login</button>
-                <button class="tab-btn" data-tab="register">Register</button>
-              </div>
-              
-              <div class="tab-content">
-                <div class="tab-pane active" id="loginTab">
-                  <form id="loginForm" class="auth-form">
-                    <div class="form-group">
-                      <label for="loginEmail">Email</label>
-                      <input type="email" id="loginEmail" class="glass-input" placeholder="Enter your email" required>
-                    </div>
-                    <div class="form-group">
-                      <label for="loginPassword">Password</label>
-                      <input type="password" id="loginPassword" class="glass-input" placeholder="Enter your password" required>
-                    </div>
-                    <button type="submit" class="primary-btn full-width">Sign In</button>
-                  </form>
+
+        <div class="cabinet-split">
+          <div class="card">
+            <h3 style="font-family:var(--font-display); font-size:var(--text-xl); font-weight:700; margin-bottom:var(--sp-6);">Welcome Back</h3>
+
+            <div class="tabs">
+              <button class="tab-btn active" data-tab="login">Sign In</button>
+              <button class="tab-btn" data-tab="register">Register</button>
+            </div>
+
+            <div class="tab-pane active" id="loginTab">
+              <form id="loginForm">
+                <div class="form-group mb-4">
+                  <label class="form-label" for="loginEmail">Email</label>
+                  <input type="email" id="loginEmail" name="loginEmail" class="input" placeholder="you@example.com" required>
                 </div>
-                
-                <div class="tab-pane" id="registerTab">
-                  <form id="registerForm" class="auth-form">
-                    <div class="form-group">
-                      <label for="registerEmail">Email</label>
-                      <input type="email" id="registerEmail" class="glass-input" placeholder="Enter your email" required>
-                    </div>
-                    <div class="form-group">
-                      <label for="registerPassword">Password</label>
-                      <input type="password" id="registerPassword" class="glass-input" placeholder="Create a password" required>
-                    </div>
-                    <div class="form-group">
-                      <label for="confirmPassword">Confirm Password</label>
-                      <input type="password" id="confirmPassword" class="glass-input" placeholder="Confirm your password" required>
-                    </div>
-                    <button type="submit" class="primary-btn full-width">Create Account</button>
-                  </form>
+                <div class="form-group mb-4">
+                  <label class="form-label" for="loginPassword">Password</label>
+                  <input type="password" id="loginPassword" name="loginPassword" class="input" placeholder="Your password" required>
                 </div>
-              </div>
+                <button type="submit" class="btn btn-primary full-width">Sign In</button>
+              </form>
+            </div>
+
+            <div class="tab-pane" id="registerTab">
+              <form id="registerForm">
+                <div class="form-group mb-4">
+                  <label class="form-label" for="registerEmail">Email</label>
+                  <input type="email" id="registerEmail" name="registerEmail" class="input" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group mb-4">
+                  <label class="form-label" for="registerPassword">Password</label>
+                  <input type="password" id="registerPassword" name="registerPassword" class="input" placeholder="Min. 10 characters" required>
+                </div>
+                <div class="form-group mb-4">
+                  <label class="form-label" for="confirmPassword">Confirm Password</label>
+                  <input type="password" id="confirmPassword" name="confirmPassword" class="input" placeholder="Repeat password" required>
+                </div>
+                <button type="submit" class="btn btn-primary full-width">Create Account</button>
+              </form>
             </div>
           </div>
-          
-          <div class="cabinet-features glass-card">
-            <h3>What's in your cabinet?</h3>
+
+          <div class="card">
+            <h3 style="font-family:var(--font-display); font-size:var(--text-xl); font-weight:700; margin-bottom:var(--sp-6);">Your Cabinet</h3>
             <div class="feature-grid">
               <div class="feature-item">
-                <i class="ph ph-chat-circle-text"></i>
+                <div class="feature-item-icon"><i class="ph ph-chat-circle-text"></i></div>
                 <h4>Story Management</h4>
                 <p>Edit and track your submitted stories</p>
               </div>
               <div class="feature-item">
-                <i class="ph ph-users-three"></i>
-                <h4>Community Access</h4>
+                <div class="feature-item-icon"><i class="ph ph-users-three"></i></div>
+                <h4>Community</h4>
                 <p>Join discussions and support groups</p>
               </div>
               <div class="feature-item">
-                <i class="ph ph-chart-line"></i>
-                <h4>Personal Dashboard</h4>
+                <div class="feature-item-icon"><i class="ph ph-chart-line-up"></i></div>
+                <h4>Dashboard</h4>
                 <p>Track your job search progress</p>
               </div>
               <div class="feature-item">
-                <i class="ph ph-bell"></i>
+                <div class="feature-item-icon"><i class="ph ph-bell"></i></div>
                 <h4>Notifications</h4>
                 <p>Stay updated on relevant topics</p>
               </div>
@@ -136,277 +130,195 @@
           </div>
         </div>
       </section>
-      
-      <!-- Forum Preview Section (for logged-in users) -->
-      <section id="forum-preview" class="forum-preview-section hidden">
+      <!-- Forum (shown when logged in) -->
+      <section id="forum-preview" class="hidden" style="margin-top:var(--sp-16);">
         <div class="section-header">
-          <h2>Community Forum</h2>
-          <div class="forum-controls">
-            <input type="text" class="glass-input" placeholder="Search discussions...">
-            <select class="glass-input">
+          <div>
+            <h2 class="section-title">Community Forum</h2>
+            <p class="section-subtitle">Discuss, support, and share knowledge</p>
+          </div>
+          <div class="section-actions">
+            <input type="text" class="input" placeholder="Search discussions..." style="width:220px;">
+            <select class="select">
               <option>All Categories</option>
-              <option>Developers & QA</option>
-              <option>Designers & Artists</option>
+              <option>Developers &amp; QA</option>
+              <option>Designers &amp; Artists</option>
               <option>Legal Rights</option>
               <option>Reskilling</option>
             </select>
-            <button class="glass-button">
-              <i class="ph ph-plus"></i>
-              New Topic
-            </button>
+            <button class="btn btn-primary btn-sm"><i class="ph ph-plus"></i> New Topic</button>
           </div>
         </div>
-        
-        <div class="forum-container">
-          <div class="forum-sidebar glass-card">
-            <h3>Categories</h3>
-            <ul class="category-list">
-              <li class="category-item active">
-                <a href="#" class="category-link">
-                  <i class="ph ph-chat-centered-text"></i>
-                  General Discussion
-                  <span class="badge">1,243</span>
+
+        <div class="forum-layout">
+          <aside class="forum-sidebar">
+            <div class="card-flat">
+              <h4 style="font-family:var(--font-body); font-size:var(--text-sm); font-weight:600; margin-bottom:var(--sp-4); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em;">Categories</h4>
+              <div style="display:flex; flex-direction:column; gap:var(--sp-1);">
+                <a href="#" class="category-link active">
+                  <i class="ph ph-chat-centered-text"></i> General
+                  <span class="category-badge">1,243</span>
                 </a>
-              </li>
-              <li class="category-item">
                 <a href="#" class="category-link">
-                  <i class="ph ph-code"></i>
-                  Developers & QA
-                  <span class="badge">892</span>
+                  <i class="ph ph-code"></i> Developers
+                  <span class="category-badge">892</span>
                 </a>
-              </li>
-              <li class="category-item">
                 <a href="#" class="category-link">
-                  <i class="ph ph-paint-brush-broad"></i>
-                  Designers & Artists
-                  <span class="badge">654</span>
+                  <i class="ph ph-paint-brush-broad"></i> Designers
+                  <span class="category-badge">654</span>
                 </a>
-              </li>
-              <li class="category-item">
                 <a href="#" class="category-link">
-                  <i class="ph ph-scale"></i>
-                  Legal Rights
-                  <span class="badge">421</span>
+                  <i class="ph ph-scales"></i> Legal Rights
+                  <span class="category-badge">421</span>
                 </a>
-              </li>
-              <li class="category-item">
                 <a href="#" class="category-link">
-                  <i class="ph ph-arrow-u-up-left"></i>
-                  Reskilling
-                  <span class="badge">789</span>
+                  <i class="ph ph-arrow-u-up-left"></i> Reskilling
+                  <span class="category-badge">789</span>
                 </a>
-              </li>
-              <li class="category-item">
                 <a href="#" class="category-link">
-                  <i class="ph ph-trophy"></i>
-                  Success Stories
-                  <span class="badge">342</span>
+                  <i class="ph ph-trophy"></i> Success Stories
+                  <span class="category-badge">342</span>
                 </a>
-              </li>
-            </ul>
-            
-            <div class="forum-stats glass-card">
-              <h4>Forum Stats</h4>
-              <div class="stat-item">
-                <span>Total Posts</span>
-                <span class="stat-value">24,589</span>
-              </div>
-              <div class="stat-item">
-                <span>Total Topics</span>
-                <span class="stat-value">5,847</span>
-              </div>
-              <div class="stat-item">
-                <span>Active Users</span>
-                <span class="stat-value">3,245</span>
               </div>
             </div>
-          </div>
-          
-          <div class="forum-main">
-            <div class="forum-topics">
-              <div class="topic-item glass-card">
-                <div class="topic-avatar">
-                  <div class="avatar">JD</div>
+
+            <div class="card-flat">
+              <h4 style="font-family:var(--font-body); font-size:var(--text-sm); font-weight:600; margin-bottom:var(--sp-4); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em;">Stats</h4>
+              <div style="display:flex; flex-direction:column; gap:var(--sp-3);">
+                <div style="display:flex; justify-content:space-between; font-size:var(--text-sm);">
+                  <span style="color:var(--text-secondary);">Topics</span>
+                  <span class="text-mono" style="font-weight:600;">5,847</span>
                 </div>
-                <div class="topic-content">
-                  <h3 class="topic-title">
-                    <a href="#">How to pivot from copywriting to UX writing?</a>
-                    <span class="topic-badge glass-badge">Popular</span>
-                  </h3>
-                  <p class="topic-excerpt">Looking for advice on transitioning from copywriting to UX writing. What skills should I focus on?</p>
-                  <div class="topic-meta">
-                    <span class="topic-category">Copywriters</span>
-                    <span class="topic-author">Started by John Doe</span>
-                    <span class="topic-date">2 hours ago</span>
-                  </div>
+                <div style="display:flex; justify-content:space-between; font-size:var(--text-sm);">
+                  <span style="color:var(--text-secondary);">Posts</span>
+                  <span class="text-mono" style="font-weight:600;">24,589</span>
                 </div>
-                <div class="topic-stats">
-                  <div class="stat">
-                    <i class="ph ph-chat"></i>
-                    <span>38</span>
-                  </div>
-                  <div class="stat">
-                    <i class="ph ph-eye"></i>
-                    <span>245</span>
-                  </div>
-                  <div class="stat">
-                    <i class="ph ph-heart"></i>
-                    <span>12</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="topic-item glass-card">
-                <div class="topic-avatar">
-                  <div class="avatar">JS</div>
-                </div>
-                <div class="topic-content">
-                  <h3 class="topic-title">
-                    <a href="#">Junior developers: where to get first role in AI-first market</a>
-                  </h3>
-                  <p class="topic-excerpt">As a junior developer, I'm struggling to find opportunities in companies that are embracing AI tools.</p>
-                  <div class="topic-meta">
-                    <span class="topic-category">Developers</span>
-                    <span class="topic-author">Started by Jane Smith</span>
-                    <span class="topic-date">4 hours ago</span>
-                  </div>
-                </div>
-                <div class="topic-stats">
-                  <div class="stat">
-                    <i class="ph ph-chat"></i>
-                    <span>54</span>
-                  </div>
-                  <div class="stat">
-                    <i class="ph ph-eye"></i>
-                    <span>421</span>
-                  </div>
-                  <div class="stat">
-                    <i class="ph ph-heart"></i>
-                    <span>23</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="topic-item glass-card">
-                <div class="topic-avatar">
-                  <div class="avatar">MR</div>
-                </div>
-                <div class="topic-content">
-                  <h3 class="topic-title">
-                    <a href="#">Can my company train model on my work without consent?</a>
-                    <span class="topic-badge glass-badge">Legal</span>
-                  </h3>
-                  <p class="topic-excerpt">My former employer is using my work to train their AI model. Do I have any legal recourse?</p>
-                  <div class="topic-meta">
-                    <span class="topic-category">Legal Rights</span>
-                    <span class="topic-author">Started by Mike Roberts</span>
-                    <span class="topic-date">6 hours ago</span>
-                  </div>
-                </div>
-                <div class="topic-stats">
-                  <div class="stat">
-                    <i class="ph ph-chat"></i>
-                    <span>19</span>
-                  </div>
-                  <div class="stat">
-                    <i class="ph ph-eye"></i>
-                    <span>187</span>
-                  </div>
-                  <div class="stat">
-                    <i class="ph ph-heart"></i>
-                    <span>8</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="topic-item glass-card">
-                <div class="topic-avatar">
-                  <div class="avatar">AS</div>
-                </div>
-                <div class="topic-content">
-                  <h3 class="topic-title">
-                    <a href="#">Call-center layoffs: what countries still hire humans</a>
-                  </h3>
-                  <p class="topic-excerpt">Looking for opportunities in customer service where human interaction is still valued.</p>
-                  <div class="topic-meta">
-                    <span class="topic-category">Support</span>
-                    <span class="topic-author">Started by Anna Smith</span>
-                    <span class="topic-date">Yesterday</span>
-                  </div>
-                </div>
-                <div class="topic-stats">
-                  <div class="stat">
-                    <i class="ph ph-chat"></i>
-                    <span>27</span>
-                  </div>
-                  <div class="stat">
-                    <i class="ph ph-eye"></i>
-                    <span>312</span>
-                  </div>
-                  <div class="stat">
-                    <i class="ph ph-heart"></i>
-                    <span>15</span>
-                  </div>
+                <div style="display:flex; justify-content:space-between; font-size:var(--text-sm);">
+                  <span style="color:var(--text-secondary);">Members</span>
+                  <span class="text-mono" style="font-weight:600;">3,245</span>
                 </div>
               </div>
             </div>
-            
+          </aside>
+
+          <div class="forum-topics-list">
+            <div class="topic-item">
+              <div class="topic-avatar">JD</div>
+              <div>
+                <div class="topic-title">How to pivot from copywriting to UX writing?</div>
+                <div class="topic-excerpt">Looking for advice on transitioning from copywriting to UX writing. What skills should I focus on?</div>
+                <div class="topic-meta">
+                  <span class="tag tag-amber" style="padding:1px 8px;">Copywriters</span>
+                  <span>John D. &middot; 2h ago</span>
+                </div>
+              </div>
+              <div class="topic-stats">
+                <span class="topic-stat"><i class="ph ph-chat"></i> 38</span>
+                <span class="topic-stat"><i class="ph ph-eye"></i> 245</span>
+                <span class="topic-stat"><i class="ph ph-heart"></i> 12</span>
+              </div>
+            </div>
+
+            <div class="topic-item">
+              <div class="topic-avatar">JS</div>
+              <div>
+                <div class="topic-title">Junior developers: where to get first role in AI-first market</div>
+                <div class="topic-excerpt">As a junior developer, I'm struggling to find opportunities in companies that are embracing AI tools.</div>
+                <div class="topic-meta">
+                  <span class="tag tag-amber" style="padding:1px 8px;">Developers</span>
+                  <span>Jane S. &middot; 4h ago</span>
+                </div>
+              </div>
+              <div class="topic-stats">
+                <span class="topic-stat"><i class="ph ph-chat"></i> 54</span>
+                <span class="topic-stat"><i class="ph ph-eye"></i> 421</span>
+                <span class="topic-stat"><i class="ph ph-heart"></i> 23</span>
+              </div>
+            </div>
+            <div class="topic-item">
+              <div class="topic-avatar">MR</div>
+              <div>
+                <div class="topic-title">Can my company train model on my work without consent?</div>
+                <div class="topic-excerpt">My former employer is using my work to train their AI model. Do I have any legal recourse?</div>
+                <div class="topic-meta">
+                  <span class="tag tag-red" style="padding:1px 8px;">Legal</span>
+                  <span>Mike R. &middot; 6h ago</span>
+                </div>
+              </div>
+              <div class="topic-stats">
+                <span class="topic-stat"><i class="ph ph-chat"></i> 19</span>
+                <span class="topic-stat"><i class="ph ph-eye"></i> 187</span>
+                <span class="topic-stat"><i class="ph ph-heart"></i> 8</span>
+              </div>
+            </div>
+
+            <div class="topic-item">
+              <div class="topic-avatar">AS</div>
+              <div>
+                <div class="topic-title">I found a new role after 6 months - ask me anything</div>
+                <div class="topic-excerpt">After being laid off from my support role, I retrained and landed a QA position. Happy to share my experience.</div>
+                <div class="topic-meta">
+                  <span class="tag tag-green" style="padding:1px 8px;">Success</span>
+                  <span>Anna S. &middot; Yesterday</span>
+                </div>
+              </div>
+              <div class="topic-stats">
+                <span class="topic-stat"><i class="ph ph-chat"></i> 66</span>
+                <span class="topic-stat"><i class="ph ph-eye"></i> 512</span>
+                <span class="topic-stat"><i class="ph ph-heart"></i> 41</span>
+              </div>
+            </div>
+
             <div class="pagination">
-              <button class="glass-button">Previous</button>
-              <button class="glass-button active">1</button>
-              <button class="glass-button">2</button>
-              <button class="glass-button">3</button>
-              <button class="glass-button">Next</button>
+              <button class="btn btn-ghost btn-sm">Previous</button>
+              <button class="btn btn-primary btn-sm">1</button>
+              <button class="btn btn-ghost btn-sm">2</button>
+              <button class="btn btn-ghost btn-sm">3</button>
+              <button class="btn btn-ghost btn-sm">Next</button>
             </div>
           </div>
         </div>
       </section>
-    </main>
-    
-    <footer class="glass-footer">
-      <div class="footer-content">
-        <div class="footer-section">
-          <h4>About</h4>
-          <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="#">Mission</a></li>
-            <li><a href="#">Methodology</a></li>
-            <li><a href="#">Transparency</a></li>
-          </ul>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="nav-brand">
+          <div class="nav-brand-mark"></div>
+          <span class="nav-brand-name">AI Took My Job</span>
         </div>
-        <div class="footer-section">
-          <h4>Resources</h4>
-          <ul>
-            <li><a href="#">Reskilling</a></li>
-            <li><a href="#">Legal Aid</a></li>
-            <li><a href="#">Job Boards</a></li>
-            <li><a href="#">Counseling</a></li>
-          </ul>
-        </div>
-        <div class="footer-section">
-          <h4>Community</h4>
-          <ul>
-            <li><a href="/forum">Discussion Forum</a></li>
-            <li><a href="/support">Support Groups</a></li>
-            <li><a href="/events">Events</a></li>
-          </ul>
-        </div>
-        <div class="footer-section">
-          <h4>Connect</h4>
-          <ul>
-            <li><a href="#">Telegram</a></li>
-            <li><a href="#">Discord</a></li>
-            <li><a href="#">LinkedIn</a></li>
-            <li><a href="#">GitHub</a></li>
-          </ul>
-        </div>
+        <p class="footer-brand-desc">Documenting the human cost of artificial intelligence with truth, transparency, and community resilience.</p>
       </div>
-      <div class="footer-bottom">
-        <p>&copy; 2026 AI Took My Job. All rights reserved. Built for resilience.</p>
+      <div class="footer-col">
+        <h4>About</h4>
+        <a href="/">Home</a>
+        <a href="#">Mission</a>
+        <a href="#">Methodology</a>
+        <a href="#">Transparency</a>
       </div>
-    </footer>
-  </div>
-  
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="#">Reskilling</a>
+        <a href="#">Legal Aid</a>
+        <a href="#">Job Boards</a>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <a href="/forum">Forum</a>
+        <a href="#">Telegram</a>
+        <a href="#">GitHub</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 AI Took My Job. Built for resilience.</p>
+      <p>Open source &middot; Community driven</p>
+    </div>
+  </footer>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/app.js" defer></script>
 </body>

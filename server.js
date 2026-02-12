@@ -1738,7 +1738,7 @@ app.use(
       useDefaults: false,
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://unpkg.com"],
+        scriptSrc: ["'self'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
         styleSrc: ["'self'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:"],
