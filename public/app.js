@@ -838,8 +838,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Close the AITookMyJobApp class
-}
 
 // Service Worker for offline functionality
 if ('serviceWorker' in navigator) {
