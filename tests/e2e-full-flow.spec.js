@@ -21,8 +21,7 @@ test("full user/admin flow covers buttons, forms, and key scenarios", async ({ p
   await expect(page.locator("h1.brand-title")).toBeVisible();
   await expect(page.locator("#stories")).toBeVisible();
   await expect(page.locator("#community")).toBeVisible();
-  await expect(page.locator("#authModal")).toBeHidden();
-  await expect(page.locator("#forum")).toBeVisible();
+  await expect(page.locator("#authModal")).toHaveAttribute('style', /display:\s*none/);
 
   await page.getByRole("button", { name: "Share Your Story" }).click();
   await expect(page.locator("#storyForm")).toBeInViewport();

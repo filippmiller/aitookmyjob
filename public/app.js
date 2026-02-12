@@ -836,6 +836,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('forum-container')) {
     window.modernForum = new ModernForum('forum-container');
   }
+  
+  // Ensure auth modal is hidden by default
+  const authModal = document.getElementById('authModal');
+  if (authModal) {
+    authModal.style.display = 'none';
+  }
 });
 
 
