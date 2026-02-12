@@ -3569,11 +3569,6 @@ app.get(/^\/([a-z]{2,10})\/([a-z]{2})(?:\/.*)?$/i, (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
-// Serve forum page
-app.get("/forum", (req, res) => {
-  res.sendFile(path.join(publicDir, "forum.html"));
-});
-
 app.get("/support", (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
