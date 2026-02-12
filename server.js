@@ -3570,13 +3570,13 @@ app.get(/^\/([a-z]{2,10})\/([a-z]{2})(?:\/.*)?$/i, (req, res) => {
 });
 
 app.get("/forum", (req, res) => {
-  // This would be replaced with actual forum integration
-  // For now, redirect to main page with a message about upcoming forum
+  // This would be replaced with actual Discourse integration
+  // For now, show a message about the Discourse integration in progress
   res.send(`
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Forum - AI Took My Job</title>
+      <title>Community Forum - AI Took My Job</title>
       <meta charset="utf-8">
       <style>
         body { 
@@ -3614,15 +3614,43 @@ app.get("/forum", (req, res) => {
           display: inline-block;
           margin-top: 1rem;
         }
+        .installation-notes {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          padding: 1.5rem;
+          margin-top: 1.5rem;
+          text-align: left;
+          font-size: 0.9rem;
+        }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="glass-card">
-          <h1>Community Forum Coming Soon</h1>
-          <p>We're integrating a world-class forum powered by an open-source solution to provide the best community experience.</p>
-          <p>Our team is working to integrate a robust forum system that will allow for meaningful discussions, support groups, and community building.</p>
+          <h1>Discourse Forum Integration</h1>
+          <p>We're integrating <strong>Discourse</strong>, the leading open-source discussion platform, to power our community forums.</p>
+          <p>Discourse provides:</p>
+          <ul style="text-align: left; margin: 1rem auto; max-width: 400px;">
+            <li>Modern, responsive design</li>
+            <li>Advanced moderation tools</li>
+            <li>Trust levels and gamification</li>
+            <li>Rich text editor and media support</li>
+            <li>Mobile-friendly interface</li>
+          </ul>
           <a href="/" class="primary-btn">Return Home</a>
+          
+          <div class="installation-notes">
+            <h3>Installation Notes:</h3>
+            <p>To complete the Discourse integration:</p>
+            <ol>
+              <li>Deploy Discourse using Docker (recommended)</li>
+              <li>Configure with your domain and SMTP settings</li>
+              <li>Set up SSO integration with your main app</li>
+              <li>Customize themes to match the glassmorphism design</li>
+              <li>Import initial categories and user data if needed</li>
+            </ol>
+            <p>Visit <a href="https://github.com/discourse/discourse" target="_blank">github.com/discourse/discourse</a> for setup instructions.</p>
+          </div>
         </div>
       </div>
     </body>
