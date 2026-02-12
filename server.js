@@ -29,6 +29,13 @@ const authIdentitiesPath = path.join(dataDir, "auth-identities.json");
 const storyVersionsPath = path.join(dataDir, "story-versions.json");
 const telegramLinksPath = path.join(dataDir, "telegram-links.json");
 const transparencyEventsPath = path.join(dataDir, "transparency-events.json");
+const resourcesPath = path.join(dataDir, "resources.json");
+const newsPath = path.join(dataDir, "news.json");
+const takedownsPath = path.join(dataDir, "takedowns.json");
+const companyBoardsPath = path.join(dataDir, "company-boards.json");
+const petitionsPath = path.join(dataDir, "petitions.json");
+const cohortsPath = path.join(dataDir, "cohorts.json");
+const anonymousInboxPath = path.join(dataDir, "anonymous-inbox.json");
 
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "change-me-admin-token";
 const DATABASE_URL = process.env.DATABASE_URL || "";
@@ -38,6 +45,11 @@ const ALLOW_DEV_OTP = String(process.env.ALLOW_DEV_OTP || (process.env.NODE_ENV 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const TELEGRAM_MOD_CHAT_ID = process.env.TELEGRAM_MOD_CHAT_ID || "";
 const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || "";
+const REQUIRE_CAPTCHA = String(process.env.REQUIRE_CAPTCHA || "false").toLowerCase() === "true";
+const isProduction = process.env.NODE_ENV === "production";
+// HSTS can brick environments with invalid/self-signed certs; make it explicit opt-in.
+const ENABLE_HSTS = String(process.env.ENABLE_HSTS || "false").toLowerCase() === "true";
+const REQUIRE_STRICT_SECRETS = String(process.env.REQUIRE_STRICT_SECRETS || (isProduction ? "true" : "false")).toLowerCase() === "true";
 const SESSION_TTL_HOURS = Number(process.env.SESSION_TTL_HOURS || 24 * 7);
 const defaultCountry = (process.env.DEFAULT_COUNTRY || "global").toLowerCase();
 const defaultLang = (process.env.DEFAULT_LANG || "en").toLowerCase();
@@ -110,6 +122,91 @@ const forumTopics = [
   { id: "t5", categoryId: "succ", title: "I found a new role after 6 months — ask me anything", replies: 66, lastUpdate: "2026-02-11" }
 ];
 
+const defaultResources = [
+  {
+    id: "res-1",
+    type: "reskilling",
+    title: "Career Transition Playbook",
+    provider: "AI Took My Job",
+    region: "global",
+    url: "https://example.com/career-transition-playbook",
+    summary: "Practical weekly plan to pivot to adjacent roles."
+  },
+  {
+    id: "res-2",
+    type: "legal",
+    title: "NDA And Layoff Rights Basics",
+    provider: "Worker Legal Aid",
+    region: "us",
+    url: "https://example.com/nda-rights",
+    summary: "How to share your story without exposing protected confidential data."
+  },
+  {
+    id: "res-3",
+    type: "jobs",
+    title: "Human-Centered Roles Board",
+    provider: "Community Curated",
+    region: "global",
+    url: "https://example.com/human-jobs-board",
+    summary: "Open positions in customer support, QA, ops, and compliance."
+  }
+];
+
+const defaultNews = [
+  {
+    id: "news-1",
+    title: "Platform transparency report published",
+    source: "AI Took My Job",
+    url: "https://example.com/transparency-report",
+    publishedAt: "2026-02-10T10:00:00.000Z",
+    region: "global"
+  },
+  {
+    id: "news-2",
+    title: "Hiring rebounds in support operations after failed chatbot rollout",
+    source: "Industry Watch",
+    url: "https://example.com/support-hiring-rebound",
+    publishedAt: "2026-02-09T14:00:00.000Z",
+    region: "us"
+  }
+];
+
+const defaultCompanyBoards = [
+  {
+    id: "board-quickhelp-1",
+    companySlug: "quickhelp",
+    title: "Support team layoffs: appeal and rehiring evidence",
+    body: "Collect verifiable reports of post-layoff service quality issues and any rehiring signals.",
+    createdBy: "system",
+    createdAt: "2026-02-10T09:00:00.000Z"
+  }
+];
+
+const defaultPetitions = [
+  {
+    id: "pet-1",
+    title: "Require disclosure when companies replace workers with AI",
+    description: "Public petition for transparent layoff notices and transition support.",
+    goal: 1000,
+    signatures: 128,
+    status: "open",
+    createdAt: "2026-02-09T12:00:00.000Z"
+  }
+];
+
+const defaultCohorts = [
+  {
+    id: "cohort-1",
+    title: "30-day Support to QA Transition",
+    profession: "QA Engineer",
+    country: "global",
+    capacity: 50,
+    enrolled: 12,
+    startsAt: "2026-03-01",
+    status: "open"
+  }
+];
+
 const storySchema = z.object({
   name: z.string().trim().min(2).max(80),
   country: z.string().trim().min(2).max(20),
@@ -120,6 +217,19 @@ const storySchema = z.object({
   foundNewJob: z.boolean(),
   reason: z.string().trim().min(8).max(240),
   story: z.string().trim().min(40).max(3000),
+  city: z.string().trim().min(1).max(80).optional(),
+  tenureYears: z.number().min(0).max(80).optional(),
+  salaryBefore: z.number().min(0).max(10000000).optional(),
+  salaryAfter: z.number().min(0).max(10000000).optional(),
+  layoffType: z.enum(["mass", "individual", "downsizing", "contract_end"]).optional(),
+  aiTool: z.string().trim().min(1).max(120).optional(),
+  warnedAhead: z.enum(["yes", "no", "partial"]).optional(),
+  compensationMonths: z.number().min(0).max(60).optional(),
+  searchingMonths: z.number().min(0).max(120).optional(),
+  newRoleField: z.string().trim().min(1).max(120).optional(),
+  moodScore: z.number().min(1).max(10).optional(),
+  ndaConfirmed: z.boolean().optional(),
+  evidenceTier: z.enum(["self_report", "doc_verified", "multi_source"]).optional(),
   privacy: z.object({
     nameDisplay: z.enum(["alias", "initials", "first_name", "anonymous"]).optional(),
     companyDisplay: z.enum(["exact", "industry_only", "masked"]).optional(),
@@ -207,6 +317,30 @@ function readStories() {
   }
 }
 
+function readResources() {
+  return readJsonArray(resourcesPath);
+}
+
+function readNews() {
+  return readJsonArray(newsPath);
+}
+
+function readCompanyBoards() {
+  return readJsonArray(companyBoardsPath);
+}
+
+function readPetitions() {
+  return readJsonArray(petitionsPath);
+}
+
+function readCohorts() {
+  return readJsonArray(cohortsPath);
+}
+
+function readAnonymousInbox() {
+  return readJsonArray(anonymousInboxPath);
+}
+
 function writeStories(stories) {
   fs.writeFileSync(storiesPath, JSON.stringify(stories, null, 2));
 }
@@ -273,6 +407,8 @@ function clearAuthCookie(res) {
 }
 
 function mapStoryRow(row) {
+  const details = row.details || {};
+  const metrics = row.metrics || {};
   return {
     id: row.id,
     name: row.name,
@@ -287,9 +423,73 @@ function mapStoryRow(row) {
     status: row.status,
     estimatedLayoffs: row.estimated_layoffs,
     createdAt: row.created_at,
+    updatedAt: row.updated_at || row.created_at,
+    city: details.city || null,
+    tenureYears: details.tenureYears ?? null,
+    salaryBefore: details.salaryBefore ?? null,
+    salaryAfter: details.salaryAfter ?? null,
+    layoffType: details.layoffType || null,
+    aiTool: details.aiTool || null,
+    warnedAhead: details.warnedAhead || null,
+    compensationMonths: details.compensationMonths ?? null,
+    searchingMonths: details.searchingMonths ?? null,
+    newRoleField: details.newRoleField || null,
+    moodScore: details.moodScore ?? null,
+    views: Number(metrics.views || 0),
+    meToo: Number(metrics.meToo || 0),
+    commentsCount: Number(metrics.commentsCount || 0),
+    updateLabel: details.updateLabel || null,
     privacy: row.privacy || {},
     moderation: row.moderation || {},
-    submittedBy: row.submitted_by || null
+    submittedBy: row.submitted_by || null,
+    details,
+    metrics
+  };
+}
+
+function ensureStoryDefaults(story) {
+  const details = story.details || {
+    city: story.city || null,
+    tenureYears: story.tenureYears ?? null,
+    salaryBefore: story.salaryBefore ?? null,
+    salaryAfter: story.salaryAfter ?? null,
+    layoffType: story.layoffType || null,
+    aiTool: story.aiTool || null,
+    warnedAhead: story.warnedAhead || null,
+    compensationMonths: story.compensationMonths ?? null,
+    searchingMonths: story.searchingMonths ?? null,
+    newRoleField: story.newRoleField || null,
+    moodScore: story.moodScore ?? null,
+    updateLabel: story.updateLabel || null,
+    evidenceTier: story.evidenceTier || "self_report"
+  };
+  const metrics = story.metrics || {
+    views: Number(story.views || 0),
+    meToo: Number(story.meToo || 0),
+    commentsCount: Number(story.commentsCount || 0)
+  };
+  return {
+    ...story,
+    details,
+    metrics,
+    views: Number(metrics.views || 0),
+    meToo: Number(metrics.meToo || 0),
+    commentsCount: Number(metrics.commentsCount || 0),
+    updatedAt: story.updatedAt || story.createdAt || new Date().toISOString(),
+    city: details.city || null,
+    tenureYears: details.tenureYears ?? null,
+    salaryBefore: details.salaryBefore ?? null,
+    salaryAfter: details.salaryAfter ?? null,
+    layoffType: details.layoffType || null,
+    aiTool: details.aiTool || null,
+    warnedAhead: details.warnedAhead || null,
+    compensationMonths: details.compensationMonths ?? null,
+    searchingMonths: details.searchingMonths ?? null,
+    newRoleField: details.newRoleField || null,
+    moodScore: details.moodScore ?? null,
+    updateLabel: details.updateLabel || null
+    ,
+    evidenceTier: details.evidenceTier || "self_report"
   };
 }
 
@@ -344,8 +544,21 @@ async function buildPgPool() {
 }
 
 async function initStorage() {
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+  const localDefaults = [
+    [resourcesPath, defaultResources],
+    [newsPath, defaultNews],
+    [takedownsPath, []],
+    [companyBoardsPath, defaultCompanyBoards],
+    [petitionsPath, defaultPetitions],
+    [cohortsPath, defaultCohorts],
+    [anonymousInboxPath, []]
+  ];
+  localDefaults.forEach(([file, value]) => {
+    if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify(value, null, 2));
+  });
+
   if (!usePostgres) {
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
     const defaults = [
       [usersPath, []],
       [forumTopicsPath, forumTopics],
@@ -355,7 +568,14 @@ async function initStorage() {
       [authIdentitiesPath, []],
       [storyVersionsPath, []],
       [telegramLinksPath, []],
-      [transparencyEventsPath, []]
+      [transparencyEventsPath, []],
+      [resourcesPath, defaultResources],
+      [newsPath, defaultNews],
+      [takedownsPath, []],
+      [companyBoardsPath, defaultCompanyBoards],
+      [petitionsPath, defaultPetitions],
+      [cohortsPath, defaultCohorts],
+      [anonymousInboxPath, []]
     ];
     defaults.forEach(([file, value]) => {
       if (!fs.existsSync(file)) {
@@ -379,16 +599,22 @@ async function initStorage() {
       story TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       estimated_layoffs INTEGER NOT NULL DEFAULT 1,
+      details JSONB NOT NULL DEFAULT '{}'::jsonb,
+      metrics JSONB NOT NULL DEFAULT '{}'::jsonb,
       privacy JSONB NOT NULL DEFAULT '{}'::jsonb,
       moderation JSONB NOT NULL DEFAULT '{}'::jsonb,
       submitted_by TEXT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
   await pgPool.query("CREATE INDEX IF NOT EXISTS idx_stories_status_country_created ON stories(status, country, created_at DESC);");
+  await pgPool.query("ALTER TABLE stories ADD COLUMN IF NOT EXISTS details JSONB NOT NULL DEFAULT '{}'::jsonb;");
+  await pgPool.query("ALTER TABLE stories ADD COLUMN IF NOT EXISTS metrics JSONB NOT NULL DEFAULT '{}'::jsonb;");
   await pgPool.query("ALTER TABLE stories ADD COLUMN IF NOT EXISTS privacy JSONB NOT NULL DEFAULT '{}'::jsonb;");
   await pgPool.query("ALTER TABLE stories ADD COLUMN IF NOT EXISTS moderation JSONB NOT NULL DEFAULT '{}'::jsonb;");
   await pgPool.query("ALTER TABLE stories ADD COLUMN IF NOT EXISTS submitted_by TEXT NULL;");
+  await pgPool.query("ALTER TABLE stories ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();");
   await pgPool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -507,9 +733,9 @@ async function initStorage() {
     await pgPool.query(
       `INSERT INTO stories (
         id, name, country, language, profession, company, laid_off_at,
-        found_new_job, reason, story, status, estimated_layoffs, privacy, moderation, submitted_by, created_at
+        found_new_job, reason, story, status, estimated_layoffs, details, metrics, privacy, moderation, submitted_by, created_at, updated_at
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
       ) ON CONFLICT (id) DO NOTHING;`,
       [
         s.id,
@@ -524,10 +750,13 @@ async function initStorage() {
         s.story,
         s.status || "pending",
         Number(s.estimatedLayoffs || 1),
+        JSON.stringify(s.details || {}),
+        JSON.stringify(s.metrics || {}),
         JSON.stringify(s.privacy || {}),
         JSON.stringify(s.moderation || {}),
         s.submittedBy || null,
-        s.createdAt || new Date().toISOString()
+        s.createdAt || new Date().toISOString(),
+        s.updatedAt || s.createdAt || new Date().toISOString()
       ]
     );
   }
@@ -555,9 +784,9 @@ async function initStorage() {
 }
 
 async function storageGetStories() {
-  if (!usePostgres) return readStories();
+  if (!usePostgres) return readStories().map(ensureStoryDefaults);
   const res = await pgPool.query("SELECT * FROM stories ORDER BY created_at DESC;");
-  return res.rows.map(mapStoryRow);
+  return res.rows.map(mapStoryRow).map(ensureStoryDefaults);
 }
 
 async function storageInsertStory(newStory) {
@@ -571,9 +800,9 @@ async function storageInsertStory(newStory) {
   await pgPool.query(
     `INSERT INTO stories (
       id, name, country, language, profession, company, laid_off_at,
-      found_new_job, reason, story, status, estimated_layoffs, privacy, moderation, submitted_by, created_at
+      found_new_job, reason, story, status, estimated_layoffs, details, metrics, privacy, moderation, submitted_by, created_at, updated_at
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
     );`,
     [
       newStory.id,
@@ -588,10 +817,13 @@ async function storageInsertStory(newStory) {
       newStory.story,
       newStory.status,
       newStory.estimatedLayoffs,
+      JSON.stringify(newStory.details || {}),
+      JSON.stringify(newStory.metrics || {}),
       JSON.stringify(newStory.privacy || {}),
       JSON.stringify(newStory.moderation || {}),
       newStory.submittedBy || null,
-      newStory.createdAt
+      newStory.createdAt,
+      newStory.updatedAt || newStory.createdAt
     ]
   );
 }
@@ -1116,6 +1348,7 @@ function scoreModeration(input) {
   const toxicTokens = ["idiot", "kill", "hate", "stupid", "loser", "trash"];
   const spamTokens = ["buy now", "promo", "discount", "http://", "https://", "telegram.me/", "affiliate"];
   const piiRegex = /(\+?\d[\d\-\s]{7,}\d)|([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/gi;
+  const crisisRegex = /(suicide|kill myself|end my life|cannot go on|хочу умереть|покончить с собой)/i;
   const deanonMarkers = [
     /only\s+\d+\s+people/i,
     /exactly\s+\d+\s+people/i,
@@ -1130,13 +1363,15 @@ function scoreModeration(input) {
   const pii = piiHits > 0 ? Math.min(1, 0.3 + piiHits * 0.2) : 0;
   const deanonMatches = deanonMarkers.reduce((n, re) => n + (re.test(text) ? 1 : 0), 0);
   const deanonymization = Math.min(1, deanonMatches * 0.25);
-  const risk = Math.max(toxicity, spam, pii, deanonymization);
+  const crisis = crisisRegex.test(text) ? 1 : 0;
+  const risk = Math.max(toxicity, spam, pii, deanonymization, crisis);
 
   return {
     toxicity,
     spam,
     pii,
     deanonymization,
+    crisis,
     riskBand: risk >= 0.85 ? "high" : risk >= 0.45 ? "medium" : "low",
     recommendations: deanonymization >= 0.5
       ? [
@@ -1210,6 +1445,194 @@ function getTopCompanies(stories, country) {
     row.rehired += entry.foundNewJob ? 1 : 0;
   }
   return [...map.values()].sort((a, b) => b.layoffs - a.layoffs).slice(0, 10);
+}
+
+function slugifyCompany(input) {
+  return String(input || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function toCompanyProfile(stories, slug) {
+  const rows = stories.filter((s) => slugifyCompany(s.company) === slug && s.status === "published");
+  if (!rows.length) return null;
+  const first = rows[0];
+  const avgTenure = rows.reduce((acc, s) => acc + Number(s.tenureYears || 0), 0) / Math.max(1, rows.filter((s) => s.tenureYears != null).length);
+  const professions = new Map();
+  const byMonth = new Map();
+  let warnedYes = 0;
+  let compensationTotal = 0;
+  let compensationCount = 0;
+  for (const s of rows) {
+    professions.set(s.profession, (professions.get(s.profession) || 0) + 1);
+    const month = String(s.laidOffAt || "").slice(0, 7) || "unknown";
+    byMonth.set(month, (byMonth.get(month) || 0) + 1);
+    if (s.warnedAhead === "yes" || s.warnedAhead === "partial") warnedYes += 1;
+    if (s.compensationMonths != null) {
+      compensationTotal += Number(s.compensationMonths);
+      compensationCount += 1;
+    }
+  }
+  const humanityRaw = rows.length
+    ? Math.round(((warnedYes / rows.length) * 50) + ((compensationCount ? (compensationTotal / compensationCount) : 0) * 10))
+    : 0;
+  return {
+    slug,
+    company: first.company,
+    industry: "Technology",
+    storiesCount: rows.length,
+    averageTenureYears: Number.isFinite(avgTenure) ? Number(avgTenure.toFixed(1)) : null,
+    affectedProfessions: [...professions.entries()].map(([profession, count]) => ({ profession, count })).sort((a, b) => b.count - a.count),
+    layoffsTimeline: [...byMonth.entries()].map(([month, count]) => ({ month, count })).sort((a, b) => a.month.localeCompare(b.month)),
+    humanityRating: Math.max(0, Math.min(100, humanityRaw)),
+    rehiredPeopleCount: rows.filter((s) => s.foundNewJob).length
+  };
+}
+
+function getDashboard(stories, country) {
+  const published = stories.filter((s) => s.status === "published" && (country === "global" || s.country === country));
+  const byProfession = new Map();
+  const byMonth = new Map();
+  const byCountry = new Map();
+  const byAiTool = new Map();
+  const foundByProfession = new Map();
+  const searchMonthsByProfession = new Map();
+  let compensationTotal = 0;
+  let compensationCount = 0;
+  let salaryBeforeTotal = 0;
+  let salaryBeforeCount = 0;
+  let salaryAfterTotal = 0;
+  let salaryAfterCount = 0;
+
+  for (const s of published) {
+    byProfession.set(s.profession, (byProfession.get(s.profession) || 0) + 1);
+    const month = String(s.laidOffAt || "").slice(0, 7) || "unknown";
+    byMonth.set(month, (byMonth.get(month) || 0) + 1);
+    byCountry.set(s.country, (byCountry.get(s.country) || 0) + 1);
+    if (s.aiTool) byAiTool.set(s.aiTool, (byAiTool.get(s.aiTool) || 0) + 1);
+
+    const foundMeta = foundByProfession.get(s.profession) || { found: 0, total: 0 };
+    foundMeta.total += 1;
+    if (s.foundNewJob) foundMeta.found += 1;
+    foundByProfession.set(s.profession, foundMeta);
+
+    if (s.searchingMonths != null) {
+      const meta = searchMonthsByProfession.get(s.profession) || { total: 0, count: 0 };
+      meta.total += Number(s.searchingMonths);
+      meta.count += 1;
+      searchMonthsByProfession.set(s.profession, meta);
+    }
+    if (s.compensationMonths != null) {
+      compensationTotal += Number(s.compensationMonths);
+      compensationCount += 1;
+    }
+    if (s.salaryBefore != null) {
+      salaryBeforeTotal += Number(s.salaryBefore);
+      salaryBeforeCount += 1;
+    }
+    if (s.salaryAfter != null) {
+      salaryAfterTotal += Number(s.salaryAfter);
+      salaryAfterCount += 1;
+    }
+  }
+
+  return {
+    country,
+    generatedAt: new Date().toISOString(),
+    topCompaniesByLayoffs: getTopCompanies(published, country),
+    layoffsByMonth: [...byMonth.entries()].map(([month, count]) => ({ month, count })).sort((a, b) => a.month.localeCompare(b.month)),
+    worldMap: [...byCountry.entries()].map(([countryCode, count]) => ({ country: countryCode, count })).sort((a, b) => b.count - a.count),
+    affectedProfessions: [...byProfession.entries()].map(([profession, count]) => ({ profession, count })).sort((a, b) => b.count - a.count),
+    averageSearchMonthsByProfession: [...searchMonthsByProfession.entries()]
+      .map(([profession, meta]) => ({ profession, months: Number((meta.total / Math.max(1, meta.count)).toFixed(1)) }))
+      .sort((a, b) => b.months - a.months),
+    foundVsNotFoundByProfession: [...foundByProfession.entries()]
+      .map(([profession, meta]) => ({ profession, found: meta.found, notFound: Math.max(0, meta.total - meta.found) }))
+      .sort((a, b) => (b.found + b.notFound) - (a.found + a.notFound)),
+    aiToolsReplacingPeople: [...byAiTool.entries()].map(([tool, count]) => ({ tool, count })).sort((a, b) => b.count - a.count),
+    averageCompensationMonths: compensationCount ? Number((compensationTotal / compensationCount).toFixed(1)) : null,
+    rehiredCompaniesCount: getTopCompanies(published, country).filter((c) => c.rehired > 0).length,
+    salaryTrend: {
+      beforeAverage: salaryBeforeCount ? Math.round(salaryBeforeTotal / salaryBeforeCount) : null,
+      afterAverage: salaryAfterCount ? Math.round(salaryAfterTotal / salaryAfterCount) : null
+    }
+  };
+}
+
+function getCrisisResources(countryCode) {
+  const base = ["Global: findahelpline.com"];
+  if (countryCode === "us") base.unshift("US: 988 Suicide & Crisis Lifeline");
+  if (countryCode === "gb") base.unshift("UK Samaritans: 116 123");
+  if (countryCode === "ru") base.unshift("RU: 8-800-2000-122");
+  return base;
+}
+
+function computeConfidenceScore(story) {
+  const s = ensureStoryDefaults(story);
+  const tier = s.evidenceTier || "self_report";
+  const tierScore = tier === "multi_source" ? 0.45 : tier === "doc_verified" ? 0.32 : 0.2;
+  const moderationPenalty = Math.min(0.35, Number(s.moderation?.toxicity || 0) * 0.15 + Number(s.moderation?.spam || 0) * 0.15 + Number(s.moderation?.pii || 0) * 0.05);
+  const engagementBoost = Math.min(0.2, ((Number(s.views || 0) / 500) + (Number(s.meToo || 0) / 100)) * 0.1);
+  const raw = tierScore + 0.35 + engagementBoost - moderationPenalty;
+  return Math.max(0, Math.min(1, Number(raw.toFixed(3))));
+}
+
+function buildCounters(stories) {
+  const allStories = stories.filter((s) => s.status === "published");
+  const verifiedStories = allStories.filter((s) => (s.evidenceTier || "self_report") !== "self_report");
+  return {
+    all: {
+      stories: allStories.length,
+      laidOff: allStories.reduce((sum, s) => sum + Number(s.estimatedLayoffs || 1), 0)
+    },
+    verified: {
+      stories: verifiedStories.length,
+      laidOff: verifiedStories.reduce((sum, s) => sum + Number(s.estimatedLayoffs || 1), 0)
+    }
+  };
+}
+
+async function storagePatchStory(storyIdValue, patchFn) {
+  const stories = await storageGetStories();
+  const idx = stories.findIndex((s) => s.id === storyIdValue);
+  if (idx < 0) return null;
+  const current = ensureStoryDefaults(stories[idx]);
+  const next = ensureStoryDefaults({
+    ...current,
+    ...patchFn(current),
+    updatedAt: new Date().toISOString()
+  });
+
+  if (!usePostgres) {
+    const rows = readJsonArray(storiesPath);
+    const rIdx = rows.findIndex((s) => s.id === storyIdValue);
+    if (rIdx < 0) return null;
+    rows[rIdx] = { ...rows[rIdx], ...next };
+    writeJsonArray(storiesPath, rows);
+    return next;
+  }
+
+  await pgPool.query(
+    `UPDATE stories
+     SET found_new_job = $1,
+         story = $2,
+         details = $3,
+         metrics = $4,
+         status = $5,
+         updated_at = $6
+     WHERE id = $7;`,
+    [
+      Boolean(next.foundNewJob),
+      next.story,
+      JSON.stringify(next.details || {}),
+      JSON.stringify(next.metrics || {}),
+      next.status || "pending",
+      next.updatedAt,
+      storyIdValue
+    ]
+  );
+  return next;
 }
 
 function detectLocale(req) {
@@ -1309,17 +1732,21 @@ app.set("trust proxy", 1);
 app.use(
   helmet({
     contentSecurityPolicy: {
+      useDefaults: false,
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'"],
+        fontSrc: ["'self'", "data:"],
         imgSrc: ["'self'", "data:"],
         connectSrc: ["'self'"],
+        formAction: ["'self'"],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
         baseUri: ["'self'"]
       }
     },
+    strictTransportSecurity: ENABLE_HSTS ? undefined : false,
     crossOriginEmbedderPolicy: false
   })
 );
@@ -1354,6 +1781,20 @@ const globalLimiter = rateLimit({
 const storySubmitLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 10,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const authLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const phoneLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 12,
   standardHeaders: true,
   legacyHeaders: false
 });
@@ -1476,6 +1917,33 @@ app.post("/api/auth/logout", async (req, res) => {
       ip: req.ip
     });
   }
+  clearAuthCookie(res);
+  res.json({ ok: true });
+});
+
+app.post("/api/auth/delete-account", requireAuth, async (req, res) => {
+  const confirmation = sanitizeText(req.body.confirmation || "").toUpperCase();
+  if (confirmation !== "DELETE") {
+    res.status(422).json({ message: "Set confirmation to DELETE to continue" });
+    return;
+  }
+  if (!usePostgres) {
+    writeJsonArray(usersPath, readJsonArray(usersPath).filter((u) => u.id !== req.user.id));
+    writeJsonArray(authIdentitiesPath, readJsonArray(authIdentitiesPath).filter((x) => x.userId !== req.user.id));
+    writeJsonArray(telegramLinksPath, readJsonArray(telegramLinksPath).filter((x) => x.userId !== req.user.id));
+    writeJsonArray(storiesPath, readJsonArray(storiesPath).filter((s) => s.submittedBy !== req.user.id));
+  } else {
+    await pgPool.query("DELETE FROM users WHERE id = $1;", [req.user.id]);
+    await pgPool.query("DELETE FROM stories WHERE submitted_by = $1;", [req.user.id]);
+  }
+  await storageAudit({
+    action: "auth.delete_account",
+    actorId: req.user.id,
+    targetType: "user",
+    targetId: req.user.id,
+    metadata: {},
+    ip: req.ip
+  });
   clearAuthCookie(res);
   res.json({ ok: true });
 });
@@ -1890,50 +2358,105 @@ app.get("/api/stories", async (req, res) => {
     .filter((s) => s.status === "published" && (country === "global" || s.country === country))
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, limit)
-    .map(maskStoryByPrivacy);
-  res.json({ country, stories });
+    .map(maskStoryByPrivacy)
+    .map((s) => ({ ...s, confidenceScore: computeConfidenceScore(s) }));
+  res.json({ country, stories, crisisResources: getCrisisResources(country) });
 });
+
+function buildStoryPayload(req, options = {}) {
+  const privacyFromRequest = mapVisibilityToPrivacy(req.body.privacy || req.body.visibility || {});
+  const city = sanitizeText(req.body.city || "");
+  const aiTool = sanitizeText(req.body.aiTool || "");
+  const newRoleField = sanitizeText(req.body.newRoleField || "");
+  const payload = {
+    ...req.body,
+    name: sanitizeText(req.body.name),
+    profession: sanitizeText(req.body.profession),
+    company: sanitizeText(req.body.company || "Undisclosed"),
+    reason: sanitizeText(req.body.reason),
+    story: sanitizeText(req.body.story),
+    laidOffAt: sanitizeText(req.body.laidOffAt),
+    city: city || undefined,
+    aiTool: aiTool || undefined,
+    newRoleField: newRoleField || undefined,
+    privacy: privacyFromRequest,
+    country: normalizeCountry(req.body.country),
+    language: normalizeLanguage(req.body.language),
+    foundNewJob: req.body.foundNewJob === true || req.body.foundNewJob === "true",
+    tenureYears: req.body.tenureYears === undefined || req.body.tenureYears === "" ? undefined : Number(req.body.tenureYears),
+    salaryBefore: req.body.salaryBefore === undefined || req.body.salaryBefore === "" ? undefined : Number(req.body.salaryBefore),
+    salaryAfter: req.body.salaryAfter === undefined || req.body.salaryAfter === "" ? undefined : Number(req.body.salaryAfter),
+    compensationMonths: req.body.compensationMonths === undefined || req.body.compensationMonths === "" ? undefined : Number(req.body.compensationMonths),
+    searchingMonths: req.body.searchingMonths === undefined || req.body.searchingMonths === "" ? undefined : Number(req.body.searchingMonths),
+    moodScore: req.body.moodScore === undefined || req.body.moodScore === "" ? undefined : Number(req.body.moodScore),
+    layoffType: req.body.layoffType ? sanitizeText(req.body.layoffType) : undefined,
+    warnedAhead: req.body.warnedAhead ? sanitizeText(req.body.warnedAhead) : undefined,
+    ndaConfirmed: req.body.ndaConfirmed === true || req.body.ndaConfirmed === "true"
+    ,
+    evidenceTier: req.body.evidenceTier ? sanitizeText(req.body.evidenceTier) : undefined
+  };
+  const parsed = storySchema.safeParse(payload);
+  if (!parsed.success) {
+    return { ok: false, errors: parsed.error.issues.map((e) => ({ field: e.path[0], message: e.message })) };
+  }
+  if (!parsed.data.ndaConfirmed && !options.skipNda) {
+    return { ok: false, errors: [{ field: "ndaConfirmed", message: "You must confirm NDA/legal notice before submission" }] };
+  }
+  return { ok: true, data: parsed.data };
+}
+
+function buildStoryRecord(parsedData, submittedBy, moderation, initialStatus) {
+  const details = {
+    city: parsedData.city || null,
+    tenureYears: parsedData.tenureYears ?? null,
+    salaryBefore: parsedData.salaryBefore ?? null,
+    salaryAfter: parsedData.salaryAfter ?? null,
+    layoffType: parsedData.layoffType || null,
+    aiTool: parsedData.aiTool || null,
+    warnedAhead: parsedData.warnedAhead || null,
+    compensationMonths: parsedData.compensationMonths ?? null,
+    searchingMonths: parsedData.searchingMonths ?? null,
+    newRoleField: parsedData.newRoleField || null,
+    moodScore: parsedData.moodScore ?? null,
+    updateLabel: null,
+    evidenceTier: parsedData.evidenceTier || "self_report"
+  };
+  const metrics = {
+    views: 0,
+    meToo: 0,
+    commentsCount: 0
+  };
+  return ensureStoryDefaults({
+    id: storyId(),
+    ...parsedData,
+    status: initialStatus,
+    estimatedLayoffs: 1,
+    moderation,
+    details,
+    metrics,
+    submittedBy,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+}
 
 app.post("/api/stories", storySubmitLimiter, requireAuth, requireVerifiedPhone, async (req, res) => {
   if (isAccountMuted(req.user)) {
     res.status(403).json({ message: "Account temporarily muted" });
     return;
   }
-  const privacyFromRequest = mapVisibilityToPrivacy(req.body.privacy || req.body.visibility || {});
-  const payload = {
-    ...req.body,
-    name: sanitizeText(req.body.name),
-    profession: sanitizeText(req.body.profession),
-    company: sanitizeText(req.body.company),
-    reason: sanitizeText(req.body.reason),
-    story: sanitizeText(req.body.story),
-    laidOffAt: sanitizeText(req.body.laidOffAt),
-    privacy: privacyFromRequest,
-    country: normalizeCountry(req.body.country),
-    language: normalizeLanguage(req.body.language),
-    foundNewJob: req.body.foundNewJob === true || req.body.foundNewJob === "true"
-  };
-
-  const parsed = storySchema.safeParse(payload);
-  if (!parsed.success) {
+  const prepared = buildStoryPayload(req);
+  if (!prepared.ok) {
     res.status(422).json({
       message: "Validation failed",
-      errors: parsed.error.issues.map((e) => ({ field: e.path[0], message: e.message }))
+      errors: prepared.errors
     });
     return;
   }
 
-  const moderation = scoreModeration(parsed.data);
+  const moderation = scoreModeration(prepared.data);
   const initialStatus = moderation.riskBand === "high" ? "rejected" : "pending";
-  const newStory = {
-    id: storyId(),
-    ...parsed.data,
-    status: initialStatus,
-    estimatedLayoffs: 1,
-    moderation,
-    submittedBy: req.user.id,
-    createdAt: new Date().toISOString()
-  };
+  const newStory = buildStoryRecord(prepared.data, req.user.id, moderation, initialStatus);
   await storageInsertStory(newStory);
   await storageInsertStoryVersion({
     id: auditId(),
@@ -1965,7 +2488,133 @@ app.post("/api/stories", storySubmitLimiter, requireAuth, requireVerifiedPhone, 
     status: newStory.status,
     moderation,
     deanonymizationRisk: moderation.deanonymization,
-    recommendations: moderation.recommendations
+    recommendations: moderation.recommendations,
+    crisisResources: moderation.crisis ? getCrisisResources(newStory.country) : []
+  });
+});
+
+app.post("/api/stories/anonymous", storySubmitLimiter, async (req, res) => {
+  if (REQUIRE_CAPTCHA && !sanitizeText(req.body.captchaToken)) {
+    res.status(422).json({ message: "Captcha token required" });
+    return;
+  }
+  req.body = {
+    ...req.body,
+    name: sanitizeText(req.body.name || "Anonymous"),
+    company: sanitizeText(req.body.company || "Undisclosed")
+  };
+  const prepared = buildStoryPayload(req);
+  if (!prepared.ok) {
+    res.status(422).json({ message: "Validation failed", errors: prepared.errors });
+    return;
+  }
+  const moderation = scoreModeration(prepared.data);
+  const initialStatus = moderation.riskBand === "high" ? "rejected" : "pending";
+  const newStory = buildStoryRecord(prepared.data, null, moderation, initialStatus);
+  await storageInsertStory(newStory);
+  await storageAudit({
+    action: "story.submit.anonymous",
+    actorId: null,
+    targetType: "story",
+    targetId: newStory.id,
+    metadata: { country: newStory.country, language: newStory.language, moderation },
+    ip: req.ip
+  });
+  res.status(initialStatus === "rejected" ? 202 : 201).json({
+    message: "Anonymous story submitted for moderation",
+    id: newStory.id,
+    status: newStory.status,
+    moderation
+  });
+});
+
+app.post("/api/stories/:id/view", async (req, res) => {
+  const updated = await storagePatchStory(req.params.id, (story) => ({
+    metrics: {
+      ...story.metrics,
+      views: Number(story.metrics?.views || 0) + 1
+    }
+  }));
+  if (!updated) {
+    res.status(404).json({ message: "Story not found" });
+    return;
+  }
+  res.json({ id: updated.id, views: updated.metrics.views });
+});
+
+app.post("/api/stories/:id/me-too", async (req, res) => {
+  const updated = await storagePatchStory(req.params.id, (story) => ({
+    metrics: {
+      ...story.metrics,
+      meToo: Number(story.metrics?.meToo || 0) + 1
+    }
+  }));
+  if (!updated) {
+    res.status(404).json({ message: "Story not found" });
+    return;
+  }
+  res.json({ id: updated.id, meToo: updated.metrics.meToo });
+});
+
+app.post("/api/stories/:id/comment", requireAuth, async (req, res) => {
+  const body = sanitizeText(req.body.body || "");
+  if (body.length < 2) {
+    res.status(422).json({ message: "Comment is too short" });
+    return;
+  }
+  const updated = await storagePatchStory(req.params.id, (story) => ({
+    metrics: {
+      ...story.metrics,
+      commentsCount: Number(story.metrics?.commentsCount || 0) + 1
+    }
+  }));
+  if (!updated) {
+    res.status(404).json({ message: "Story not found" });
+    return;
+  }
+  await storageAudit({
+    action: "story.comment",
+    actorId: req.user.id,
+    targetType: "story",
+    targetId: req.params.id,
+    metadata: {},
+    ip: req.ip
+  });
+  res.status(201).json({ ok: true, commentsCount: updated.metrics.commentsCount });
+});
+
+app.post("/api/stories/:id/update", requireAuth, async (req, res) => {
+  const storyIdValue = sanitizeText(req.params.id);
+  const current = (await storageGetStories()).find((s) => s.id === storyIdValue);
+  if (!current) {
+    res.status(404).json({ message: "Story not found" });
+    return;
+  }
+  if (current.submittedBy && current.submittedBy !== req.user.id && !hasModeratorRole(req.user)) {
+    res.status(403).json({ message: "Not allowed" });
+    return;
+  }
+  const foundNewJob = req.body.foundNewJob === true || req.body.foundNewJob === "true";
+  const note = sanitizeText(req.body.updateLabel || "");
+  const updated = await storagePatchStory(storyIdValue, (story) => ({
+    foundNewJob,
+    details: {
+      ...story.details,
+      updateLabel: note || story.details?.updateLabel || null
+    }
+  }));
+  await storageAudit({
+    action: "story.update.status",
+    actorId: req.user.id,
+    targetType: "story",
+    targetId: storyIdValue,
+    metadata: { foundNewJob },
+    ip: req.ip
+  });
+  res.json({
+    id: storyIdValue,
+    foundNewJob: Boolean(updated?.foundNewJob),
+    updateLabel: updated?.details?.updateLabel || null
   });
 });
 
@@ -1973,6 +2622,311 @@ app.get("/api/companies/top", async (req, res) => {
   const country = normalizeCountry(req.query.country || "global");
   const companies = getTopCompanies(await storageGetStories(), country);
   res.json({ country, companies });
+});
+
+app.get("/api/companies/:slug", async (req, res) => {
+  const profile = toCompanyProfile(await storageGetStories(), sanitizeText(req.params.slug));
+  if (!profile) {
+    res.status(404).json({ message: "Company profile not found" });
+    return;
+  }
+  res.json(profile);
+});
+
+app.get("/api/statistics/dashboard", async (req, res) => {
+  const country = normalizeCountry(req.query.country || "global");
+  const stories = await storageGetStories();
+  res.json(getDashboard(stories, country));
+});
+
+app.get("/api/counters", async (req, res) => {
+  const country = normalizeCountry(req.query.country || "global");
+  const stories = (await storageGetStories()).filter((s) => country === "global" || s.country === country);
+  res.json({ country, counters: buildCounters(stories) });
+});
+
+app.get("/api/stories/:id/confidence", async (req, res) => {
+  const id = sanitizeText(req.params.id);
+  const story = (await storageGetStories()).find((s) => s.id === id);
+  if (!story) {
+    res.status(404).json({ message: "Story not found" });
+    return;
+  }
+  res.json({
+    id,
+    confidenceScore: computeConfidenceScore(story),
+    evidenceTier: story.evidenceTier || "self_report",
+    moderation: story.moderation || {}
+  });
+});
+
+app.get("/api/companies/:slug/timeline", async (req, res) => {
+  const slug = sanitizeText(req.params.slug);
+  const stories = (await storageGetStories()).filter((s) => s.status === "published" && slugifyCompany(s.company) === slug);
+  if (!stories.length) {
+    res.status(404).json({ message: "Company profile not found" });
+    return;
+  }
+  const byMonth = new Map();
+  for (const s of stories) {
+    const month = String(s.laidOffAt || "").slice(0, 7) || "unknown";
+    byMonth.set(month, (byMonth.get(month) || 0) + Number(s.estimatedLayoffs || 1));
+  }
+  res.json({
+    slug,
+    company: stories[0].company,
+    timeline: [...byMonth.entries()].map(([month, layoffs]) => ({ month, layoffs })).sort((a, b) => a.month.localeCompare(b.month))
+  });
+});
+
+app.get("/api/companies/:slug/board/topics", async (req, res) => {
+  const slug = sanitizeText(req.params.slug);
+  const source = readCompanyBoards();
+  const rows = source.length ? source : defaultCompanyBoards;
+  const topics = rows.filter((x) => x.companySlug === slug).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json({ companySlug: slug, topics });
+});
+
+app.post("/api/companies/:slug/board/topics", requireAuth, async (req, res) => {
+  const slug = sanitizeText(req.params.slug);
+  const title = sanitizeText(req.body.title);
+  const body = sanitizeText(req.body.body);
+  if (title.length < 8 || body.length < 20) {
+    res.status(422).json({ message: "Validation failed" });
+    return;
+  }
+  const entry = {
+    id: topicId(),
+    companySlug: slug,
+    title,
+    body,
+    createdBy: req.user.id,
+    createdAt: new Date().toISOString()
+  };
+  const rows = readCompanyBoards();
+  rows.push(entry);
+  writeJsonArray(companyBoardsPath, rows.slice(-5000));
+  res.status(201).json(entry);
+});
+
+app.get("/api/resources", (req, res) => {
+  const country = normalizeCountry(req.query.country || "global");
+  const source = readResources();
+  const rows = source.length ? source : defaultResources;
+  const resources = rows.filter((x) => x.region === "global" || x.region === country);
+  res.json({ country, resources });
+});
+
+app.get("/api/resources/match", (req, res) => {
+  const country = normalizeCountry(req.query.country || "global");
+  const profession = sanitizeText(req.query.profession || "").toLowerCase();
+  const months = Number(req.query.months || 0);
+  const source = readResources();
+  const rows = source.length ? source : defaultResources;
+  const matched = rows.filter((r) => {
+    const regionOk = r.region === "global" || r.region === country;
+    const professionOk = !profession || `${r.title} ${r.summary} ${r.type}`.toLowerCase().includes(profession);
+    const urgencyBoost = months >= 6 ? (r.type === "jobs" || r.type === "reskilling") : true;
+    return regionOk && professionOk && urgencyBoost;
+  });
+  res.json({ country, profession, months, resources: matched });
+});
+
+app.get("/api/news", (req, res) => {
+  const country = normalizeCountry(req.query.country || "global");
+  const source = readNews();
+  const rows = source.length ? source : defaultNews;
+  const news = rows
+    .filter((x) => x.region === "global" || x.region === country)
+    .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+  res.json({ country, news });
+});
+
+app.get("/api/legal/methodology", (_req, res) => {
+  res.json({
+    methodology: {
+      storiesCounter: "Counts published stories only.",
+      layoffCounter: "Sum of estimatedLayoffs from published stories.",
+      verifiedSignal: "Phone-verified submitters are labeled as higher trust in moderation metadata.",
+      limitations: [
+        "Self-reported stories may contain uncertainty.",
+        "Aggregates are directional, not labor-market census values."
+      ]
+    }
+  });
+});
+
+app.post("/api/privacy/redaction-assistant", async (req, res) => {
+  const text = sanitizeText(req.body.text || "");
+  if (text.length < 20) {
+    res.status(422).json({ message: "Text too short" });
+    return;
+  }
+  const score = scoreModeration({ reason: text, story: text });
+  res.json({
+    risk: score,
+    suggestions: [
+      "Remove exact dates and unique team identifiers.",
+      "Mask specific product/project codenames.",
+      "Consider switching company visibility to masked."
+    ]
+  });
+});
+
+app.post("/api/anonymous/inbox", async (req, res) => {
+  const message = sanitizeText(req.body.message || "");
+  const channel = sanitizeText(req.body.channel || "web");
+  if (message.length < 20) {
+    res.status(422).json({ message: "Message too short" });
+    return;
+  }
+  const trackingCode = `INB-${linkCodeId()}`;
+  const row = {
+    id: auditId(),
+    trackingCode,
+    message,
+    channel,
+    status: "received",
+    createdAt: new Date().toISOString()
+  };
+  const entries = readAnonymousInbox();
+  entries.push(row);
+  writeJsonArray(anonymousInboxPath, entries.slice(-5000));
+  res.status(201).json({ trackingCode, status: row.status });
+});
+
+app.get("/api/submission/onion-info", (_req, res) => {
+  res.json({
+    enabled: false,
+    note: "Onion endpoint is not configured yet.",
+    guidance: "Use anonymous inbox or secure channel until onion service is enabled."
+  });
+});
+
+app.get("/api/cohorts", (req, res) => {
+  const country = normalizeCountry(req.query.country || "global");
+  const profession = sanitizeText(req.query.profession || "").toLowerCase();
+  const source = readCohorts();
+  const rows = source.length ? source : defaultCohorts;
+  const cohorts = rows.filter((c) => (c.country === "global" || c.country === country) && (!profession || String(c.profession || "").toLowerCase().includes(profession)));
+  res.json({ country, cohorts });
+});
+
+app.post("/api/cohorts", requireAuth, async (req, res) => {
+  const title = sanitizeText(req.body.title || "");
+  const profession = sanitizeText(req.body.profession || "");
+  const country = normalizeCountry(req.body.country || "global");
+  const capacity = Number(req.body.capacity || 0);
+  if (title.length < 8 || profession.length < 2 || capacity < 5) {
+    res.status(422).json({ message: "Validation failed" });
+    return;
+  }
+  const row = {
+    id: `cohort-${topicId()}`,
+    title,
+    profession,
+    country,
+    capacity,
+    enrolled: 0,
+    startsAt: sanitizeText(req.body.startsAt || ""),
+    status: "open"
+  };
+  const entries = readCohorts();
+  entries.push(row);
+  writeJsonArray(cohortsPath, entries.slice(-1000));
+  res.status(201).json(row);
+});
+
+app.get("/api/campaigns/petitions", (_req, res) => {
+  const source = readPetitions();
+  const petitions = source.length ? source : defaultPetitions;
+  res.json({ petitions });
+});
+
+app.post("/api/campaigns/petitions", requireAuth, async (req, res) => {
+  const title = sanitizeText(req.body.title || "");
+  const description = sanitizeText(req.body.description || "");
+  const goal = Number(req.body.goal || 0);
+  if (title.length < 10 || description.length < 20 || goal < 10) {
+    res.status(422).json({ message: "Validation failed" });
+    return;
+  }
+  const row = {
+    id: `pet-${topicId()}`,
+    title,
+    description,
+    goal,
+    signatures: 0,
+    status: "open",
+    createdAt: new Date().toISOString()
+  };
+  const entries = readPetitions();
+  entries.push(row);
+  writeJsonArray(petitionsPath, entries.slice(-1000));
+  res.status(201).json(row);
+});
+
+app.post("/api/campaigns/petitions/:id/sign", async (req, res) => {
+  const id = sanitizeText(req.params.id);
+  const entries = readPetitions();
+  const idx = entries.findIndex((p) => p.id === id);
+  if (idx < 0) {
+    res.status(404).json({ message: "Petition not found" });
+    return;
+  }
+  entries[idx].signatures = Number(entries[idx].signatures || 0) + 1;
+  writeJsonArray(petitionsPath, entries);
+  res.json({ id, signatures: entries[idx].signatures });
+});
+
+app.get("/api/transparency/center", async (req, res) => {
+  const periodDays = Number(req.query.days || 30);
+  const from = new Date(Date.now() - periodDays * 24 * 3600 * 1000).toISOString();
+  const events = await storageGetAuditRange(from, new Date().toISOString());
+  const takedowns = readJsonArray(takedownsPath);
+  const counters = buildCounters(await storageGetStories());
+  res.json({
+    generatedAt: new Date().toISOString(),
+    counters,
+    moderationActions: events.filter((x) => x.action === "moderation.action").length,
+    sanctions: events.filter((x) => x.action === "sanction.create").length,
+    takedownsRequested: takedowns.length,
+    anomalySignals: events.filter((x) => x.action && x.action.includes("anomaly")).length
+  });
+});
+
+app.post("/api/legal/takedown", async (req, res) => {
+  const payload = {
+    email: normalizeEmail(req.body.email),
+    reason: sanitizeText(req.body.reason),
+    targetUrl: sanitizeText(req.body.targetUrl),
+    legalBasis: sanitizeText(req.body.legalBasis)
+  };
+  if (!payload.email || !payload.reason || !payload.targetUrl) {
+    res.status(422).json({ message: "Validation failed" });
+    return;
+  }
+  const entry = {
+    id: auditId(),
+    email: payload.email,
+    reason: payload.reason,
+    targetUrl: payload.targetUrl,
+    legalBasis: payload.legalBasis || "unspecified",
+    createdAt: new Date().toISOString(),
+    status: "pending"
+  };
+  const rows = readJsonArray(takedownsPath);
+  rows.push(entry);
+  writeJsonArray(takedownsPath, rows.slice(-5000));
+  await storageAudit({
+    action: "legal.takedown.request",
+    actorId: null,
+    targetType: "takedown",
+    targetId: entry.id,
+    metadata: { targetUrl: entry.targetUrl },
+    ip: req.ip
+  });
+  res.status(201).json({ id: entry.id, status: entry.status });
 });
 
 app.get("/api/forum/categories", (_req, res) => {

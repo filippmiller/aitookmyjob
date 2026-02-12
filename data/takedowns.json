@@ -1,0 +1,11 @@
+[
+  {
+    "id": "a3u6sko1jlvasz",
+    "email": "legal@example.com",
+    "reason": "Contains personal data",
+    "targetUrl": "https://example.com/story/123",
+    "legalBasis": "privacy",
+    "createdAt": "2026-02-11T17:32:22.418Z",
+    "status": "pending"
+  }
+]

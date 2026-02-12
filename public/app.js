@@ -34,14 +34,20 @@ const LANGUAGE_NAMES = {
 const FALLBACK_TEXT = {
   brand: "AI Took My Job",
   navStories: "Stories",
+  navStats: "Statistics",
+  navCompanies: "Companies",
+  navResources: "Resources",
+  navNews: "News",
   navForum: "Forum",
   navAdmin: "Admin",
   navAuth: "Auth",
+  navLegal: "Legal",
   heroTitle: "A public ledger for AI-era layoffs, recovery, and worker voice",
   heroSubtitle: "Track displacement by country, publish verified experiences, and coordinate practical help through stories, forum threads, and moderation-led trust controls.",
   ctaStory: "Share your story",
   ctaForum: "Open forum",
   ctaAuth: "Open auth",
+  ctaResources: "Open resources",
   counterLaidOff: "People laid off",
   counterStories: "Stories shared",
   counterFound: "Found a new job",
@@ -49,6 +55,10 @@ const FALLBACK_TEXT = {
   tickerLeaders: "Top companies by layoffs",
   tickerRecovered: "People who found a new job",
   latestStories: "Latest stories",
+  storyOpen: "Open",
+  storyMeToo: "Me too",
+  storyComment: "Comment",
+  storyCommentPlaceholder: "Add supportive comment",
   forumTitle: "Forum",
   forumCategories: "Categories",
   forumCreateTitle: "Create a topic",
@@ -88,6 +98,22 @@ const FALLBACK_TEXT = {
   authPhoneConfirm: "Confirm code",
   authPhoneStartOk: "Verification code sent.",
   authPhoneConfirmOk: "Phone verified.",
+  deleteAccount: "Delete account",
+  statsTitle: "Statistics dashboard",
+  companiesTitle: "Company profiles",
+  companySelect: "Select company",
+  companyNoProfile: "Select a company to view profile.",
+  resourcesTitle: "Resources",
+  newsTitle: "News",
+  legalTitle: "Legal and privacy",
+  methodologyTitle: "Methodology",
+  takedownTitle: "Takedown request",
+  takedownSubmit: "Submit takedown",
+  cookieTitle: "Cookie consent",
+  cookieAccept: "Accept essential cookies",
+  cookieReject: "Reject non-essential",
+  anonymousTitle: "Anonymous story submission",
+  anonymousSubmit: "Submit anonymously",
   adminTitle: "Admin",
   adminSecure: "Token required for privileged endpoints.",
   adminToken: "Admin token",
@@ -135,6 +161,7 @@ const FALLBACK_TEXT = {
   deanonymWarningTitle: "Deanonymization risk warnings",
   deanonymWarningNone: "No deanonymization warnings reported.",
   foundNewJob: "I already found a new job",
+  ndaLabel: "I confirm my story does not intentionally disclose protected NDA information",
   submit: "Submit for moderation",
   submitOk: "Story submitted. Thank you.",
   submitFail: "Could not submit story. Check fields and try again.",
@@ -158,8 +185,20 @@ const state = {
   meta: { countries: [], languages: ["en"] },
   t: { ...FALLBACK_TEXT },
   stats: { counters: {} },
+  dashboard: null,
   stories: [],
   companies: [],
+  companyProfile: null,
+  resources: [],
+  news: [],
+  countersSplit: null,
+  petitions: [],
+  cohorts: [],
+  transparencyCenter: null,
+  companyBoardTopics: [],
+  onionInfo: null,
+  redactionAssistant: null,
+  methodology: null,
   categories: [],
   topics: [],
   authUser: null,
@@ -171,6 +210,7 @@ const state = {
   anomalySignals: [],
   telegramStatus: null,
   telegramLinkCode: "",
+  cookieConsent: localStorage.getItem("cookieConsent") || "",
   messages: {
     auth: "",
     phone: "",
@@ -181,7 +221,11 @@ const state = {
     sanction: "",
     transparency: "",
     anomaly: "",
-    integrations: ""
+    integrations: "",
+    anonymous: "",
+    legal: "",
+    companyBoard: "",
+    campaigns: ""
   }
 };
 
@@ -327,8 +371,15 @@ function render() {
           <span>${esc(s.company)}</span>
           <span>${esc(s.laidOffAt)}</span>
           <span>${countryLabel(s.country)}</span>
+          <span>Views: ${fmt(s.views)}</span>
+          <span>Me too: ${fmt(s.meToo)}</span>
+          <span>Comments: ${fmt(s.commentsCount)}</span>
         </div>
         <p>${esc(s.story)}</p>
+        <div class="hero-actions">
+          <button class="btn-secondary" data-view-story="${esc(s.id)}">${esc(t("storyOpen"))}</button>
+          <button class="btn-secondary" data-me-too="${esc(s.id)}">${esc(t("storyMeToo"))}</button>
+        </div>
       </article>
     `).join("")
     : `<article class="card">No stories yet.</article>`;
@@ -429,15 +480,21 @@ function render() {
           <button class="btn-primary" data-jump="storyForm">${esc(t("ctaStory"))}</button>
           <button class="btn-secondary" data-jump="forum">${esc(t("ctaForum"))}</button>
           <button class="btn-secondary" data-jump="auth">${esc(t("ctaAuth"))}</button>
+          <button class="btn-secondary" data-jump="resources">${esc(t("ctaResources"))}</button>
         </div>
       </section>
 
       <nav class="section-tabs reveal" aria-label="Main sections">
         <a href="#stories">${esc(t("navStories"))}</a>
+        <a href="#stats">${esc(t("navStats"))}</a>
+        <a href="#companies">${esc(t("navCompanies"))}</a>
+        <a href="#resources">${esc(t("navResources"))}</a>
+        <a href="#news">${esc(t("navNews"))}</a>
         <a href="#forum">${esc(t("navForum"))}</a>
         <a href="#admin">${esc(t("navAdmin"))}</a>
         <a href="#auth">${esc(t("navAuth"))}</a>
         <a href="#integrations">${esc(t("navIntegrations"))}</a>
+        <a href="#legal">${esc(t("navLegal"))}</a>
       </nav>
 
       <section class="grid-4 reveal">
@@ -453,6 +510,67 @@ function render() {
       <section id="stories" class="section reveal">
         <h2>${esc(t("latestStories"))}</h2>
         <div class="stories">${storiesHTML}</div>
+      </section>
+
+      <section id="stats" class="section card reveal">
+        <h2>${esc(t("statsTitle"))}</h2>
+        ${state.countersSplit ? `<div class="notice">All stories: ${fmt(state.countersSplit.all?.stories || 0)} | Verified stories: ${fmt(state.countersSplit.verified?.stories || 0)} | Verified layoffs: ${fmt(state.countersSplit.verified?.laidOff || 0)}</div>` : ""}
+        <div class="layout-2">
+          <article class="card">
+            <h3>Top companies</h3>
+            <ul>${(state.dashboard?.topCompaniesByLayoffs || []).slice(0, 8).map((x) => `<li>${esc(x.company)} (${fmt(x.layoffs)})</li>`).join("") || "<li>No data</li>"}</ul>
+          </article>
+          <article class="card">
+            <h3>Affected professions</h3>
+            <ul>${(state.dashboard?.affectedProfessions || []).slice(0, 8).map((x) => `<li>${esc(x.profession)} (${fmt(x.count)})</li>`).join("") || "<li>No data</li>"}</ul>
+          </article>
+          <article class="card">
+            <h3>AI tools replacing roles</h3>
+            <ul>${(state.dashboard?.aiToolsReplacingPeople || []).slice(0, 8).map((x) => `<li>${esc(x.tool)} (${fmt(x.count)})</li>`).join("") || "<li>No data</li>"}</ul>
+          </article>
+          <article class="card">
+            <h3>Compensation and salary trend</h3>
+            <p>Average compensation (months): ${esc(state.dashboard?.averageCompensationMonths ?? "-")}</p>
+            <p>Salary avg before: ${fmt(state.dashboard?.salaryTrend?.beforeAverage || 0)}</p>
+            <p>Salary avg after: ${fmt(state.dashboard?.salaryTrend?.afterAverage || 0)}</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="companies" class="section card reveal">
+        <h2>${esc(t("companiesTitle"))}</h2>
+        <form id="companyProfileForm" class="admin-bar">
+          <select name="companyName">
+            <option value="">${esc(t("companySelect"))}</option>
+            ${state.companies.map((c) => `<option value="${esc(c.company)}">${esc(c.company)}</option>`).join("")}
+          </select>
+          <button class="btn-secondary" type="submit">Load profile</button>
+        </form>
+        ${state.companyProfile
+          ? `<article class="card"><h3>${esc(state.companyProfile.company)}</h3><div class="meta"><span>Stories: ${fmt(state.companyProfile.storiesCount)}</span><span>Humanity: ${fmt(state.companyProfile.humanityRating)}</span></div></article>`
+          : `<article class="card">${esc(t("companyNoProfile"))}</article>`}
+        <h3>Company board</h3>
+        <form id="companyBoardForm" class="form-grid">
+          <input class="full" required name="title" placeholder="Board topic title" />
+          <textarea class="full" required name="body" rows="3" placeholder="Board topic details"></textarea>
+          <button class="btn-secondary" type="submit">Post to board</button>
+          <div class="full notice">${esc(state.messages.companyBoard)}</div>
+        </form>
+        <div class="stories">${state.companyBoardTopics.length ? state.companyBoardTopics.slice(0, 6).map((x) => `<article class="card"><h3>${esc(x.title)}</h3><p>${esc(x.body)}</p></article>`).join("") : "<article class=\"card\">No board topics loaded.</article>"}</div>
+      </section>
+
+      <section id="resources" class="section reveal">
+        <h2>${esc(t("resourcesTitle"))}</h2>
+        <div class="stories">${state.resources.length ? state.resources.map((r) => `<article class="card"><h3>${esc(r.title)}</h3><div class="meta"><span>${esc(r.type)}</span><span>${esc(r.provider || "")}</span></div><p>${esc(r.summary || "")}</p></article>`).join("") : "<article class=\"card\">No resources yet.</article>"}</div>
+        <h3>Cohorts</h3>
+        <div class="stories">${state.cohorts.length ? state.cohorts.map((c) => `<article class="card"><h3>${esc(c.title)}</h3><div class="meta"><span>${esc(c.profession)}</span><span>${fmt(c.enrolled || 0)}/${fmt(c.capacity || 0)}</span></div></article>`).join("") : "<article class=\"card\">No cohorts yet.</article>"}</div>
+        <h3>Campaigns</h3>
+        <div class="stories">${state.petitions.length ? state.petitions.map((p) => `<article class="card"><h3>${esc(p.title)}</h3><div class="meta"><span>${fmt(p.signatures || 0)} / ${fmt(p.goal || 0)} signatures</span></div><button class="btn-secondary" data-sign-petition="${esc(p.id)}">Sign</button></article>`).join("") : "<article class=\"card\">No petitions yet.</article>"}</div>
+      </section>
+
+      <section id="news" class="section reveal">
+        <h2>${esc(t("newsTitle"))}</h2>
+        <div class="stories">${state.news.length ? state.news.map((n) => `<article class="card"><h3>${esc(n.title)}</h3><div class="meta"><span>${esc(n.source || "")}</span><span>${esc(n.publishedAt || "")}</span></div></article>`).join("") : "<article class=\"card\">No news yet.</article>"}</div>
       </section>
 
       <section class="section card reveal" id="auth">
@@ -487,6 +605,7 @@ function render() {
             <div class="hero-actions">
               <button class="btn-secondary" type="button" id="meBtn">${esc(t("me"))}</button>
               <button class="btn-secondary" type="button" id="logoutBtn">${esc(t("logout"))}</button>
+              <button class="btn-secondary" type="button" id="deleteAccountBtn">${esc(t("deleteAccount"))}</button>
             </div>
             <p class="notice" id="authMessage">${esc(state.messages.auth)}</p>
             <p class="notice" id="phoneMessage">${esc(state.messages.phone)}</p>
@@ -570,7 +689,18 @@ function render() {
           <input required name="name" placeholder="${esc(t("name"))}" />
           <input required name="profession" placeholder="${esc(t("profession"))}" />
           <input required name="company" placeholder="${esc(t("company"))}" />
+          <input name="city" placeholder="City" />
           <input required name="laidOffAt" placeholder="${esc(t("laidOffAt"))}" />
+          <input name="tenureYears" type="number" min="0" step="0.1" placeholder="Tenure years" />
+          <input name="salaryBefore" type="number" min="0" placeholder="Salary before" />
+          <input name="salaryAfter" type="number" min="0" placeholder="Salary after" />
+          <input name="aiTool" placeholder="AI tool replaced role" />
+          <input name="searchingMonths" type="number" min="0" step="0.1" placeholder="Search months" />
+          <select name="evidenceTier">
+            <option value="self_report">Evidence: self report</option>
+            <option value="doc_verified">Evidence: document verified</option>
+            <option value="multi_source">Evidence: multi-source</option>
+          </select>
           <input class="full" required name="reason" placeholder="${esc(t("reason"))}" />
           <textarea class="full" required name="story" rows="6" placeholder="${esc(t("story"))}"></textarea>
           <div class="full privacy-block">
@@ -610,6 +740,7 @@ function render() {
               </label>
             </div>
           </div>
+          <label class="full"><input type="checkbox" name="ndaConfirmed" required /> ${esc(t("ndaLabel"))}</label>
           <label><input type="checkbox" name="foundNewJob" /> ${esc(t("foundNewJob"))}</label>
           <button class="btn-primary" type="submit">${esc(t("submit"))}</button>
           <div class="full" id="submitResult">${esc(state.messages.story)}</div>
@@ -634,6 +765,52 @@ function render() {
         ` : `
           <p class="notice">${esc(t("integrationsTelegramAuthHint"))}</p>
         `}
+      </section>
+
+      <section class="section card reveal">
+        <h2>${esc(t("anonymousTitle"))}</h2>
+        <form id="anonymousStoryForm" class="form-grid">
+          <input name="name" placeholder="${esc(t("name"))}" />
+          <input required name="profession" placeholder="${esc(t("profession"))}" />
+          <input name="company" placeholder="${esc(t("company"))}" />
+          <input required name="laidOffAt" placeholder="${esc(t("laidOffAt"))}" />
+          <input class="full" required name="reason" placeholder="${esc(t("reason"))}" />
+          <textarea class="full" required name="story" rows="5" placeholder="${esc(t("story"))}"></textarea>
+          <label class="full"><input type="checkbox" name="ndaConfirmed" required /> ${esc(t("ndaLabel"))}</label>
+          <button class="btn-secondary" type="submit">${esc(t("anonymousSubmit"))}</button>
+          <div class="full notice">${esc(state.messages.anonymous)}</div>
+        </form>
+      </section>
+
+      <section id="legal" class="section card reveal">
+        <h2>${esc(t("legalTitle"))}</h2>
+        <h3>${esc(t("cookieTitle"))}</h3>
+        <div class="hero-actions">
+          <button class="btn-secondary" type="button" id="cookieAcceptBtn">${esc(t("cookieAccept"))}</button>
+          <button class="btn-secondary" type="button" id="cookieRejectBtn">${esc(t("cookieReject"))}</button>
+          <span class="notice">Current: ${esc(state.cookieConsent || "not set")}</span>
+        </div>
+        <h3>${esc(t("methodologyTitle"))}</h3>
+        <pre class="admin-pre">${esc(state.methodology ? JSON.stringify(state.methodology, null, 2) : "No methodology loaded")}</pre>
+        <h3>Transparency center</h3>
+        <pre class="admin-pre">${esc(state.transparencyCenter ? JSON.stringify(state.transparencyCenter, null, 2) : "No transparency center data")}</pre>
+        <h3>Secure submission info</h3>
+        <pre class="admin-pre">${esc(state.onionInfo ? JSON.stringify(state.onionInfo, null, 2) : "No secure submission info")}</pre>
+        <h3>Redaction assistant</h3>
+        <form id="redactionForm" class="form-grid">
+          <textarea class="full" required name="text" rows="4" placeholder="Paste draft story text"></textarea>
+          <button class="btn-secondary" type="submit">Analyze redaction risk</button>
+        </form>
+        <pre class="admin-pre">${esc(state.redactionAssistant ? JSON.stringify(state.redactionAssistant, null, 2) : "No redaction analysis yet")}</pre>
+        <h3>${esc(t("takedownTitle"))}</h3>
+        <form id="takedownForm" class="form-grid">
+          <input required name="email" type="email" placeholder="${esc(t("email"))}" />
+          <input required name="targetUrl" placeholder="Target URL" />
+          <input required class="full" name="legalBasis" placeholder="Legal basis (DMCA, privacy, etc.)" />
+          <textarea class="full" required name="reason" rows="4" placeholder="Reason"></textarea>
+          <button class="btn-secondary" type="submit">${esc(t("takedownSubmit"))}</button>
+          <div class="full notice">${esc(state.messages.legal)}</div>
+        </form>
       </section>
 
       <footer class="footer">${esc(t("footer"))}</footer>
@@ -794,12 +971,21 @@ async function loadInitialData() {
   const localized = await getJSON(`/i18n/${lang}.json`, {});
   state.t = { ...FALLBACK_TEXT, ...en, ...localized };
 
-  const [statsData, storiesData, companiesData, forumData, forumTopicsData] = await Promise.all([
+  const [statsData, storiesData, companiesData, forumData, forumTopicsData, dashboardData, resourcesData, newsData, methodologyData, countersData, petitionsData, cohortsData, centerData, onionData] = await Promise.all([
     getJSON(`/api/stats?country=${country}`, { counters: {} }),
-    getJSON(`/api/stories?country=${country}&limit=6`, { stories: [] }),
+    getJSON(`/api/stories?country=${country}&limit=12`, { stories: [] }),
     getJSON(`/api/companies/top?country=${country}`, { companies: [] }),
     getJSON("/api/forum/categories", { categories: [] }),
-    getJSON(`/api/forum/topics?country=${country}`, { topics: [] })
+    getJSON(`/api/forum/topics?country=${country}`, { topics: [] }),
+    getJSON(`/api/statistics/dashboard?country=${country}`, {}),
+    getJSON(`/api/resources?country=${country}`, { resources: [] }),
+    getJSON(`/api/news?country=${country}`, { news: [] }),
+    getJSON("/api/legal/methodology", null),
+    getJSON(`/api/counters?country=${country}`, null),
+    getJSON("/api/campaigns/petitions", { petitions: [] }),
+    getJSON(`/api/cohorts?country=${country}`, { cohorts: [] }),
+    getJSON("/api/transparency/center", null),
+    getJSON("/api/submission/onion-info", null)
   ]);
 
   state.stats = statsData;
@@ -807,6 +993,15 @@ async function loadInitialData() {
   state.companies = companiesData.companies || [];
   state.categories = forumData.categories || [];
   state.topics = forumTopicsData.topics || [];
+  state.dashboard = dashboardData || null;
+  state.resources = resourcesData.resources || [];
+  state.news = newsData.news || [];
+  state.methodology = methodologyData || null;
+  state.countersSplit = countersData?.counters || null;
+  state.petitions = petitionsData.petitions || [];
+  state.cohorts = cohortsData.cohorts || [];
+  state.transparencyCenter = centerData || null;
+  state.onionInfo = onionData || null;
 
   await refreshAuthMe();
   return true;
@@ -851,6 +1046,21 @@ function installListeners() {
       return;
     }
 
+    if (event.target.id === "deleteAccountBtn") {
+      if (!state.authUser) {
+        state.messages.auth = t("authRequired");
+        render();
+        return;
+      }
+      const confirmation = window.prompt("Type DELETE to confirm account deletion:");
+      if (!confirmation) return;
+      const res = await requestJSON("/api/auth/delete-account", { method: "POST", body: { confirmation } });
+      state.messages.auth = res.ok ? "Account deleted." : res.error;
+      if (res.ok) state.authUser = null;
+      render();
+      return;
+    }
+
     if (event.target.id === "loadQueueBtn") {
       await loadModerationQueue();
       return;
@@ -863,6 +1073,50 @@ function installListeners() {
 
     if (event.target.id === "loadTelegramStatusBtn") {
       await loadTelegramStatus();
+      return;
+    }
+
+    if (event.target.id === "cookieAcceptBtn") {
+      state.cookieConsent = "essential";
+      localStorage.setItem("cookieConsent", state.cookieConsent);
+      render();
+      return;
+    }
+
+    if (event.target.id === "cookieRejectBtn") {
+      state.cookieConsent = "minimal";
+      localStorage.setItem("cookieConsent", state.cookieConsent);
+      render();
+      return;
+    }
+
+    const meTooBtn = event.target.closest("[data-me-too]");
+    if (meTooBtn) {
+      const storyId = meTooBtn.getAttribute("data-me-too");
+      await requestJSON(`/api/stories/${encodeURIComponent(storyId)}/me-too`, { method: "POST", body: {} });
+      const stories = await getJSON(`/api/stories?country=${state.country}&limit=12`, { stories: [] });
+      state.stories = stories.stories || state.stories;
+      render();
+      return;
+    }
+
+    const openStoryBtn = event.target.closest("[data-view-story]");
+    if (openStoryBtn) {
+      const storyId = openStoryBtn.getAttribute("data-view-story");
+      await requestJSON(`/api/stories/${encodeURIComponent(storyId)}/view`, { method: "POST", body: {} });
+      const stories = await getJSON(`/api/stories?country=${state.country}&limit=12`, { stories: [] });
+      state.stories = stories.stories || state.stories;
+      render();
+      return;
+    }
+
+    const signBtn = event.target.closest("[data-sign-petition]");
+    if (signBtn) {
+      const petitionId = signBtn.getAttribute("data-sign-petition");
+      await requestJSON(`/api/campaigns/petitions/${encodeURIComponent(petitionId)}/sign`, { method: "POST", body: {} });
+      const petitions = await getJSON("/api/campaigns/petitions", { petitions: [] });
+      state.petitions = petitions.petitions || [];
+      render();
     }
   });
 
@@ -885,12 +1139,20 @@ function installListeners() {
         language: state.lang,
         profession: formData.get("profession"),
         company: formData.get("company"),
+        city: formData.get("city"),
         laidOffAt: formData.get("laidOffAt"),
+        tenureYears: formData.get("tenureYears"),
+        salaryBefore: formData.get("salaryBefore"),
+        salaryAfter: formData.get("salaryAfter"),
+        aiTool: formData.get("aiTool"),
+        searchingMonths: formData.get("searchingMonths"),
+        evidenceTier: formData.get("evidenceTier"),
         foundNewJob: formData.get("foundNewJob") === "on",
         reason: formData.get("reason"),
         story: formData.get("story"),
         privacy,
-        visibility: privacy
+        visibility: privacy,
+        ndaConfirmed: formData.get("ndaConfirmed") === "on"
       };
 
       const res = await requestJSON("/api/stories", { method: "POST", body: payload });
@@ -898,9 +1160,83 @@ function installListeners() {
       state.messages.story = res.ok ? t("submitOk") : res.error || t("submitFail");
       if (res.ok) {
         form.reset();
-        const stories = await getJSON(`/api/stories?country=${state.country}&limit=6`, { stories: [] });
+        const stories = await getJSON(`/api/stories?country=${state.country}&limit=12`, { stories: [] });
         state.stories = stories.stories || state.stories;
       }
+      render();
+      return;
+    }
+
+    if (form.id === "anonymousStoryForm") {
+      const payload = {
+        name: formData.get("name"),
+        country: state.country,
+        language: state.lang,
+        profession: formData.get("profession"),
+        company: formData.get("company"),
+        laidOffAt: formData.get("laidOffAt"),
+        foundNewJob: false,
+        reason: formData.get("reason"),
+        story: formData.get("story"),
+        evidenceTier: "self_report",
+        ndaConfirmed: formData.get("ndaConfirmed") === "on"
+      };
+      const res = await requestJSON("/api/stories/anonymous", { method: "POST", body: payload });
+      state.messages.anonymous = res.ok ? "Anonymous story submitted." : res.error;
+      if (res.ok) form.reset();
+      render();
+      return;
+    }
+
+    if (form.id === "companyProfileForm") {
+      const companyName = String(formData.get("companyName") || "");
+      const selected = state.companies.find((c) => c.company === companyName);
+      if (!selected) {
+        state.companyProfile = null;
+        state.companyBoardTopics = [];
+        render();
+        return;
+      }
+      const slug = companyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      const res = await requestJSON(`/api/companies/${encodeURIComponent(slug)}`);
+      state.companyProfile = res.ok ? res.data : null;
+      const boardRes = await requestJSON(`/api/companies/${encodeURIComponent(slug)}/board/topics`);
+      state.companyBoardTopics = boardRes.ok ? (boardRes.data?.topics || []) : [];
+      render();
+      return;
+    }
+
+    if (form.id === "companyBoardForm") {
+      if (!state.authUser) {
+        state.messages.companyBoard = t("authRequired");
+        render();
+        return;
+      }
+      if (!state.companyProfile) {
+        state.messages.companyBoard = "Load a company profile first.";
+        render();
+        return;
+      }
+      const slug = String(state.companyProfile.slug || "").trim();
+      const payload = {
+        title: String(formData.get("title") || "").trim(),
+        body: String(formData.get("body") || "").trim()
+      };
+      const postRes = await requestJSON(`/api/companies/${encodeURIComponent(slug)}/board/topics`, { method: "POST", body: payload });
+      state.messages.companyBoard = postRes.ok ? "Board topic created." : postRes.error;
+      if (postRes.ok) {
+        const boardRes = await requestJSON(`/api/companies/${encodeURIComponent(slug)}/board/topics`);
+        state.companyBoardTopics = boardRes.ok ? (boardRes.data?.topics || []) : state.companyBoardTopics;
+        form.reset();
+      }
+      render();
+      return;
+    }
+
+    if (form.id === "redactionForm") {
+      const payload = { text: String(formData.get("text") || "").trim() };
+      const redactionRes = await requestJSON("/api/privacy/redaction-assistant", { method: "POST", body: payload });
+      state.redactionAssistant = redactionRes.ok ? redactionRes.data : { error: redactionRes.error };
       render();
       return;
     }
@@ -1152,6 +1488,20 @@ function installListeners() {
         if (res.status !== 404) break;
       }
       state.messages.integrations = (lastRes && lastRes.error) || t("integrationsTelegramNoStatus");
+      render();
+      return;
+    }
+
+    if (form.id === "takedownForm") {
+      const payload = {
+        email: String(formData.get("email") || "").trim(),
+        targetUrl: String(formData.get("targetUrl") || "").trim(),
+        legalBasis: String(formData.get("legalBasis") || "").trim(),
+        reason: String(formData.get("reason") || "").trim()
+      };
+      const res = await requestJSON("/api/legal/takedown", { method: "POST", body: payload });
+      state.messages.legal = res.ok ? "Takedown request submitted." : res.error;
+      if (res.ok) form.reset();
       render();
     }
   });
