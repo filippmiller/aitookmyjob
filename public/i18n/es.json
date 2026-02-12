@@ -29,5 +29,9 @@
   "submitOk": "Historia enviada. Gracias.",
   "submitFail": "No se pudo enviar. Revisa los campos.",
   "securityNote": "Base de seguridad: validación, rate limits, CSP y límites estrictos de payload.",
+  "navNews": "Noticias",
+  "newsTitle": "IA en las noticias",
+  "newsSubtitle": "Cómo la inteligencia artificial está transformando el trabajo y la vida diaria",
+  "newsReadMore": "Leer artículo",
   "footer": "Lanzamiento global: EN / RU / DE / FR / ES. Rutas por país activas."
 }

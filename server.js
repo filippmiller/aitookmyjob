@@ -155,19 +155,171 @@ const defaultResources = [
 const defaultNews = [
   {
     id: "news-1",
-    title: "Platform transparency report published",
-    source: "AI Took My Job",
-    url: "https://example.com/transparency-report",
-    publishedAt: "2026-02-10T10:00:00.000Z",
+    title: {
+      en: "AI-Fueled Layoffs Are Accelerating — Efficiency or Just an Excuse?",
+      ru: "Увольнения из-за ИИ ускоряются — эффективность или просто отговорка?",
+      de: "KI-getriebene Entlassungen nehmen zu — Effizienz oder nur eine Ausrede?",
+      fr: "Les licenciements liés à l'IA s'accélèrent — efficacité ou simple prétexte ?",
+      es: "Los despidos por IA se aceleran — ¿eficiencia o simple excusa?"
+    },
+    source: "OpenTools.ai",
+    url: "https://opentools.ai/news/ai-fueled-layoffs-are-accelerating-efficiency-or-just-an-excuse",
+    publishedAt: "2026-01-28T10:00:00.000Z",
     region: "global"
   },
   {
     id: "news-2",
-    title: "Hiring rebounds in support operations after failed chatbot rollout",
-    source: "Industry Watch",
-    url: "https://example.com/support-hiring-rebound",
-    publishedAt: "2026-02-09T14:00:00.000Z",
+    title: {
+      en: "Companies Are Already Laying Off Workers Because of AI's Potential",
+      ru: "Компании уже увольняют сотрудников из-за потенциала ИИ",
+      de: "Unternehmen entlassen bereits Mitarbeiter wegen des Potenzials von KI",
+      fr: "Les entreprises licencient déjà à cause du potentiel de l'IA",
+      es: "Las empresas ya están despidiendo trabajadores por el potencial de la IA"
+    },
+    source: "Harvard Business Review",
+    url: "https://hbr.org/2025/09/companies-are-already-laying-off-workers-because-of-ais-potential",
+    publishedAt: "2026-01-25T14:00:00.000Z",
+    region: "global"
+  },
+  {
+    id: "news-3",
+    title: {
+      en: "Nearly 4 in 10 Companies Will Replace Workers with AI by 2030",
+      ru: "Почти 4 из 10 компаний заменят сотрудников ИИ к 2030 году",
+      de: "Fast 4 von 10 Unternehmen werden Mitarbeiter bis 2030 durch KI ersetzen",
+      fr: "Près de 4 entreprises sur 10 remplaceront des employés par l'IA d'ici 2030",
+      es: "Casi 4 de cada 10 empresas reemplazarán trabajadores con IA para 2030"
+    },
+    source: "HR Dive",
+    url: "https://www.hrdive.com/news/world-economic-forum-ai-jobs-replacing-workers/",
+    publishedAt: "2026-01-22T09:00:00.000Z",
+    region: "global"
+  },
+  {
+    id: "news-4",
+    title: {
+      en: "AI Layoffs Are Masking a Much Darker Reality for Workers",
+      ru: "Увольнения из-за ИИ скрывают гораздо более мрачную реальность для работников",
+      de: "KI-Entlassungen verbergen eine viel düsterere Realität für Arbeitnehmer",
+      fr: "Les licenciements liés à l'IA masquent une réalité bien plus sombre pour les travailleurs",
+      es: "Los despidos por IA ocultan una realidad mucho más oscura para los trabajadores"
+    },
+    source: "Fortune / Oxford Economics",
+    url: "https://fortune.com/2025/12/ai-layoffs-masking-darker-reality/",
+    publishedAt: "2026-01-18T11:00:00.000Z",
     region: "us"
+  },
+  {
+    id: "news-5",
+    title: {
+      en: "Investors Predict AI Is Coming for White-Collar Labor in 2026",
+      ru: "Инвесторы предсказывают: ИИ идёт за офисными работниками в 2026 году",
+      de: "Investoren prognostizieren: KI kommt 2026 für Büroarbeitsplätze",
+      fr: "Les investisseurs prédisent que l'IA s'attaquera aux emplois de bureau en 2026",
+      es: "Los inversores predicen que la IA viene por los empleos de oficina en 2026"
+    },
+    source: "TechCrunch",
+    url: "https://techcrunch.com/2025/12/investors-predict-ai-labor-2026/",
+    publishedAt: "2026-01-15T08:00:00.000Z",
+    region: "us"
+  },
+  {
+    id: "news-6",
+    title: {
+      en: "Big Tech Layoffs 2026: Is AI Really to Blame?",
+      ru: "Массовые увольнения в Big Tech 2026: действительно ли виноват ИИ?",
+      de: "Big-Tech-Entlassungen 2026: Ist wirklich die KI schuld?",
+      fr: "Licenciements massifs dans la tech en 2026 : l'IA est-elle vraiment responsable ?",
+      es: "Despidos masivos en Big Tech 2026: ¿es realmente culpa de la IA?"
+    },
+    source: "TechResearchOnline",
+    url: "https://techresearchonline.com/blog/big-tech-layoffs-2025-is-ai-to-blame/",
+    publishedAt: "2026-01-12T13:00:00.000Z",
+    region: "global"
+  },
+  {
+    id: "news-7",
+    title: {
+      en: "AI Won't Replace Most Jobs — but It Will Reshape Nearly All of Them",
+      ru: "ИИ не заменит большинство профессий — но изменит почти все",
+      de: "KI wird die meisten Jobs nicht ersetzen — aber fast alle verändern",
+      fr: "L'IA ne remplacera pas la plupart des emplois — mais les transformera presque tous",
+      es: "La IA no reemplazará la mayoría de empleos — pero los transformará casi todos"
+    },
+    source: "TechTimes",
+    url: "https://www.techtimes.com/articles/ai-wont-replace-most-jobs-reshape-work.htm",
+    publishedAt: "2026-01-10T10:00:00.000Z",
+    region: "global"
+  },
+  {
+    id: "news-8",
+    title: {
+      en: "More Companies Pointing to AI as They Lay Off Employees",
+      ru: "Всё больше компаний ссылаются на ИИ при увольнении сотрудников",
+      de: "Immer mehr Unternehmen nennen KI als Grund für Entlassungen",
+      fr: "De plus en plus d'entreprises invoquent l'IA pour justifier les licenciements",
+      es: "Cada vez más empresas señalan a la IA al despedir empleados"
+    },
+    source: "CBS News",
+    url: "https://www.cbsnews.com/news/more-companies-pointing-to-ai-layoffs/",
+    publishedAt: "2026-01-08T15:00:00.000Z",
+    region: "us"
+  },
+  {
+    id: "news-9",
+    title: {
+      en: "State of AI in 2026: Workforce Disruption Reaches New Heights",
+      ru: "Состояние ИИ в 2026: разрушение рынка труда достигает новых вершин",
+      de: "Stand der KI 2026: Arbeitsmarktumbruch erreicht neue Höhen",
+      fr: "État de l'IA en 2026 : les perturbations du marché du travail atteignent de nouveaux sommets",
+      es: "Estado de la IA en 2026: la disrupción laboral alcanza nuevas cotas"
+    },
+    source: "AI World Journal",
+    url: "https://aiworldjournal.com/state-of-ai-2026-workforce-disruption/",
+    publishedAt: "2026-01-05T12:00:00.000Z",
+    region: "global"
+  },
+  {
+    id: "news-10",
+    title: {
+      en: "Healthcare AI Trends 2026: From Diagnostics to Administrative Layoffs",
+      ru: "Тренды ИИ в здравоохранении 2026: от диагностики до сокращения администрации",
+      de: "Gesundheits-KI-Trends 2026: Von Diagnostik bis zu Verwaltungsentlassungen",
+      fr: "Tendances IA santé 2026 : du diagnostic aux suppressions de postes administratifs",
+      es: "Tendencias de IA en salud 2026: del diagnóstico a los despidos administrativos"
+    },
+    source: "Healthcare Dive",
+    url: "https://www.healthcaredive.com/news/healthcare-ai-trends-2026/",
+    publishedAt: "2026-01-03T09:00:00.000Z",
+    region: "global"
+  },
+  {
+    id: "news-11",
+    title: {
+      en: "11 Things AI Experts Are Watching For in 2026",
+      ru: "11 вещей, за которыми следят эксперты по ИИ в 2026 году",
+      de: "11 Dinge, die KI-Experten 2026 beobachten",
+      fr: "11 tendances IA que les experts surveillent en 2026",
+      es: "11 cosas que los expertos en IA vigilan en 2026"
+    },
+    source: "University of Cincinnati",
+    url: "https://www.uc.edu/news/articles/2025/11-things-ai-experts-watching-2026.html",
+    publishedAt: "2025-12-28T10:00:00.000Z",
+    region: "global"
+  },
+  {
+    id: "news-12",
+    title: {
+      en: "How AI Technology Is Redefining Everyday Life in 2026",
+      ru: "Как технологии ИИ меняют повседневную жизнь в 2026 году",
+      de: "Wie KI-Technologie den Alltag 2026 verändert",
+      fr: "Comment l'IA redéfinit la vie quotidienne en 2026",
+      es: "Cómo la tecnología de IA está redefiniendo la vida diaria en 2026"
+    },
+    source: "Bolds Media",
+    url: "https://boldsmedia.com/how-ai-technology-is-redefining-everyday-life-in-2026/",
+    publishedAt: "2025-12-20T14:00:00.000Z",
+    region: "global"
   }
 ];
 

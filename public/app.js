@@ -10,6 +10,7 @@ class AITookMyJobApp {
       t: {},
       stats: { counters: {} },
       stories: [],
+      news: [],
       authUser: null,
       dashboard: null
     };
@@ -194,8 +195,11 @@ class AITookMyJobApp {
     }
     const langSelect = document.getElementById('langSelect');
     if (langSelect) {
-      langSelect.addEventListener('change', (e) => {
+      langSelect.addEventListener('change', async (e) => {
         this.state.lang = e.target.value;
+        await this.loadTranslations(this.state.lang);
+        this.renderNews();
+        this.applyTranslations();
       });
     }
 
@@ -330,17 +334,21 @@ class AITookMyJobApp {
   async loadInitialData() {
     const country = this.state.country;
 
-    const [statsData, storiesData, meData] = await Promise.allSettled([
+    const [statsData, storiesData, newsData, meData] = await Promise.allSettled([
       this.fetchJSON(`/api/stats?country=${country}`, { counters: {} }),
       this.fetchJSON(`/api/stories?country=${country}&limit=12`, { stories: [] }),
+      this.fetchJSON(`/api/news?country=${country}`, { news: [] }),
       this.fetchJSON('/api/auth/me', null)
     ]);
 
     this.state.stats = statsData.status === 'fulfilled' ? statsData.value : { counters: {} };
     this.state.stories = storiesData.status === 'fulfilled' ? (storiesData.value.stories || []) : [];
+    this.state.news = newsData.status === 'fulfilled' ? (newsData.value.news || []) : [];
 
     const me = meData.status === 'fulfilled' ? meData.value : null;
     this.state.authUser = me && me.id ? me : null;
+
+    await this.loadTranslations(this.state.lang);
   }
 
   // ── Rendering ──
@@ -348,6 +356,8 @@ class AITookMyJobApp {
   render() {
     this.animateCounters();
     this.renderStories();
+    this.renderNews();
+    this.applyTranslations();
     this.initCharts();
     this.onAuthChange();
     this.setupScrollAnimations();
@@ -403,6 +413,60 @@ class AITookMyJobApp {
         </div>
       </article>
     `).join('');
+  }
+
+  // ── News ──
+
+  renderNews() {
+    const container = document.getElementById('newsContainer');
+    if (!container || !this.state.news.length) return;
+
+    const lang = this.state.lang;
+    const readMore = this.state.t.newsReadMore || 'Read article';
+
+    container.innerHTML = this.state.news.map(item => {
+      const title = typeof item.title === 'object'
+        ? (item.title[lang] || item.title.en || '')
+        : (item.title || '');
+      const date = item.publishedAt
+        ? new Date(item.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+        : '';
+
+      return `
+        <article class="news-card">
+          <div class="news-card-accent"></div>
+          <div class="news-card-body">
+            <div class="news-meta">
+              <span class="news-source">${this.esc(item.source)}</span>
+              <span class="news-date">${this.esc(date)}</span>
+            </div>
+            <h3 class="news-title">${this.esc(title)}</h3>
+            <a href="${this.esc(item.url)}" target="_blank" rel="noopener noreferrer" class="news-link">
+              ${this.esc(readMore)}
+              <i class="ph ph-arrow-up-right"></i>
+            </a>
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  // ── Translations ──
+
+  async loadTranslations(lang) {
+    const data = await this.fetchJSON(`/i18n/${lang}.json`, {});
+    this.state.t = data || {};
+  }
+
+  applyTranslations() {
+    const t = this.state.t;
+    const titleEl = document.getElementById('newsSectionTitle');
+    const subtitleEl = document.getElementById('newsSectionSubtitle');
+    if (titleEl && t.newsTitle) titleEl.textContent = t.newsTitle;
+    if (subtitleEl && t.newsSubtitle) subtitleEl.textContent = t.newsSubtitle;
+
+    const navNews = document.querySelector('a[data-i18n="navNews"]');
+    if (navNews && t.navNews) navNews.textContent = t.navNews;
   }
 
   // ── Charts ──
@@ -549,7 +613,7 @@ class AITookMyJobApp {
       });
     }, { threshold: 0.1 });
 
-    document.querySelectorAll('.card, .story-card, .topic-item').forEach(el => {
+    document.querySelectorAll('.card, .story-card, .news-card, .topic-item').forEach(el => {
       if (!el.dataset.observed) {
         el.dataset.observed = '1';
         el.style.opacity = '0';

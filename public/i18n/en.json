@@ -81,5 +81,9 @@
   "submitOk": "Story submitted. Thank you.",
   "submitFail": "Could not submit story. Check fields and try again.",
   "securityNote": "Security baseline: validation, rate limiting, CSP, strict payload limits.",
+  "navNews": "News",
+  "newsTitle": "AI in the News",
+  "newsSubtitle": "How artificial intelligence is reshaping work and daily life",
+  "newsReadMore": "Read article",
   "footer": "Global launch: EN / RU / DE / FR / ES. Country-aware routes are live."
 }

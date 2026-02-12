@@ -29,5 +29,9 @@
   "submitOk": "Geschichte gesendet. Danke.",
   "submitFail": "Senden fehlgeschlagen. Bitte Felder prüfen.",
   "securityNote": "Sicherheitsbasis: Validierung, Rate-Limits, CSP, strikte Payload-Limits.",
+  "navNews": "Nachrichten",
+  "newsTitle": "KI in den Nachrichten",
+  "newsSubtitle": "Wie künstliche Intelligenz Arbeit und Alltag verändert",
+  "newsReadMore": "Artikel lesen",
   "footer": "Globaler Start: EN / RU / DE / FR / ES. Länder-Routen sind live."
 }
