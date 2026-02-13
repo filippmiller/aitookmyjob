@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Took My Job</title>
   <meta name="description" content="The human cost of artificial intelligence. Share your story, find support, build resilience.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="AI Took My Job — The Human Cost of AI">
+  <meta property="og:description" content="Real stories from real people displaced by AI. A community built on truth, transparency, and resilience.">
+  <meta property="og:url" content="https://aitookmyjob.com">
+  <meta property="og:site_name" content="AI Took My Job">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AI Took My Job — The Human Cost of AI">
+  <meta name="twitter:description" content="Real stories from real people displaced by AI. A community built on truth, transparency, and resilience.">
+
   <link rel="stylesheet" href="/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -98,26 +112,26 @@
           <div class="hero-stats-grid">
             <div class="hero-stat-card">
               <div class="stat-block">
-                <span class="stat-value" data-target="2458921">0</span>
+                <span class="stat-value" data-stat="affected">--</span>
                 <span class="stat-label">Affected</span>
               </div>
             </div>
             <div class="hero-stat-card">
               <div class="stat-block">
-                <span class="stat-value" data-target="128456">0</span>
+                <span class="stat-value" data-stat="stories">--</span>
                 <span class="stat-label">Stories</span>
               </div>
             </div>
             <div class="hero-stat-card">
               <div class="stat-block">
-                <span class="stat-value" data-target="584729">0</span>
+                <span class="stat-value" data-stat="foundJobs">--</span>
                 <span class="stat-label">Found Jobs</span>
               </div>
             </div>
             <div class="hero-stat-card">
               <div class="stat-block">
-                <span class="stat-value" data-target="42">0</span>
-                <span class="stat-label">Countries</span>
+                <span class="stat-value" data-stat="countries">--</span>
+                <span class="stat-label">Companies</span>
               </div>
             </div>
           </div>
@@ -127,7 +141,7 @@
   </section>
 
   <!-- Auth Modal -->
-  <div class="modal-overlay" id="authModal">
+  <div class="modal-overlay" id="authModal" role="dialog" aria-modal="true" aria-label="Account Access" aria-hidden="true">
     <div class="modal-panel">
       <div class="modal-header">
         <h3 class="modal-title">Account Access</h3>
@@ -167,6 +181,77 @@
           <button type="submit" class="btn btn-primary full-width">Create Account</button>
         </form>
       </div>
+    </div>
+  </div>
+
+  <!-- Story Submission Modal -->
+  <div class="modal-overlay" id="storyModal" role="dialog" aria-modal="true" aria-label="Share Your Story" aria-hidden="true">
+    <div class="modal-panel modal-panel-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">Share Your Story</h3>
+        <button class="modal-close" id="storyModalClose">&times;</button>
+      </div>
+      <form id="storyForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="storyName">Your Name (or alias)</label>
+            <input type="text" id="storyName" name="name" class="input" placeholder="First name or alias" required minlength="2" maxlength="80">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="storyProfession">Profession</label>
+            <input type="text" id="storyProfession" name="profession" class="input" placeholder="e.g. UX Designer, Developer" required minlength="2" maxlength="80">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="storyCompany">Company</label>
+            <input type="text" id="storyCompany" name="company" class="input" placeholder="Company name (or 'Undisclosed')" maxlength="120">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="storyDate">When were you laid off?</label>
+            <input type="text" id="storyDate" name="laidOffAt" class="input" placeholder="e.g. January 2026" required minlength="4" maxlength="20">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="storyReason">Reason (brief)</label>
+          <input type="text" id="storyReason" name="reason" class="input" placeholder="e.g. Role replaced by AI automation" required minlength="8" maxlength="240">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="storyText">Your Story</label>
+          <textarea id="storyText" name="story" class="input" rows="5" placeholder="Tell your story. What happened? How did it affect you? (min 40 characters)" required minlength="40" maxlength="3000"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="storyCountry">Country</label>
+            <select id="storyCountry" name="country" class="select">
+              <option value="global">Global</option>
+              <option value="us">United States</option>
+              <option value="de">Germany</option>
+              <option value="gb">United Kingdom</option>
+              <option value="fr">France</option>
+              <option value="ru">Russia</option>
+              <option value="in">India</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="storyAiTool">AI Tool (optional)</label>
+            <input type="text" id="storyAiTool" name="aiTool" class="input" placeholder="e.g. ChatGPT, Copilot" maxlength="120">
+          </div>
+        </div>
+        <div class="form-row" style="align-items:center;">
+          <label class="form-label" style="display:flex;align-items:center;gap:var(--sp-2);cursor:pointer;">
+            <input type="checkbox" id="storyFoundJob" name="foundNewJob"> I found a new job since
+          </label>
+          <label class="form-label" style="display:flex;align-items:center;gap:var(--sp-2);cursor:pointer;">
+            <input type="checkbox" id="storyNda" name="ndaConfirmed" required> I confirm this does not violate any NDA
+          </label>
+        </div>
+        <div id="storyFormError" style="color:var(--signal-red);font-size:var(--text-sm);display:none;margin-bottom:var(--sp-3);"></div>
+        <button type="submit" class="btn btn-primary full-width">Submit Story</button>
+        <p style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--sp-3);text-align:center;">
+          Stories are reviewed before publishing. No account needed for anonymous submission.
+        </p>
+      </form>
     </div>
   </div>
 
@@ -217,16 +302,22 @@
           <p class="section-subtitle">Voices from the frontlines of AI displacement</p>
         </div>
         <div class="section-actions">
-          <input type="text" class="input" placeholder="Search stories..." style="width: 220px;">
-          <select class="select">
-            <option>All Regions</option>
-            <option>North America</option>
-            <option>Europe</option>
-            <option>Asia</option>
+          <input type="text" id="storySearch" class="input" placeholder="Search stories..." style="width: 220px;">
+          <select class="select" id="storyRegionFilter">
+            <option value="">All Regions</option>
+            <option value="us,ca,mx">North America</option>
+            <option value="de,fr,es,gb,it,nl,se,ru">Europe</option>
+            <option value="in,jp,kr">Asia</option>
+            <option value="au">Oceania</option>
           </select>
         </div>
       </div>
       <div class="stories-grid" id="storiesContainer"></div>
+      <div id="storiesPagination" style="text-align:center;margin-top:var(--sp-6);display:none;">
+        <button class="btn btn-ghost btn-lg" id="loadMoreStories">
+          <i class="ph ph-arrow-down"></i> Load More Stories
+        </button>
+      </div>
     </div>
   </section>
 
@@ -309,6 +400,21 @@
     </div>
   </section>
 
+  <!-- Resources Section -->
+  <section id="resources" class="section">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Resources</h2>
+          <p class="section-subtitle">Tools, programs, and support to help you move forward</p>
+        </div>
+      </div>
+      <div class="resources-grid" id="resourcesContainer">
+        <p style="color:var(--text-muted);text-align:center;grid-column:1/-1;">Loading resources...</p>
+      </div>
+    </div>
+  </section>
+
   <!-- Footer -->
   <footer class="site-footer">
     <div class="footer-grid">
@@ -321,24 +427,20 @@
       </div>
       <div class="footer-col">
         <h4>About</h4>
-        <a href="#">Mission</a>
-        <a href="#">Methodology</a>
-        <a href="#">Transparency</a>
-        <a href="#">Privacy</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#stories">Stories</a>
+        <a href="#news">News</a>
       </div>
       <div class="footer-col">
         <h4>Resources</h4>
-        <a href="#">Reskilling</a>
-        <a href="#">Legal Aid</a>
-        <a href="#">Job Boards</a>
-        <a href="#">Counseling</a>
+        <a href="#resources">Reskilling</a>
+        <a href="#resources">Legal Aid</a>
+        <a href="#resources">Job Boards</a>
       </div>
       <div class="footer-col">
         <h4>Community</h4>
         <a href="/forum">Forum</a>
-        <a href="/support">Support Groups</a>
-        <a href="#">Telegram</a>
-        <a href="#">GitHub</a>
+        <a href="#community">Support Groups</a>
       </div>
     </div>
     <div class="footer-bottom">

@@ -12,6 +12,7 @@ const { customAlphabet } = require("nanoid");
 const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const compression = require("compression");
 
 dotenv.config();
 
@@ -1891,8 +1892,8 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
-        styleSrc: ["'self'", "https://fonts.googleapis.com"],
-        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
+        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "https://unpkg.com"],
         imgSrc: ["'self'", "data:"],
         connectSrc: ["'self'"],
         formAction: ["'self'"],
@@ -1955,6 +1956,7 @@ const phoneLimiter = rateLimit({
 });
 
 app.use(globalLimiter);
+app.use(compression());
 app.use(express.static(publicDir, { extensions: ["html"] }));
 
 app.get("/health", (_req, res) => {
@@ -2508,14 +2510,16 @@ app.get("/api/stats", async (req, res) => {
 
 app.get("/api/stories", async (req, res) => {
   const country = normalizeCountry(req.query.country || "global");
-  const limit = Math.min(Number(req.query.limit || 12), 50);
-  const stories = (await storageGetStories())
+  const limit = Math.min(Math.max(Number(req.query.limit || 12), 1), 50);
+  const offset = Math.max(Number(req.query.offset || 0), 0);
+  const all = (await storageGetStories())
     .filter((s) => s.status === "published" && (country === "global" || s.country === country))
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(0, limit)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const stories = all
+    .slice(offset, offset + limit)
     .map(maskStoryByPrivacy)
     .map((s) => ({ ...s, confidenceScore: computeConfidenceScore(s) }));
-  res.json({ country, stories, crisisResources: getCrisisResources(country) });
+  res.json({ country, stories, total: all.length, crisisResources: getCrisisResources(country) });
 });
 
 function buildStoryPayload(req, options = {}) {
@@ -3747,18 +3751,23 @@ app.get("/resources", (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
+app.use((_req, res) => {
+  res.status(404).sendFile(path.join(publicDir, "404.html"));
+});
+
 app.use((err, _req, res, _next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ message: "Internal server error" });
 });
 
 async function start() {
-  if (isProduction) {
+  if (REQUIRE_STRICT_SECRETS) {
     const weakSecrets = [];
     if (ADMIN_TOKEN === "change-me-admin-token") weakSecrets.push("ADMIN_TOKEN");
     if (AUTH_SECRET === "change-me-auth-secret") weakSecrets.push("AUTH_SECRET");
     if (weakSecrets.length > 0) {
-      console.error(`FATAL: Refusing to start in production with default secrets: ${weakSecrets.join(", ")}`);
+      console.error(`FATAL: Refusing to start with default secrets: ${weakSecrets.join(", ")}`);
+      console.error("Set real values or REQUIRE_STRICT_SECRETS=false to bypass.");
       process.exit(1);
     }
   }
