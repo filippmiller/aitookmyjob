@@ -37,6 +37,7 @@ const companyBoardsPath = path.join(dataDir, "company-boards.json");
 const petitionsPath = path.join(dataDir, "petitions.json");
 const cohortsPath = path.join(dataDir, "cohorts.json");
 const anonymousInboxPath = path.join(dataDir, "anonymous-inbox.json");
+const subscribersPath = path.join(dataDir, "subscribers.json");
 
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "change-me-admin-token";
 const DATABASE_URL = process.env.DATABASE_URL || "";
@@ -3699,6 +3700,54 @@ app.get("/api/events", (req, res) => {
     clearInterval(interval);
   });
 });
+
+// ── Digest subscription endpoints (Gamma) ──────────────────────────────────
+
+const digestSubscribeLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const digestEmailSchema = z.object({
+  email: z.string().email().max(254)
+});
+
+app.post("/api/digest/subscribe", digestSubscribeLimiter, (req, res) => {
+  const email = normalizeEmail(req.body.email || "");
+  const parsed = digestEmailSchema.safeParse({ email });
+  if (!parsed.success) {
+    res.status(422).json({ message: "Invalid email address" });
+    return;
+  }
+
+  const subscribers = readJsonArray(subscribersPath);
+  const alreadyExists = subscribers.some((s) => s.email === parsed.data.email);
+  if (alreadyExists) {
+    res.status(409).json({ message: "Already subscribed" });
+    return;
+  }
+
+  const entry = {
+    id: `sub-${topicId()}`,
+    email: parsed.data.email,
+    subscribedAt: new Date().toISOString(),
+    country: normalizeCountry(String(req.body.country || defaultCountry)),
+    language: normalizeLanguage(String(req.body.language || defaultLang))
+  };
+
+  subscribers.push(entry);
+  writeJsonArray(subscribersPath, subscribers.slice(-50000));
+  res.status(201).json({ id: entry.id, subscribedAt: entry.subscribedAt });
+});
+
+app.get("/api/digest/count", (_req, res) => {
+  const subscribers = readJsonArray(subscribersPath);
+  res.json({ count: subscribers.length });
+});
+
+// ──────────────────────────────────────────────────────────────────────────
 
 app.get("/", (req, res) => {
   const locale = detectLocale(req);

@@ -1,0 +1,325 @@
+/*
+ * AI Took My Job — Live Signals
+ * Ticker, Pulse Counter, Profession Carousel
+ * Scoped: .ticker-*, .pulse-*, .carousel-*
+ */
+
+/* ─── TICKER BAR ─── */
+
+.ticker-bar {
+  position: relative;
+  z-index: 90;
+  background: color-mix(in srgb, var(--bg-surface) 95%, var(--bg-deep));
+  border-bottom: 1px solid var(--border-subtle);
+  height: 36px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.ticker-live-badge {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-4);
+  height: 100%;
+  background: var(--bg-deep);
+  border-right: 1px solid var(--border-subtle);
+  z-index: 2;
+}
+
+.ticker-live-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--signal-red);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.ticker-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--signal-red);
+  animation: ticker-dot-pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes ticker-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+.ticker-track-wrap {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* Left fade mask */
+.ticker-track-wrap::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(to right, color-mix(in srgb, var(--bg-surface) 95%, var(--bg-deep)), transparent);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Right fade mask */
+.ticker-track-wrap::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  background: linear-gradient(to left, color-mix(in srgb, var(--bg-surface) 95%, var(--bg-deep)), transparent);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.ticker-track {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  animation: ticker-scroll 60s linear infinite;
+  will-change: transform;
+  gap: 0;
+}
+
+.ticker-track:hover,
+.ticker-track:focus-within {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-6);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.ticker-item-time {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.ticker-item-text {
+  color: var(--text-secondary);
+}
+
+.ticker-item-text strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.ticker-sep {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  flex-shrink: 0;
+  margin: 0 var(--sp-2);
+}
+
+/* ─── PULSE COUNTER ─── */
+
+.pulse-counter {
+  background: color-mix(in srgb, var(--amber) 6%, var(--bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--amber) 20%, var(--border-subtle));
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4) var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  position: relative;
+  overflow: hidden;
+}
+
+.pulse-counter::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--amber-dim), transparent);
+  opacity: 0.5;
+}
+
+.pulse-counter-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.pulse-counter-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--amber) 15%, transparent);
+  display: grid;
+  place-items: center;
+  color: var(--amber);
+  font-size: 11px;
+}
+
+.pulse-counter-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pulse-counter-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--amber);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  transition: color 0.15s ease;
+}
+
+.pulse-counter-value.pulse-tick {
+  animation: pulse-counter-glow 0.4s ease-out;
+}
+
+@keyframes pulse-counter-glow {
+  0% { text-shadow: 0 0 0 transparent; }
+  30% { text-shadow: 0 0 12px var(--amber-glow); color: var(--amber-light); }
+  100% { text-shadow: 0 0 0 transparent; color: var(--amber); }
+}
+
+.pulse-counter-desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.4;
+  max-width: 28ch;
+}
+
+/* ─── LIVE DOT ENHANCEMENT ─── */
+
+.live-dot {
+  animation: live-pulse-enhanced 2s ease-in-out infinite !important;
+}
+
+@keyframes live-pulse-enhanced {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(212, 84, 84, 0.5); }
+  50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(212, 84, 84, 0); }
+}
+
+/* ─── PROFESSION CAROUSEL ─── */
+
+.carousel-profession-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.carousel-profession-prefix {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.carousel-profession-slot {
+  position: relative;
+  height: 1.5em;
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.carousel-profession-word {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(120%);
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  line-height: 1.5;
+}
+
+.carousel-profession-word.carousel-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.carousel-profession-word.carousel-exit {
+  opacity: 0;
+  transform: translateY(-120%);
+}
+
+/* ─── RESPONSIVE ─── */
+
+@media (max-width: 640px) {
+  .ticker-bar {
+    height: 32px;
+  }
+
+  .ticker-item {
+    padding: 0 var(--sp-4);
+    font-size: 0.7rem;
+  }
+
+  .ticker-live-badge {
+    padding: 0 var(--sp-3);
+  }
+
+  .pulse-counter {
+    padding: var(--sp-3) var(--sp-4);
+  }
+
+  .pulse-counter-value {
+    font-size: var(--text-xl);
+  }
+
+  .carousel-profession-slot {
+    min-width: 160px;
+  }
+
+  .carousel-profession-word {
+    font-size: var(--text-xs);
+  }
+}
+
+@media (max-width: 400px) {
+  .ticker-live-label {
+    display: none;
+  }
+}

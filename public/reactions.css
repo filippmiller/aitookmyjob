@@ -1,0 +1,246 @@
+/*
+ * AI Took My Job — Enhanced Solidarity Reactions Styles
+ * Scoped with .reaction-* prefix
+ * Human Signal design system — dark editorial, amber accents
+ */
+
+/* ── Replace btn-metoo with expandable reaction bar ── */
+
+/* Hide the old Me Too button when reaction bar is active */
+.story-actions .btn-metoo.reaction-replaced {
+  display: none;
+}
+
+/* Reaction bar container — sits within .story-actions */
+.reaction-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  position: relative;
+}
+
+/* Aggregate count shown when bar is collapsed */
+.reaction-aggregate {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  transition: all var(--dur-fast);
+  white-space: nowrap;
+}
+
+.reaction-aggregate:hover {
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+
+.reaction-aggregate-icons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.9em;
+}
+
+.reaction-aggregate-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* Expanded reaction buttons */
+.reaction-buttons {
+  display: none;
+  align-items: center;
+  gap: var(--sp-1);
+  animation: reactionFadeIn 0.2s var(--ease-out);
+}
+
+.reaction-bar.is-expanded .reaction-buttons {
+  display: flex;
+}
+
+.reaction-bar.is-expanded .reaction-aggregate {
+  display: none;
+}
+
+@keyframes reactionFadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Individual reaction button */
+.reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: var(--sp-1) var(--sp-3);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--dur-fast) var(--ease-out);
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.reaction-btn i {
+  font-size: 1rem;
+  transition: transform 0.3s var(--ease-spring);
+}
+
+.reaction-btn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.reaction-btn:hover:not(:disabled) i {
+  transform: scale(1.3);
+}
+
+.reaction-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Active / voted state per reaction type */
+.reaction-btn.is-active[data-type="solidarity"] {
+  background: rgba(212, 149, 107, 0.12);
+  border-color: rgba(212, 149, 107, 0.4);
+  color: var(--amber);
+}
+
+.reaction-btn.is-active[data-type="solidarity"] i {
+  color: var(--amber);
+}
+
+.reaction-btn.is-active[data-type="strength"] {
+  background: rgba(212, 84, 84, 0.1);
+  border-color: rgba(212, 84, 84, 0.3);
+  color: var(--signal-red);
+}
+
+.reaction-btn.is-active[data-type="strength"] i {
+  color: var(--signal-red);
+}
+
+.reaction-btn.is-active[data-type="gratitude"] {
+  background: rgba(90, 168, 108, 0.1);
+  border-color: rgba(90, 168, 108, 0.3);
+  color: var(--signal-green);
+}
+
+.reaction-btn.is-active[data-type="gratitude"] i {
+  color: var(--signal-green);
+}
+
+/* Count inside button */
+.reaction-count {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  min-width: 1ch;
+  text-align: center;
+  transition: transform 0.3s var(--ease-spring);
+}
+
+.reaction-count.bump {
+  transform: scale(1.4);
+}
+
+/* Click ripple */
+.reaction-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  border-radius: inherit;
+  transform: scale(0);
+  transition: none;
+}
+
+.reaction-btn.ripple::after {
+  animation: reactionRipple 0.35s ease-out;
+}
+
+@keyframes reactionRipple {
+  from { transform: scale(0); opacity: 0.15; }
+  to { transform: scale(2); opacity: 0; }
+}
+
+/* Collapse button (close the expanded bar) */
+.reaction-collapse-btn {
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all var(--dur-fast);
+  flex-shrink: 0;
+}
+
+.reaction-collapse-btn:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+}
+
+/* Floating "Thank you" mini toast per card */
+.reaction-thankyou {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--sp-2) var(--sp-4);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: thankYouPop 2.5s var(--ease-out) forwards;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+}
+
+@keyframes thankYouPop {
+  0% { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+}
+
+/* Story card position context for floating toast */
+.story-card {
+  position: relative;
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .reaction-btn span:not(.reaction-count) {
+    display: none;
+  }
+
+  .reaction-btn {
+    padding: var(--sp-1) var(--sp-2);
+  }
+
+  .reaction-aggregate {
+    font-size: 0.7rem;
+  }
+}
