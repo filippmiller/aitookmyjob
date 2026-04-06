@@ -1,5 +1,38 @@
 # Agent Log
 
+## 2026-04-06 — AI News Articles Carousel
+
+**Category:** features (90%), tests (10%)
+**Status:** Completed
+
+### What was done
+
+1. **Curated 18 real articles** about AI job displacement from major outlets
+   - Sources: HBR, CNBC, Fortune, TechCrunch, CBS News, Goldman Sachs, IMF, WEF, Brookings, HR Dive, etc.
+   - Each article: title, source, date, 2-sentence excerpt, real URL
+   - Stored as `public/data/articles.json`
+
+2. **Built horizontal carousel component**
+   - Auto-scrolls every 5 seconds, pauses on hover
+   - Left/right arrow navigation + dot indicators
+   - CSS scroll-snap for smooth manual scrolling
+   - Responsive: 3 cards desktop, 2 tablet, 1 mobile
+   - Cards: source name (small caps), title, excerpt, "Read article" link
+
+3. **Added carousel section between stories and community**
+   - Section title "AI Displacement in the News" (translated in all 5 langs)
+   - 3 new E2E tests for carousel (all pass)
+
+### Files Created/Changed
+- `public/data/articles.json` — 18 curated articles
+- `public/carousel.css` — Carousel styles + responsive
+- `public/index.html` — Added carousel section + CSS link
+- `public/app.js` — renderNewsCarousel() + initCarouselControls()
+- `public/i18n/*.json` — Added newsCarouselTitle key (all 5 langs)
+- `tests/e2e-comprehensive.spec.js` — 3 carousel tests + rate-limit fixes
+
+---
+
 ## 2026-04-06 — Complete UX Overhaul: Stories-First Homepage
 
 **Category:** features (80%), tests (20%)
