@@ -676,6 +676,7 @@ class AITookMyJobApp {
     this.animateCounters();
     this.renderFeaturedStory();
     this.renderStories();
+    this.renderNewsCarousel();
     this.renderNews();
     this.renderResources();
     this.renderCommunity();
@@ -1243,6 +1244,137 @@ class AITookMyJobApp {
         }
       }
     });
+  }
+
+  // ── News Carousel ──
+
+  async renderNewsCarousel() {
+    const track = document.getElementById('carouselTrack');
+    if (!track || track._rendered) return;
+    track._rendered = true;
+
+    const articles = await this.fetchJSON('/data/articles.json', []);
+    if (!articles.length) return;
+
+    const readMore = this.state.t.newsReadMore || 'Read article';
+
+    track.innerHTML = articles.map(a => `
+      <div class="carousel-card">
+        <div class="carousel-card-top">
+          <span class="carousel-card-source">${this.esc(a.source)}</span>
+          <span class="carousel-card-date">${this.esc(a.date)}</span>
+        </div>
+        <h4 class="carousel-card-title">${this.esc(a.title)}</h4>
+        <p class="carousel-card-excerpt">${this.esc(a.excerpt)}</p>
+        <a href="${this.esc(a.url)}" target="_blank" rel="noopener noreferrer" class="carousel-card-link">
+          ${this.esc(readMore)} <i class="ph ph-arrow-up-right"></i>
+        </a>
+      </div>
+    `).join('');
+
+    this.initCarouselControls(track, articles.length);
+  }
+
+  initCarouselControls(track, total) {
+    const prevBtn = document.getElementById('carouselPrev');
+    const nextBtn = document.getElementById('carouselNext');
+    const dotsContainer = document.getElementById('carouselDots');
+
+    // Calculate cards per view based on viewport
+    const getCardsPerView = () => {
+      if (window.innerWidth < 768) return 1;
+      if (window.innerWidth < 1024) return 2;
+      return 3;
+    };
+
+    let currentIndex = 0;
+    let autoScrollTimer = null;
+
+    const scrollToIndex = (idx) => {
+      const card = track.children[idx];
+      if (card) {
+        track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: 'smooth' });
+        currentIndex = idx;
+        updateDots();
+      }
+    };
+
+    // Dots
+    const buildDots = () => {
+      if (!dotsContainer) return;
+      const perView = getCardsPerView();
+      const pages = Math.ceil(total / perView);
+      dotsContainer.innerHTML = '';
+      for (let i = 0; i < Math.min(pages, 8); i++) {
+        const dot = document.createElement('button');
+        dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+        dot.setAttribute('aria-label', `Page ${i + 1}`);
+        dot.addEventListener('click', () => scrollToIndex(i * perView));
+        dotsContainer.appendChild(dot);
+      }
+    };
+
+    const updateDots = () => {
+      if (!dotsContainer) return;
+      const perView = getCardsPerView();
+      const activePage = Math.floor(currentIndex / perView);
+      dotsContainer.querySelectorAll('.carousel-dot').forEach((d, i) => {
+        d.classList.toggle('active', i === activePage);
+      });
+    };
+
+    // Arrow navigation
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        const perView = getCardsPerView();
+        currentIndex = Math.max(0, currentIndex - perView);
+        scrollToIndex(currentIndex);
+        resetAutoScroll();
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        const perView = getCardsPerView();
+        currentIndex = Math.min(total - 1, currentIndex + perView);
+        if (currentIndex >= total - perView) currentIndex = 0;
+        scrollToIndex(currentIndex);
+        resetAutoScroll();
+      });
+    }
+
+    // Auto-scroll every 5 seconds
+    const startAutoScroll = () => {
+      autoScrollTimer = setInterval(() => {
+        const perView = getCardsPerView();
+        currentIndex += perView;
+        if (currentIndex >= total) currentIndex = 0;
+        scrollToIndex(currentIndex);
+      }, 5000);
+    };
+
+    const resetAutoScroll = () => {
+      clearInterval(autoScrollTimer);
+      startAutoScroll();
+    };
+
+    // Pause on hover
+    track.addEventListener('mouseenter', () => clearInterval(autoScrollTimer));
+    track.addEventListener('mouseleave', () => startAutoScroll());
+
+    // Sync currentIndex on manual scroll
+    track.addEventListener('scroll', () => {
+      if (!track.children.length) return;
+      const cardWidth = track.children[0].offsetWidth + 16;
+      currentIndex = Math.round(track.scrollLeft / cardWidth);
+      updateDots();
+    });
+
+    buildDots();
+    startAutoScroll();
+
+    // Rebuild dots on resize
+    window.addEventListener('resize', () => { buildDots(); });
   }
 
   // ── Real-time updates ──

@@ -23,6 +23,7 @@
 
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/sidebar.css">
+  <link rel="stylesheet" href="/carousel.css">
   <link rel="stylesheet" href="/live-signals.css">
   <link rel="stylesheet" href="/petitions.css">
   <link rel="stylesheet" href="/reactions.css">
@@ -427,6 +428,25 @@
             <i class="ph ph-arrow-down"></i> <span data-i18n="loadMoreStories">Load More Stories</span>
           </button>
         </div>
+      </section>
+
+      <!-- AI News Carousel -->
+      <section class="news-carousel-section" id="newsCarousel">
+        <div class="news-carousel-header">
+          <h2 class="news-carousel-title" data-i18n="newsCarouselTitle">AI Displacement in the News</h2>
+          <div class="carousel-nav">
+            <button class="carousel-btn" id="carouselPrev" aria-label="Previous">
+              <i class="ph ph-caret-left"></i>
+            </button>
+            <button class="carousel-btn" id="carouselNext" aria-label="Next">
+              <i class="ph ph-caret-right"></i>
+            </button>
+          </div>
+        </div>
+        <div class="carousel-track-wrapper">
+          <div class="carousel-track" id="carouselTrack"></div>
+        </div>
+        <div class="carousel-dots" id="carouselDots"></div>
       </section>
 
       <!-- Community Section -->
