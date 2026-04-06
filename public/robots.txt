@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/admin/
+Disallow: /api/auth/
+
+Sitemap: https://aitookmyjob.filippmiller.com/sitemap.xml

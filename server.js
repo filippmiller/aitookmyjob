@@ -145,6 +145,7 @@ app.get(/^\/([a-z]{2,10})\/([a-z]{2})(?:\/.*)?$/i, (req, res) => {
 });
 
 app.get("/forum", (req, res) => { res.sendFile(path.join(ctx.publicDir, "forum.html")); });
+app.get("/research", (req, res) => { res.sendFile(path.join(ctx.publicDir, "research.html")); });
 app.get("/support", (req, res) => { res.sendFile(path.join(ctx.publicDir, "index.html")); });
 app.get("/events", (req, res) => { res.sendFile(path.join(ctx.publicDir, "index.html")); });
 app.get("/dashboard", (req, res) => { res.sendFile(path.join(ctx.publicDir, "index.html")); });

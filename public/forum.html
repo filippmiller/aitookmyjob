@@ -3,7 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Forum &amp; Account - AI Took My Job</title>
+  <title>Community Forum — AI Took My Job</title>
+  <meta name="description" content="Discuss AI displacement, share advice, find support. Join conversations about reskilling, legal rights, and career transitions.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Community Forum — AI Took My Job">
+  <meta property="og:description" content="Discuss AI displacement, share advice, find support. Conversations about reskilling, legal rights, and career transitions.">
+  <meta property="og:url" content="https://aitookmyjob.filippmiller.com/forum">
+  <meta property="og:site_name" content="AI Took My Job">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Community Forum — AI Took My Job">
+  <meta name="twitter:description" content="Discuss AI displacement, share advice, find support.">
+
+  <link rel="canonical" href="https://aitookmyjob.filippmiller.com/forum">
   <link rel="stylesheet" href="/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,27 +34,12 @@
         <div class="nav-brand-mark"></div>
         <span class="nav-brand-name">AI Took My Job</span>
       </a>
-
       <div class="nav-links" id="navLinks">
         <a href="/" class="nav-link">Home</a>
-        <a href="/dashboard" class="nav-link">Dashboard</a>
-        <a href="/stories" class="nav-link">Stories</a>
         <a href="/forum" class="nav-link active">Forum</a>
-        <a href="/resources" class="nav-link">Resources</a>
+        <a href="/research" class="nav-link">Research</a>
       </div>
-
       <div class="nav-actions">
-        <select class="select" id="countrySelect">
-          <option value="global">Global</option>
-          <option value="us">US</option>
-          <option value="de">DE</option>
-          <option value="fr">FR</option>
-        </select>
-        <select class="select" id="langSelect">
-          <option value="en">EN</option>
-          <option value="ru">RU</option>
-          <option value="de">DE</option>
-        </select>
         <button class="btn-icon" id="themeToggle" aria-label="Toggle theme">
           <i class="ph ph-sun-dim"></i>
         </button>
@@ -49,237 +49,81 @@
       </div>
     </div>
   </nav>
+
   <main class="section">
     <div class="container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Community Forum</h2>
+          <p class="section-subtitle">Discuss, support, and share knowledge</p>
+        </div>
+        <div class="section-actions">
+          <input type="text" class="input" id="forumSearch" placeholder="Search discussions..." style="width:220px;">
+          <select class="select" id="forumCategoryFilter">
+            <option value="">All Categories</option>
+          </select>
+          <button class="btn btn-primary btn-sm" id="newTopicBtn">
+            <i class="ph ph-plus"></i> New Topic
+          </button>
+        </div>
+      </div>
 
-      <!-- User Cabinet (shown when not logged in) -->
-      <section id="user-cabinet">
-        <div class="section-header">
-          <div>
-            <h2 class="section-title">Account &amp; Forum</h2>
-            <p class="section-subtitle">Sign in to participate in discussions and manage your stories</p>
+      <!-- New Topic Form (hidden by default) -->
+      <div id="newTopicForm" style="display:none; margin-bottom:var(--sp-6);">
+        <div class="card">
+          <h3 style="font-family:var(--font-display); margin-bottom:var(--sp-4);">Create New Topic</h3>
+          <div id="topicFormMessage" style="display:none; padding:var(--sp-2); margin-bottom:var(--sp-3); border-radius:var(--radius-sm); font-size:var(--text-sm); text-align:center;"></div>
+          <form id="topicCreateForm">
+            <div class="form-group mb-4">
+              <label class="form-label">Category</label>
+              <select id="topicCategory" class="select" required></select>
+            </div>
+            <div class="form-group mb-4">
+              <label class="form-label">Title</label>
+              <input type="text" id="topicTitle" class="input" placeholder="What would you like to discuss?" required minlength="8" maxlength="200">
+            </div>
+            <div class="form-group mb-4">
+              <label class="form-label">Body</label>
+              <textarea id="topicBody" class="input" rows="4" placeholder="Share your thoughts..." required minlength="20" maxlength="5000"></textarea>
+            </div>
+            <div style="display:flex; gap:var(--sp-2);">
+              <button type="submit" class="btn btn-primary">Post Topic</button>
+              <button type="button" class="btn btn-ghost" id="cancelTopicBtn">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="forum-layout">
+        <aside class="forum-sidebar">
+          <div class="card-flat">
+            <h4 style="font-family:var(--font-body); font-size:var(--text-sm); font-weight:600; margin-bottom:var(--sp-4); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em;">Categories</h4>
+            <div id="categoriesList" style="display:flex; flex-direction:column; gap:var(--sp-1);">
+              <p style="color:var(--text-muted); font-size:var(--text-sm);">Loading...</p>
+            </div>
+          </div>
+
+          <div class="card-flat">
+            <h4 style="font-family:var(--font-body); font-size:var(--text-sm); font-weight:600; margin-bottom:var(--sp-4); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em;">Stats</h4>
+            <div style="display:flex; flex-direction:column; gap:var(--sp-3);">
+              <div style="display:flex; justify-content:space-between; font-size:var(--text-sm);">
+                <span style="color:var(--text-secondary);">Topics</span>
+                <span class="text-mono" id="statTopics" style="font-weight:600;">—</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:var(--text-sm);">
+                <span style="color:var(--text-secondary);">Stories Shared</span>
+                <span class="text-mono" id="statStories" style="font-weight:600;">—</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="forum-topics-list" id="topicsList">
+          <div style="text-align:center; padding:var(--sp-8); color:var(--text-muted);">
+            <p>Loading discussions...</p>
           </div>
         </div>
-
-        <div class="cabinet-split">
-          <div class="card">
-            <h3 style="font-family:var(--font-display); font-size:var(--text-xl); font-weight:700; margin-bottom:var(--sp-6);">Welcome Back</h3>
-
-            <div class="tabs">
-              <button class="tab-btn active" data-tab="login">Sign In</button>
-              <button class="tab-btn" data-tab="register">Register</button>
-            </div>
-
-            <div class="tab-pane active" id="loginTab">
-              <form id="loginForm">
-                <div class="form-group mb-4">
-                  <label class="form-label" for="loginEmail">Email</label>
-                  <input type="email" id="loginEmail" name="loginEmail" class="input" placeholder="you@example.com" required>
-                </div>
-                <div class="form-group mb-4">
-                  <label class="form-label" for="loginPassword">Password</label>
-                  <input type="password" id="loginPassword" name="loginPassword" class="input" placeholder="Your password" required>
-                </div>
-                <button type="submit" class="btn btn-primary full-width">Sign In</button>
-              </form>
-            </div>
-
-            <div class="tab-pane" id="registerTab">
-              <form id="registerForm">
-                <div class="form-group mb-4">
-                  <label class="form-label" for="registerEmail">Email</label>
-                  <input type="email" id="registerEmail" name="registerEmail" class="input" placeholder="you@example.com" required>
-                </div>
-                <div class="form-group mb-4">
-                  <label class="form-label" for="registerPassword">Password</label>
-                  <input type="password" id="registerPassword" name="registerPassword" class="input" placeholder="Min. 10 characters" required>
-                </div>
-                <div class="form-group mb-4">
-                  <label class="form-label" for="confirmPassword">Confirm Password</label>
-                  <input type="password" id="confirmPassword" name="confirmPassword" class="input" placeholder="Repeat password" required>
-                </div>
-                <button type="submit" class="btn btn-primary full-width">Create Account</button>
-              </form>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3 style="font-family:var(--font-display); font-size:var(--text-xl); font-weight:700; margin-bottom:var(--sp-6);">Your Cabinet</h3>
-            <div class="feature-grid">
-              <div class="feature-item">
-                <div class="feature-item-icon"><i class="ph ph-chat-circle-text"></i></div>
-                <h4>Story Management</h4>
-                <p>Edit and track your submitted stories</p>
-              </div>
-              <div class="feature-item">
-                <div class="feature-item-icon"><i class="ph ph-users-three"></i></div>
-                <h4>Community</h4>
-                <p>Join discussions and support groups</p>
-              </div>
-              <div class="feature-item">
-                <div class="feature-item-icon"><i class="ph ph-chart-line-up"></i></div>
-                <h4>Dashboard</h4>
-                <p>Track your job search progress</p>
-              </div>
-              <div class="feature-item">
-                <div class="feature-item-icon"><i class="ph ph-bell"></i></div>
-                <h4>Notifications</h4>
-                <p>Stay updated on relevant topics</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <!-- Forum (shown when logged in) -->
-      <section id="forum-preview" class="hidden" style="margin-top:var(--sp-16);">
-        <div class="section-header">
-          <div>
-            <h2 class="section-title">Community Forum</h2>
-            <p class="section-subtitle">Discuss, support, and share knowledge</p>
-          </div>
-          <div class="section-actions">
-            <input type="text" class="input" placeholder="Search discussions..." style="width:220px;">
-            <select class="select">
-              <option>All Categories</option>
-              <option>Developers &amp; QA</option>
-              <option>Designers &amp; Artists</option>
-              <option>Legal Rights</option>
-              <option>Reskilling</option>
-            </select>
-            <button class="btn btn-primary btn-sm"><i class="ph ph-plus"></i> New Topic</button>
-          </div>
-        </div>
-
-        <div class="forum-layout">
-          <aside class="forum-sidebar">
-            <div class="card-flat">
-              <h4 style="font-family:var(--font-body); font-size:var(--text-sm); font-weight:600; margin-bottom:var(--sp-4); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em;">Categories</h4>
-              <div style="display:flex; flex-direction:column; gap:var(--sp-1);">
-                <a href="#" class="category-link active">
-                  <i class="ph ph-chat-centered-text"></i> General
-                  <span class="category-badge">1,243</span>
-                </a>
-                <a href="#" class="category-link">
-                  <i class="ph ph-code"></i> Developers
-                  <span class="category-badge">892</span>
-                </a>
-                <a href="#" class="category-link">
-                  <i class="ph ph-paint-brush-broad"></i> Designers
-                  <span class="category-badge">654</span>
-                </a>
-                <a href="#" class="category-link">
-                  <i class="ph ph-scales"></i> Legal Rights
-                  <span class="category-badge">421</span>
-                </a>
-                <a href="#" class="category-link">
-                  <i class="ph ph-arrow-u-up-left"></i> Reskilling
-                  <span class="category-badge">789</span>
-                </a>
-                <a href="#" class="category-link">
-                  <i class="ph ph-trophy"></i> Success Stories
-                  <span class="category-badge">342</span>
-                </a>
-              </div>
-            </div>
-
-            <div class="card-flat">
-              <h4 style="font-family:var(--font-body); font-size:var(--text-sm); font-weight:600; margin-bottom:var(--sp-4); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em;">Stats</h4>
-              <div style="display:flex; flex-direction:column; gap:var(--sp-3);">
-                <div style="display:flex; justify-content:space-between; font-size:var(--text-sm);">
-                  <span style="color:var(--text-secondary);">Topics</span>
-                  <span class="text-mono" style="font-weight:600;">5,847</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; font-size:var(--text-sm);">
-                  <span style="color:var(--text-secondary);">Posts</span>
-                  <span class="text-mono" style="font-weight:600;">24,589</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; font-size:var(--text-sm);">
-                  <span style="color:var(--text-secondary);">Members</span>
-                  <span class="text-mono" style="font-weight:600;">3,245</span>
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          <div class="forum-topics-list">
-            <div class="topic-item">
-              <div class="topic-avatar">JD</div>
-              <div>
-                <div class="topic-title">How to pivot from copywriting to UX writing?</div>
-                <div class="topic-excerpt">Looking for advice on transitioning from copywriting to UX writing. What skills should I focus on?</div>
-                <div class="topic-meta">
-                  <span class="tag tag-amber" style="padding:1px 8px;">Copywriters</span>
-                  <span>John D. &middot; 2h ago</span>
-                </div>
-              </div>
-              <div class="topic-stats">
-                <span class="topic-stat"><i class="ph ph-chat"></i> 38</span>
-                <span class="topic-stat"><i class="ph ph-eye"></i> 245</span>
-                <span class="topic-stat"><i class="ph ph-heart"></i> 12</span>
-              </div>
-            </div>
-
-            <div class="topic-item">
-              <div class="topic-avatar">JS</div>
-              <div>
-                <div class="topic-title">Junior developers: where to get first role in AI-first market</div>
-                <div class="topic-excerpt">As a junior developer, I'm struggling to find opportunities in companies that are embracing AI tools.</div>
-                <div class="topic-meta">
-                  <span class="tag tag-amber" style="padding:1px 8px;">Developers</span>
-                  <span>Jane S. &middot; 4h ago</span>
-                </div>
-              </div>
-              <div class="topic-stats">
-                <span class="topic-stat"><i class="ph ph-chat"></i> 54</span>
-                <span class="topic-stat"><i class="ph ph-eye"></i> 421</span>
-                <span class="topic-stat"><i class="ph ph-heart"></i> 23</span>
-              </div>
-            </div>
-            <div class="topic-item">
-              <div class="topic-avatar">MR</div>
-              <div>
-                <div class="topic-title">Can my company train model on my work without consent?</div>
-                <div class="topic-excerpt">My former employer is using my work to train their AI model. Do I have any legal recourse?</div>
-                <div class="topic-meta">
-                  <span class="tag tag-red" style="padding:1px 8px;">Legal</span>
-                  <span>Mike R. &middot; 6h ago</span>
-                </div>
-              </div>
-              <div class="topic-stats">
-                <span class="topic-stat"><i class="ph ph-chat"></i> 19</span>
-                <span class="topic-stat"><i class="ph ph-eye"></i> 187</span>
-                <span class="topic-stat"><i class="ph ph-heart"></i> 8</span>
-              </div>
-            </div>
-
-            <div class="topic-item">
-              <div class="topic-avatar">AS</div>
-              <div>
-                <div class="topic-title">I found a new role after 6 months - ask me anything</div>
-                <div class="topic-excerpt">After being laid off from my support role, I retrained and landed a QA position. Happy to share my experience.</div>
-                <div class="topic-meta">
-                  <span class="tag tag-green" style="padding:1px 8px;">Success</span>
-                  <span>Anna S. &middot; Yesterday</span>
-                </div>
-              </div>
-              <div class="topic-stats">
-                <span class="topic-stat"><i class="ph ph-chat"></i> 66</span>
-                <span class="topic-stat"><i class="ph ph-eye"></i> 512</span>
-                <span class="topic-stat"><i class="ph ph-heart"></i> 41</span>
-              </div>
-            </div>
-
-            <div class="pagination">
-              <button class="btn btn-ghost btn-sm">Previous</button>
-              <button class="btn btn-primary btn-sm">1</button>
-              <button class="btn btn-ghost btn-sm">2</button>
-              <button class="btn btn-ghost btn-sm">3</button>
-              <button class="btn btn-ghost btn-sm">Next</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
+      </div>
     </div>
   </main>
 
@@ -296,21 +140,17 @@
       <div class="footer-col">
         <h4>About</h4>
         <a href="/">Home</a>
-        <a href="#">Mission</a>
-        <a href="#">Methodology</a>
-        <a href="#">Transparency</a>
+        <a href="/research">Research</a>
       </div>
       <div class="footer-col">
         <h4>Resources</h4>
-        <a href="#">Reskilling</a>
-        <a href="#">Legal Aid</a>
-        <a href="#">Job Boards</a>
+        <a href="/#resources">Reskilling</a>
+        <a href="/#resources">Legal Aid</a>
       </div>
       <div class="footer-col">
         <h4>Community</h4>
         <a href="/forum">Forum</a>
-        <a href="#">Telegram</a>
-        <a href="#">GitHub</a>
+        <a href="/#community">Support Groups</a>
       </div>
     </div>
     <div class="footer-bottom">
@@ -319,7 +159,251 @@
     </div>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="/app.js" defer></script>
+  <script>
+    const categoryIcons = {
+      cop: 'ph-pencil-line', dev: 'ph-code', des: 'ph-paint-brush-broad',
+      hr: 'ph-users', sup: 'ph-headset', law: 'ph-scales',
+      up: 'ph-arrow-u-up-left', reg: 'ph-map-pin', succ: 'ph-trophy'
+    };
+
+    const categoryLabels = {
+      'copywriters': 'Copywriters', 'developers-qa': 'Developers & QA',
+      'designers-artists': 'Designers & Artists', 'hr-recruiting': 'HR & Recruiting',
+      'support-call-centers': 'Support & Call Centers', 'legal-rights': 'Legal Rights',
+      'reskilling-job-search': 'Reskilling', 'regional-groups': 'Regional Groups',
+      'success-stories': 'Success Stories'
+    };
+
+    function esc(text) {
+      const d = document.createElement('div');
+      d.textContent = String(text || '');
+      return d.innerHTML;
+    }
+
+    function timeAgo(dateStr) {
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const hours = Math.floor(diff / 3600000);
+      if (hours < 1) return 'just now';
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      if (days < 30) return `${days}d ago`;
+      return new Date(dateStr).toLocaleDateString();
+    }
+
+    let allCategories = [];
+    let allTopics = [];
+    let activeCategory = '';
+
+    async function fetchJSON(url) {
+      try {
+        const res = await fetch(url, { credentials: 'include' });
+        if (!res.ok) return null;
+        return await res.json();
+      } catch { return null; }
+    }
+
+    async function postJSON(url, body) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json().catch(() => ({}));
+        return { ok: res.ok, data, error: data.message || '' };
+      } catch { return { ok: false, error: 'Network error' }; }
+    }
+
+    function renderCategories() {
+      const container = document.getElementById('categoriesList');
+      const filter = document.getElementById('forumCategoryFilter');
+      const topicCat = document.getElementById('topicCategory');
+
+      // Count topics per category
+      const counts = {};
+      allTopics.forEach(t => { counts[t.categoryId] = (counts[t.categoryId] || 0) + 1; });
+
+      container.innerHTML = `
+        <a href="#" class="category-link ${!activeCategory ? 'active' : ''}" data-cat="">
+          <i class="ph ph-chat-centered-text"></i> All
+          <span class="category-badge">${allTopics.length}</span>
+        </a>
+      ` + allCategories.map(c => `
+        <a href="#" class="category-link ${activeCategory === c.id ? 'active' : ''}" data-cat="${c.id}">
+          <i class="ph ${categoryIcons[c.id] || 'ph-chat-circle'}"></i> ${esc(categoryLabels[c.key] || c.key)}
+          <span class="category-badge">${counts[c.id] || 0}</span>
+        </a>
+      `).join('');
+
+      container.querySelectorAll('.category-link').forEach(link => {
+        link.addEventListener('click', e => {
+          e.preventDefault();
+          activeCategory = link.dataset.cat;
+          renderCategories();
+          renderTopics();
+        });
+      });
+
+      // Populate filter dropdown
+      filter.innerHTML = '<option value="">All Categories</option>' +
+        allCategories.map(c => `<option value="${c.id}">${esc(categoryLabels[c.key] || c.key)}</option>`).join('');
+      filter.value = activeCategory;
+
+      // Populate topic creation dropdown
+      topicCat.innerHTML = allCategories.map(c =>
+        `<option value="${c.id}">${esc(categoryLabels[c.key] || c.key)}</option>`
+      ).join('');
+    }
+
+    function renderTopics() {
+      const container = document.getElementById('topicsList');
+      const search = (document.getElementById('forumSearch')?.value || '').toLowerCase();
+
+      let filtered = allTopics;
+      if (activeCategory) filtered = filtered.filter(t => t.categoryId === activeCategory);
+      if (search) filtered = filtered.filter(t => t.title.toLowerCase().includes(search));
+
+      if (!filtered.length) {
+        container.innerHTML = `<div style="text-align:center; padding:var(--sp-8); color:var(--text-muted);">
+          <i class="ph ph-chat-circle" style="font-size:2rem; margin-bottom:var(--sp-2);"></i>
+          <p>${allTopics.length === 0 ? 'No discussions yet. Be the first to start one!' : 'No topics match your filter.'}</p>
+        </div>`;
+        return;
+      }
+
+      const catMap = {};
+      allCategories.forEach(c => { catMap[c.id] = c; });
+
+      container.innerHTML = filtered.map(t => {
+        const cat = catMap[t.categoryId];
+        const label = cat ? (categoryLabels[cat.key] || cat.key) : t.categoryId;
+        return `
+          <div class="topic-item">
+            <div class="topic-avatar">${esc((t.title || '??').slice(0, 2).toUpperCase())}</div>
+            <div>
+              <div class="topic-title">${esc(t.title)}</div>
+              <div class="topic-meta">
+                <span class="tag tag-amber" style="padding:1px 8px;">${esc(label)}</span>
+                <span>${timeAgo(t.lastUpdate || t.createdAt)}</span>
+              </div>
+            </div>
+            <div class="topic-stats">
+              <span class="topic-stat"><i class="ph ph-chat"></i> ${t.replies || 0}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function init() {
+      // Load data in parallel
+      const [catData, topicData, statsData] = await Promise.all([
+        fetchJSON('/api/forum/categories'),
+        fetchJSON('/api/forum/topics?country=global'),
+        fetchJSON('/api/stats')
+      ]);
+
+      allCategories = catData?.categories || [];
+      allTopics = (topicData?.topics || []).sort((a, b) =>
+        new Date(b.lastUpdate || b.createdAt || 0) - new Date(a.lastUpdate || a.createdAt || 0)
+      );
+
+      // Stats
+      document.getElementById('statTopics').textContent = String(allTopics.length);
+      document.getElementById('statStories').textContent = String(statsData?.counters?.sharedStories || 0);
+
+      renderCategories();
+      renderTopics();
+
+      // Search
+      let debounce;
+      document.getElementById('forumSearch')?.addEventListener('input', () => {
+        clearTimeout(debounce);
+        debounce = setTimeout(renderTopics, 200);
+      });
+
+      // Category filter dropdown
+      document.getElementById('forumCategoryFilter')?.addEventListener('change', e => {
+        activeCategory = e.target.value;
+        renderCategories();
+        renderTopics();
+      });
+
+      // New topic button
+      document.getElementById('newTopicBtn')?.addEventListener('click', () => {
+        document.getElementById('newTopicForm').style.display = 'block';
+        document.getElementById('topicTitle')?.focus();
+      });
+
+      document.getElementById('cancelTopicBtn')?.addEventListener('click', () => {
+        document.getElementById('newTopicForm').style.display = 'none';
+      });
+
+      // Topic creation form
+      document.getElementById('topicCreateForm')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const msgEl = document.getElementById('topicFormMessage');
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.textContent = 'Posting...';
+
+        const res = await postJSON('/api/forum/topics', {
+          categoryId: document.getElementById('topicCategory').value,
+          title: document.getElementById('topicTitle').value.trim(),
+          body: document.getElementById('topicBody').value.trim()
+        });
+
+        if (res.ok) {
+          msgEl.textContent = 'Topic created!';
+          msgEl.style.display = 'block';
+          msgEl.style.background = 'rgba(90,168,108,0.15)';
+          msgEl.style.color = 'var(--signal-green)';
+          e.target.reset();
+          // Reload topics
+          const topicData = await fetchJSON('/api/forum/topics?country=global');
+          allTopics = (topicData?.topics || []).sort((a, b) =>
+            new Date(b.lastUpdate || b.createdAt || 0) - new Date(a.lastUpdate || a.createdAt || 0)
+          );
+          document.getElementById('statTopics').textContent = String(allTopics.length);
+          renderCategories();
+          renderTopics();
+          setTimeout(() => { document.getElementById('newTopicForm').style.display = 'none'; msgEl.style.display = 'none'; }, 2000);
+        } else {
+          msgEl.textContent = res.error || 'Failed to create topic. Are you signed in with a verified phone?';
+          msgEl.style.display = 'block';
+          msgEl.style.background = 'rgba(212,84,84,0.15)';
+          msgEl.style.color = 'var(--signal-red)';
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'Post Topic';
+      });
+
+      // Theme toggle
+      const toggle = document.getElementById('themeToggle');
+      const theme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+      if (toggle) {
+        toggle.addEventListener('click', () => {
+          const current = document.documentElement.getAttribute('data-theme');
+          const next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        });
+      }
+
+      // Mobile menu
+      const mobileToggle = document.getElementById('mobileMenuToggle');
+      const navLinks = document.getElementById('navLinks');
+      if (mobileToggle && navLinks) {
+        mobileToggle.addEventListener('click', () => {
+          navLinks.classList.toggle('is-open');
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+
 </body>
 </html>
