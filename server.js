@@ -34,7 +34,7 @@ app.use(
       useDefaults: false,
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
         fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "https://unpkg.com"],
         imgSrc: ["'self'", "data:"],
