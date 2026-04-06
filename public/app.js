@@ -132,7 +132,22 @@ class AITookMyJobApp {
     const authClose = document.getElementById('authModalClose');
 
     if (authTrigger && authModal) {
-      authTrigger.addEventListener('click', () => this.openModal(authModal));
+      authTrigger.addEventListener('click', () => {
+        // Show appropriate sections based on auth state
+        const authTabs = document.getElementById('authTabs');
+        const phoneSection = document.getElementById('phoneSection');
+        const sessionSection = document.getElementById('sessionSection');
+        if (this.state.authUser) {
+          if (authTabs) authTabs.style.display = 'none';
+          if (phoneSection) phoneSection.style.display = 'block';
+          if (sessionSection) sessionSection.style.display = 'block';
+        } else {
+          if (authTabs) authTabs.style.display = '';
+          if (phoneSection) phoneSection.style.display = 'none';
+          if (sessionSection) sessionSection.style.display = 'none';
+        }
+        this.openModal(authModal);
+      });
     }
     if (authClose && authModal) {
       authClose.addEventListener('click', () => this.closeModal(authModal));
@@ -166,6 +181,53 @@ class AITookMyJobApp {
       storyForm.addEventListener('submit', (e) => {
         e.preventDefault();
         this.handleStorySubmit(storyForm);
+      });
+    }
+
+    // Character counter for story textarea
+    const storyTextarea = document.getElementById('storyText');
+    const charCountEl = document.getElementById('storyCharCount');
+    if (storyTextarea && charCountEl) {
+      const updateCount = () => {
+        const len = storyTextarea.value.length;
+        charCountEl.textContent = `${len.toLocaleString()} / 3,000`;
+        charCountEl.style.color = len < 40 ? 'var(--signal-red)' : len > 2800 ? 'var(--signal-amber)' : 'var(--text-muted)';
+      };
+      storyTextarea.addEventListener('input', updateCount);
+      updateCount();
+    }
+
+    // Preview toggle
+    const previewToggle = document.getElementById('storyPreviewToggle');
+    const previewPanel = document.getElementById('storyPreviewPanel');
+    const previewContent = document.getElementById('storyPreviewContent');
+    if (previewToggle && previewPanel && previewContent && storyTextarea) {
+      previewToggle.addEventListener('click', () => {
+        const showing = previewPanel.style.display !== 'none';
+        previewPanel.style.display = showing ? 'none' : 'block';
+        previewToggle.innerHTML = showing ? '<i class="ph ph-eye"></i> Preview' : '<i class="ph ph-eye-slash"></i> Hide Preview';
+        if (!showing) {
+          previewContent.textContent = storyTextarea.value || '(empty)';
+        }
+      });
+      storyTextarea.addEventListener('input', () => {
+        if (previewPanel.style.display !== 'none') {
+          previewContent.textContent = storyTextarea.value || '(empty)';
+        }
+      });
+    }
+
+    // Success panel close
+    const successClose = document.getElementById('storySuccessClose');
+    if (successClose) {
+      successClose.addEventListener('click', () => {
+        const modal = document.getElementById('storyModal');
+        if (modal) this.closeModal(modal);
+        // Reset visibility
+        const form = document.getElementById('storyForm');
+        const successPanel = document.getElementById('storySuccessPanel');
+        if (form) form.style.display = '';
+        if (successPanel) successPanel.style.display = 'none';
       });
     }
 
@@ -204,6 +266,32 @@ class AITookMyJobApp {
         e.preventDefault();
         this.handleRegister(registerForm);
       });
+    }
+
+    // Phone verification forms
+    const phoneStartForm = document.getElementById('phoneStartForm');
+    if (phoneStartForm) {
+      phoneStartForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.handlePhoneStart(phoneStartForm);
+      });
+    }
+    const phoneConfirmForm = document.getElementById('phoneConfirmForm');
+    if (phoneConfirmForm) {
+      phoneConfirmForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.handlePhoneConfirm(phoneConfirmForm);
+      });
+    }
+
+    // Session controls
+    const sessionCheckBtn = document.getElementById('sessionCheckBtn');
+    if (sessionCheckBtn) {
+      sessionCheckBtn.addEventListener('click', () => this.handleSessionCheck());
+    }
+    const sessionLogoutBtn = document.getElementById('sessionLogoutBtn');
+    if (sessionLogoutBtn) {
+      sessionLogoutBtn.addEventListener('click', () => this.handleLogout());
     }
 
     // Country / Language selectors
@@ -310,22 +398,27 @@ class AITookMyJobApp {
     const res = await this.postJSON('/api/auth/login', { email, password });
 
     if (res.ok) {
-      this.toast('Signed in successfully', 'success');
       this.state.authUser = res.data;
       form.reset();
-      const modal = document.getElementById('authModal');
-      if (modal) this.closeModal(modal);
       this.onAuthChange();
+      this.showAuthMessage(`Signed in as ${res.data?.email || 'user'}`, 'success');
+      // Show phone/session sections
+      const authTabs = document.getElementById('authTabs');
+      const phoneSection = document.getElementById('phoneSection');
+      const sessionSection = document.getElementById('sessionSection');
+      if (authTabs) authTabs.style.display = 'none';
+      if (phoneSection) phoneSection.style.display = 'block';
+      if (sessionSection) sessionSection.style.display = 'block';
     } else {
-      this.toast(res.error || 'Login failed', 'error');
+      this.showAuthMessage(res.error || 'Login failed', 'error');
     }
 
     this.setLoading(btn, false, 'Sign In');
   }
 
   async handleRegister(form) {
-    const email = form.registerEmail.value.trim();
-    const password = form.registerPassword.value;
+    const email = form.email.value.trim();
+    const password = form.password.value;
     const confirm = form.confirmPassword.value;
 
     if (!email || !password || !confirm) return this.toast('Fill in all fields', 'error');
@@ -338,19 +431,112 @@ class AITookMyJobApp {
     const res = await this.postJSON('/api/auth/register', { email, password });
 
     if (res.ok) {
-      this.toast('Account created! Please sign in.', 'success');
-      form.reset();
-      // Switch to login tab
-      const container = form.closest('.card, .modal-panel');
-      if (container) {
-        container.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'login'));
-        container.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'loginTab'));
+      // Auto-login after registration
+      const loginRes = await this.postJSON('/api/auth/login', { email, password });
+      if (loginRes.ok) {
+        this.state.authUser = loginRes.data;
+        this.onAuthChange();
+        this.showAuthMessage(`Registration successful. Signed in as ${email}`, 'success');
+        // Show phone verification section
+        const authTabs = document.getElementById('authTabs');
+        const phoneSection = document.getElementById('phoneSection');
+        const sessionSection = document.getElementById('sessionSection');
+        if (authTabs) authTabs.style.display = 'none';
+        if (phoneSection) phoneSection.style.display = 'block';
+        if (sessionSection) sessionSection.style.display = 'block';
+      } else {
+        this.showAuthMessage('Account created! Please sign in.', 'success');
       }
+      form.reset();
     } else {
-      this.toast(res.error || 'Registration failed', 'error');
+      this.showAuthMessage(res.error || 'Registration failed', 'error');
     }
 
     this.setLoading(btn, false, 'Create Account');
+  }
+
+  showAuthMessage(text, type) {
+    const el = document.getElementById('authMessage');
+    if (!el) return;
+    el.textContent = text;
+    el.style.display = 'block';
+    el.style.background = type === 'success' ? 'rgba(90,168,108,0.15)' : 'rgba(212,84,84,0.15)';
+    el.style.color = type === 'success' ? 'var(--signal-green)' : 'var(--signal-red)';
+  }
+
+  showPhoneMessage(text, type) {
+    const el = document.getElementById('phoneMessage');
+    if (!el) return;
+    el.textContent = text;
+    el.style.display = 'block';
+    el.style.background = type === 'success' ? 'rgba(90,168,108,0.15)' : 'rgba(212,84,84,0.15)';
+    el.style.color = type === 'success' ? 'var(--signal-green)' : 'var(--signal-red)';
+  }
+
+  async handlePhoneStart(form) {
+    const phone = form.phone.value.trim();
+    if (!phone) return this.showPhoneMessage('Enter a phone number', 'error');
+
+    const btn = form.querySelector('button[type="submit"]');
+    this.setLoading(btn, true, 'Sending...');
+
+    const res = await this.postJSON('/api/auth/phone/request-otp', { phone });
+    if (res.ok) {
+      this.showPhoneMessage('Verification code sent!', 'success');
+      // Pre-fill confirm form phone field
+      const confirmPhone = document.getElementById('phoneConfirmNumber');
+      if (confirmPhone) confirmPhone.value = phone;
+    } else {
+      this.showPhoneMessage(res.error || 'Failed to send code', 'error');
+    }
+
+    this.setLoading(btn, false, 'Send Verification Code');
+  }
+
+  async handlePhoneConfirm(form) {
+    const phone = form.phone.value.trim();
+    const code = form.code.value.trim();
+    if (!phone || !code) return this.showPhoneMessage('Enter phone and code', 'error');
+
+    const btn = form.querySelector('button[type="submit"]');
+    this.setLoading(btn, true, 'Verifying...');
+
+    const res = await this.postJSON('/api/auth/phone/verify', { phone, code });
+    if (res.ok) {
+      this.showPhoneMessage('Phone verified!', 'success');
+      // Close auth modal after a brief delay so the success message is visible
+      setTimeout(() => {
+        const modal = document.getElementById('authModal');
+        if (modal) this.closeModal(modal);
+      }, 1500);
+    } else {
+      this.showPhoneMessage(res.error || 'Verification failed', 'error');
+    }
+
+    this.setLoading(btn, false, 'Verify Phone');
+  }
+
+  async handleSessionCheck() {
+    const res = await this.fetchJSON('/api/auth/me', null);
+    if (res && res.id) {
+      this.showAuthMessage(`Signed in as ${res.email || res.id}`, 'success');
+    } else {
+      this.showAuthMessage('Not signed in', 'error');
+    }
+  }
+
+  async handleLogout() {
+    await this.postJSON('/api/auth/logout', {});
+    this.state.authUser = null;
+    this.onAuthChange();
+    this.showAuthMessage('Logged out', 'success');
+    // Reset modal to login view
+    const authTabs = document.getElementById('authTabs');
+    const phoneSection = document.getElementById('phoneSection');
+    const sessionSection = document.getElementById('sessionSection');
+    if (authTabs) authTabs.style.display = '';
+    if (phoneSection) phoneSection.style.display = 'none';
+    if (sessionSection) sessionSection.style.display = 'none';
   }
 
   async handleStorySubmit(form) {
@@ -383,10 +569,25 @@ class AITookMyJobApp {
     const res = await this.postJSON(endpoint, body);
 
     if (res.ok) {
-      this.toast('Story submitted for review. Thank you for sharing.', 'success');
       form.reset();
-      const modal = document.getElementById('storyModal');
-      if (modal) this.closeModal(modal);
+      // Update char counter
+      const charCountEl = document.getElementById('storyCharCount');
+      if (charCountEl) charCountEl.textContent = '0 / 3,000';
+      // Hide preview
+      const previewPanel = document.getElementById('storyPreviewPanel');
+      if (previewPanel) previewPanel.style.display = 'none';
+      // Show success animation
+      const successPanel = document.getElementById('storySuccessPanel');
+      if (successPanel) {
+        form.style.display = 'none';
+        successPanel.style.display = 'block';
+        const checkmark = document.getElementById('storySuccessCheckmark');
+        if (checkmark) setTimeout(() => { checkmark.style.transform = 'scale(1)'; }, 50);
+      } else {
+        this.toast('Story submitted for review. Thank you for sharing.', 'success');
+        const modal = document.getElementById('storyModal');
+        if (modal) this.closeModal(modal);
+      }
     } else {
       const msg = res.data?.message || res.error || 'Submission failed';
       if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; }
@@ -461,6 +662,7 @@ class AITookMyJobApp {
     this.renderStories();
     this.renderNews();
     this.renderResources();
+    this.renderCommunity();
     this.applyTranslations();
     this.initCharts();
     this.onAuthChange();
@@ -531,6 +733,7 @@ class AITookMyJobApp {
 
     container.innerHTML = filtered.map(story => `
       <article class="story-card">
+        <a href="/story/${this.esc(story.id)}" class="story-card-link" style="text-decoration:none;color:inherit;display:block;">
         <div class="story-card-header">
           <div>
             <div class="story-author">${this.esc(story.name)}</div>
@@ -539,6 +742,7 @@ class AITookMyJobApp {
           <span class="tag tag-amber">${this.esc(story.profession)}</span>
         </div>
         <div class="story-body">${this.esc(story.story)}</div>
+        </a>
         <div class="story-meta">
           <span class="story-meta-item">
             <i class="ph ph-calendar-blank"></i> ${this.esc(story.laidOffAt)}
@@ -711,6 +915,51 @@ class AITookMyJobApp {
         </div>
       </a>
     `).join('');
+  }
+
+  // ── Community section (dynamic, no fake data) ──
+
+  async renderCommunity() {
+    const discussionsEl = document.getElementById('communityDiscussions');
+    const tagEl = document.getElementById('communityDiscussionTag');
+
+    // Load forum topics from API
+    try {
+      const data = await this.fetchJSON(`/api/forum/topics?country=${this.state.country}`, { topics: [] });
+      const topics = data.topics || [];
+      if (discussionsEl) {
+        if (topics.length === 0) {
+          discussionsEl.innerHTML = '<p style="color:var(--text-muted); font-size:var(--text-sm);">No discussions yet. Be the first to start one!</p>';
+        } else {
+          if (tagEl) tagEl.style.display = '';
+          discussionsEl.innerHTML = topics.slice(0, 3).map(t => `
+            <div class="discussion-item">
+              <h4>${this.esc(t.title)}</h4>
+              <div class="discussion-meta"><span>${t.replies || 0} replies</span></div>
+            </div>
+          `).join('');
+        }
+      }
+    } catch (_e) {
+      if (discussionsEl) discussionsEl.innerHTML = '<p style="color:var(--text-muted); font-size:var(--text-sm);">Could not load discussions.</p>';
+    }
+
+    // Load stats for support group counts
+    try {
+      const stats = await this.fetchJSON(`/api/stats?country=${this.state.country}`, { counters: {} });
+      const total = stats.counters?.sharedStories || 0;
+      const onlineBadge = document.getElementById('communityOnlineBadge');
+      if (onlineBadge && total > 0) {
+        onlineBadge.textContent = `${total} stories shared`;
+        onlineBadge.style.display = '';
+      }
+      // Show real story counts per group (not fabricated member counts)
+      const el = (id, text) => { const e = document.getElementById(id); if (e) e.textContent = text; };
+      el('groupDevCount', total > 0 ? 'Join the conversation' : 'Coming soon');
+      el('groupDesignCount', total > 0 ? 'Join the conversation' : 'Coming soon');
+      el('groupContentCount', total > 0 ? 'Join the conversation' : 'Coming soon');
+      el('groupSupportCount', total > 0 ? 'Join the conversation' : 'Coming soon');
+    } catch (_e) { /* leave defaults */ }
   }
 
   // ── Translations ──

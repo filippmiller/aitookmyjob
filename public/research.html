@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Research &amp; Data — AI Took My Job</title>
+  <meta name="description" content="Aggregate data on AI-driven job displacement. Monthly trends, affected professions, geographic distribution. Open data for researchers and journalists.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Research & Data — AI Took My Job">
+  <meta property="og:description" content="Aggregate data on AI-driven job displacement. Monthly trends, affected professions, geographic distribution.">
+  <meta property="og:url" content="https://aitookmyjob.filippmiller.com/research">
+  <meta property="og:site_name" content="AI Took My Job">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Research & Data — AI Took My Job">
+  <meta name="twitter:description" content="Aggregate data on AI-driven job displacement.">
+
+  <link rel="canonical" href="https://aitookmyjob.filippmiller.com/research">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet">
+  <script type="module" src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">
+        <div class="nav-brand-mark"></div>
+        <span class="nav-brand-name">AI Took My Job</span>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/forum" class="nav-link">Forum</a>
+        <a href="/research" class="nav-link active">Research</a>
+      </div>
+      <div class="nav-actions">
+        <select class="select" id="countryFilter">
+          <option value="global">Global</option>
+          <option value="us">United States</option>
+          <option value="de">Germany</option>
+          <option value="gb">United Kingdom</option>
+          <option value="fr">France</option>
+          <option value="ru">Russia</option>
+        </select>
+        <button class="btn-icon" id="themeToggle" aria-label="Toggle theme">
+          <i class="ph ph-sun-dim"></i>
+        </button>
+        <button class="nav-mobile-toggle" id="mobileMenuToggle" aria-label="Menu">
+          <i class="ph ph-list"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="section">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title" style="font-family:var(--font-display);">Research &amp; Open Data</h1>
+          <p class="section-subtitle">Aggregate data on AI-driven job displacement. No individual stories — only trends and patterns.</p>
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="hero-stats-grid" style="margin-bottom:var(--sp-8);">
+        <div class="hero-stat-card">
+          <div class="stat-block">
+            <span class="stat-value" id="totalStories">—</span>
+            <span class="stat-label">Published Stories</span>
+          </div>
+        </div>
+        <div class="hero-stat-card">
+          <div class="stat-block">
+            <span class="stat-value" id="totalProfessions">—</span>
+            <span class="stat-label">Professions Affected</span>
+          </div>
+        </div>
+        <div class="hero-stat-card">
+          <div class="stat-block">
+            <span class="stat-value" id="totalMonths">—</span>
+            <span class="stat-label">Months of Data</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="dashboard-grid" style="margin-bottom:var(--sp-8);">
+        <div class="card" style="grid-column: 1 / -1;">
+          <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600; margin-bottom:var(--sp-2);">Monthly Displacement Trend</h3>
+          <div class="chart-wrap" style="height:280px;"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600; margin-bottom:var(--sp-2);">Most Affected Professions</h3>
+          <div class="chart-wrap" style="height:280px;"><canvas id="professionsChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600; margin-bottom:var(--sp-2);">Recovery Rate</h3>
+          <div class="chart-wrap" style="height:280px;"><canvas id="recoveryChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Top Professions Table -->
+      <div class="card" style="margin-bottom:var(--sp-8);">
+        <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600; margin-bottom:var(--sp-4);">Professions Breakdown</h3>
+        <div id="professionsTable" style="font-size:var(--text-sm);">
+          <p style="color:var(--text-muted);">Loading data...</p>
+        </div>
+      </div>
+
+      <!-- API Access -->
+      <div class="card">
+        <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600; margin-bottom:var(--sp-4);">
+          <i class="ph ph-code"></i> API Access
+        </h3>
+        <p style="color:var(--text-secondary); font-size:var(--text-sm); margin-bottom:var(--sp-4);">
+          All aggregate data is available via our public API. No authentication required for read-only aggregate endpoints.
+        </p>
+        <div style="font-family:var(--font-mono); font-size:var(--text-xs); background:var(--bg-elevated); padding:var(--sp-3); border-radius:var(--radius-sm); overflow-x:auto;">
+          <div style="margin-bottom:var(--sp-2);"><span style="color:var(--signal-green);">GET</span> /api/research/aggregates?country=global</div>
+          <div style="margin-bottom:var(--sp-2);"><span style="color:var(--signal-green);">GET</span> /api/stats?country=global</div>
+          <div><span style="color:var(--signal-green);">GET</span> /api/transparency/report?period=2026-Q1</div>
+        </div>
+      </div>
+
+      <p style="text-align:center; color:var(--text-muted); font-size:var(--text-xs); margin-top:var(--sp-6);">
+        Data generated at <span id="generatedAt">—</span>. All data is aggregate — no individual stories are exposed through this page.
+      </p>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="nav-brand">
+          <div class="nav-brand-mark"></div>
+          <span class="nav-brand-name">AI Took My Job</span>
+        </div>
+        <p class="footer-brand-desc">Documenting the human cost of artificial intelligence with truth, transparency, and community resilience.</p>
+      </div>
+      <div class="footer-col">
+        <h4>About</h4>
+        <a href="/">Home</a>
+        <a href="/research">Research</a>
+      </div>
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="/#resources">Reskilling</a>
+        <a href="/#resources">Legal Aid</a>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <a href="/forum">Forum</a>
+        <a href="/#community">Support Groups</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 AI Took My Job. Built for resilience.</p>
+      <p>Open source &middot; Community driven</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const amber = '#D4956B';
+    const amberLight = '#E8B98A';
+    const teal = '#4A9A8A';
+    const signalRed = '#D45454';
+    const signalGreen = '#5AA86C';
+    const chartColors = [amber, teal, amberLight, signalGreen, signalRed, '#A06840', '#7B8FA1', '#C4A35A'];
+
+    function esc(t) { const d = document.createElement('div'); d.textContent = String(t || ''); return d.innerHTML; }
+
+    async function fetchJSON(url) {
+      try {
+        const res = await fetch(url, { credentials: 'include' });
+        if (!res.ok) return null;
+        return await res.json();
+      } catch { return null; }
+    }
+
+    async function loadData(country) {
+      const [agg, stats] = await Promise.all([
+        fetchJSON(`/api/research/aggregates?country=${country}`),
+        fetchJSON(`/api/stats?country=${country}`)
+      ]);
+
+      if (!agg) {
+        document.getElementById('professionsTable').innerHTML = '<p style="color:var(--text-muted);">Could not load data.</p>';
+        return;
+      }
+
+      const professions = agg.topProfessions || [];
+      const trend = agg.monthlyTrend || [];
+
+      // Summary cards
+      document.getElementById('totalStories').textContent = String(agg.totalPublishedStories || 0);
+      document.getElementById('totalProfessions').textContent = String(professions.length);
+      document.getElementById('totalMonths').textContent = String(trend.length);
+      document.getElementById('generatedAt').textContent = agg.generatedAt ? new Date(agg.generatedAt).toLocaleString() : '—';
+
+      // Chart defaults
+      if (typeof Chart !== 'undefined') {
+        Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#8A8A90';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+        Chart.defaults.font.family = "'DM Sans', system-ui, sans-serif";
+
+        // Destroy existing charts
+        ['trendChart', 'professionsChart', 'recoveryChart'].forEach(id => {
+          const c = document.getElementById(id);
+          if (c) { const ch = Chart.getChart(c); if (ch) ch.destroy(); }
+        });
+
+        // Trend chart
+        new Chart(document.getElementById('trendChart'), {
+          type: 'line',
+          data: {
+            labels: trend.length ? trend.map(t => t.month) : ['No data'],
+            datasets: [{
+              label: 'Stories', data: trend.length ? trend.map(t => t.storiesCount) : [0],
+              borderColor: amber, backgroundColor: 'rgba(212,149,107,0.1)',
+              tension: 0.4, fill: true, pointRadius: 4, pointBackgroundColor: amber
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+        });
+
+        // Professions chart
+        const topProf = professions.slice(0, 8);
+        new Chart(document.getElementById('professionsChart'), {
+          type: 'bar',
+          data: {
+            labels: topProf.length ? topProf.map(p => p.profession) : ['No data'],
+            datasets: [{
+              label: 'Stories', data: topProf.length ? topProf.map(p => p.storiesCount) : [0],
+              backgroundColor: chartColors.slice(0, Math.max(topProf.length, 1)), borderRadius: 4
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' } }, y: { grid: { display: false } } } }
+        });
+
+        // Recovery chart
+        const counters = stats?.counters || {};
+        const found = counters.foundJob || 0;
+        const total = counters.sharedStories || 0;
+        const searching = total - found;
+        new Chart(document.getElementById('recoveryChart'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Found New Role', 'Still Searching'],
+            datasets: [{ data: total > 0 ? [found, searching] : [0, 1], backgroundColor: [signalGreen, signalRed], borderWidth: 0, spacing: 2 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyle: 'circle' } } } }
+        });
+      }
+
+      // Professions table
+      if (professions.length) {
+        const maxCount = professions[0]?.storiesCount || 1;
+        document.getElementById('professionsTable').innerHTML = `
+          <div style="display:grid; gap:var(--sp-2);">
+            ${professions.map((p, i) => `
+              <div style="display:flex; align-items:center; gap:var(--sp-3);">
+                <span style="width:24px; text-align:right; color:var(--text-muted);">${i + 1}.</span>
+                <span style="flex:1;">${esc(p.profession)}</span>
+                <div style="width:120px; height:6px; background:var(--bg-elevated); border-radius:3px; overflow:hidden;">
+                  <div style="height:100%; width:${Math.round((p.storiesCount / maxCount) * 100)}%; background:${amber}; border-radius:3px;"></div>
+                </div>
+                <span class="text-mono" style="width:40px; text-align:right;">${p.storiesCount}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        document.getElementById('professionsTable').innerHTML = '<p style="color:var(--text-muted);">No data available yet. Share your story to contribute to the dataset.</p>';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const filter = document.getElementById('countryFilter');
+      loadData(filter?.value || 'global');
+
+      filter?.addEventListener('change', () => loadData(filter.value));
+
+      // Theme
+      const toggle = document.getElementById('themeToggle');
+      const theme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+      if (toggle) {
+        toggle.addEventListener('click', () => {
+          const current = document.documentElement.getAttribute('data-theme');
+          const next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        });
+      }
+
+      // Mobile menu
+      const mobileToggle = document.getElementById('mobileMenuToggle');
+      const navLinks = document.getElementById('navLinks');
+      if (mobileToggle && navLinks) {
+        mobileToggle.addEventListener('click', () => navLinks.classList.toggle('is-open'));
+      }
+    });
+  </script>
+
+</body>
+</html>

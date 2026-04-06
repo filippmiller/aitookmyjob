@@ -1,0 +1,29 @@
+[
+  {
+    "id": "res-1",
+    "type": "reskilling",
+    "title": "Career Transition Playbook",
+    "provider": "AI Took My Job",
+    "region": "global",
+    "url": "https://example.com/career-transition-playbook",
+    "summary": "Practical weekly plan to pivot to adjacent roles."
+  },
+  {
+    "id": "res-2",
+    "type": "legal",
+    "title": "NDA And Layoff Rights Basics",
+    "provider": "Worker Legal Aid",
+    "region": "us",
+    "url": "https://example.com/nda-rights",
+    "summary": "How to share your story without exposing protected confidential data."
+  },
+  {
+    "id": "res-3",
+    "type": "jobs",
+    "title": "Human-Centered Roles Board",
+    "provider": "Community Curated",
+    "region": "global",
+    "url": "https://example.com/human-jobs-board",
+    "summary": "Open positions in customer support, QA, ops, and compliance."
+  }
+]

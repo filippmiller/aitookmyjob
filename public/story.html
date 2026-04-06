@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story — AI Took My Job</title>
+  <meta name="description" content="A real story from someone displaced by AI automation.">
+
+  <!-- Open Graph (populated dynamically by JS) -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" id="ogTitle" content="AI Displacement Story — AI Took My Job">
+  <meta property="og:description" id="ogDescription" content="A real story from someone displaced by AI automation.">
+  <meta property="og:url" id="ogUrl" content="">
+  <meta property="og:site_name" content="AI Took My Job">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" id="twTitle" content="AI Displacement Story — AI Took My Job">
+  <meta name="twitter:description" id="twDescription" content="A real story from someone displaced by AI automation.">
+
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet">
+  <script type="module" src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">
+        <div class="nav-brand-mark"></div>
+        <span class="nav-brand-name">AI Took My Job</span>
+      </a>
+      <div class="nav-links">
+        <a href="/" class="nav-link"><i class="ph ph-house"></i> Home</a>
+        <a href="/forum" class="nav-link"><i class="ph ph-chat-circle"></i> Forum</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Story Content -->
+  <main id="main-content" style="padding-top:calc(var(--sp-8) + 60px);">
+    <div class="container" style="max-width:720px;">
+
+      <!-- Loading state -->
+      <div id="storyLoading" style="text-align:center; padding:var(--sp-12);">
+        <div class="loading-skeleton" style="height:2rem;width:60%;margin:0 auto var(--sp-4);border-radius:var(--radius-sm);"></div>
+        <div class="loading-skeleton" style="height:1rem;width:40%;margin:0 auto var(--sp-6);border-radius:var(--radius-sm);"></div>
+        <div class="loading-skeleton" style="height:8rem;width:100%;border-radius:var(--radius-sm);"></div>
+      </div>
+
+      <!-- Error state -->
+      <div id="storyError" style="display:none; text-align:center; padding:var(--sp-12);">
+        <i class="ph ph-warning-circle" style="font-size:3rem; color:var(--signal-red);"></i>
+        <h2 style="margin-top:var(--sp-4); font-family:var(--font-display);">Story Not Found</h2>
+        <p style="color:var(--text-muted); margin-top:var(--sp-2);">This story may have been removed or doesn't exist.</p>
+        <a href="/" class="btn btn-primary" style="margin-top:var(--sp-6);">Back to Home</a>
+      </div>
+
+      <!-- Story content (populated by JS) -->
+      <article id="storyContent" style="display:none;">
+        <div style="margin-bottom:var(--sp-6);">
+          <a href="/" style="color:var(--text-muted); font-size:var(--text-sm); text-decoration:none;">
+            <i class="ph ph-arrow-left"></i> Back to all stories
+          </a>
+        </div>
+
+        <header style="margin-bottom:var(--sp-8);">
+          <h1 id="storyTitle" style="font-family:var(--font-display); font-size:var(--text-2xl); line-height:1.3; margin-bottom:var(--sp-3);"></h1>
+          <div style="display:flex; flex-wrap:wrap; gap:var(--sp-3); align-items:center; color:var(--text-muted); font-size:var(--text-sm);">
+            <span id="storyAuthor"><i class="ph ph-user"></i> </span>
+            <span id="storyCompanyTag"><i class="ph ph-buildings"></i> </span>
+            <span id="storyDateTag"><i class="ph ph-calendar-blank"></i> </span>
+            <span id="storyCountryTag"><i class="ph ph-map-pin"></i> </span>
+          </div>
+        </header>
+
+        <div class="card" style="margin-bottom:var(--sp-6);">
+          <p id="storyReason" style="font-weight:600; margin-bottom:var(--sp-4); color:var(--signal-amber);"></p>
+          <div id="storyBody" style="line-height:1.75; white-space:pre-wrap;"></div>
+        </div>
+
+        <div style="display:flex; gap:var(--sp-3); flex-wrap:wrap; margin-bottom:var(--sp-6);">
+          <span id="storyFoundJob" class="tag" style="display:none;"></span>
+          <span id="storyAiTool" class="tag tag-amber" style="display:none;"></span>
+          <span id="storyConfidence" class="tag" style="display:none;"></span>
+        </div>
+
+        <!-- Engagement -->
+        <div style="display:flex; gap:var(--sp-4); align-items:center; padding:var(--sp-4) 0; border-top:1px solid var(--border);">
+          <button id="storyMeTooBtn" class="btn btn-ghost btn-sm">
+            <i class="ph ph-hand-fist"></i> Me Too <span id="storyMeTooCount">0</span>
+          </button>
+          <span style="color:var(--text-muted); font-size:var(--text-sm);">
+            <i class="ph ph-eye"></i> <span id="storyViews">0</span> views
+          </span>
+          <button id="storyShareBtn" class="btn btn-ghost btn-sm" style="margin-left:auto;">
+            <i class="ph ph-share-network"></i> Share
+          </button>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <script>
+    (async function() {
+      const pathParts = window.location.pathname.split('/');
+      const storyId = pathParts[pathParts.length - 1];
+      if (!storyId) { showError(); return; }
+
+      function esc(text) {
+        const d = document.createElement('div');
+        d.textContent = String(text || '');
+        return d.innerHTML;
+      }
+
+      function showError() {
+        document.getElementById('storyLoading').style.display = 'none';
+        document.getElementById('storyError').style.display = 'block';
+      }
+
+      try {
+        const res = await fetch(`/api/stories/${encodeURIComponent(storyId)}`, { credentials: 'include' });
+        if (!res.ok) { showError(); return; }
+        const story = await res.json();
+
+        // Record view
+        fetch(`/api/stories/${encodeURIComponent(storyId)}/view`, { method: 'POST', credentials: 'include' }).catch(() => {});
+
+        // Update OG meta tags for social sharing
+        const pageTitle = `${story.profession} at ${story.company} — AI Took My Job`;
+        const pageDesc = story.reason || story.story?.slice(0, 160) || 'A real AI displacement story.';
+        const pageUrl = window.location.href;
+
+        document.title = pageTitle;
+        document.querySelector('meta[name="description"]').content = pageDesc;
+        document.getElementById('ogTitle').content = pageTitle;
+        document.getElementById('ogDescription').content = pageDesc;
+        document.getElementById('ogUrl').content = pageUrl;
+        document.getElementById('twTitle').content = pageTitle;
+        document.getElementById('twDescription').content = pageDesc;
+
+        // Render story
+        document.getElementById('storyTitle').textContent = `${story.profession} displaced by AI`;
+        document.getElementById('storyAuthor').innerHTML = `<i class="ph ph-user"></i> ${esc(story.name)}`;
+        document.getElementById('storyCompanyTag').innerHTML = `<i class="ph ph-buildings"></i> ${esc(story.company)}`;
+        document.getElementById('storyDateTag').innerHTML = `<i class="ph ph-calendar-blank"></i> ${esc(story.laidOffAt)}`;
+        document.getElementById('storyCountryTag').innerHTML = `<i class="ph ph-map-pin"></i> ${esc(story.country || 'Global')}`;
+        document.getElementById('storyReason').textContent = story.reason || '';
+        document.getElementById('storyBody').textContent = story.story || '';
+        document.getElementById('storyViews').textContent = String(story.views || story.metrics?.views || 0);
+        document.getElementById('storyMeTooCount').textContent = String(story.meToo || story.metrics?.meToo || 0);
+
+        if (story.foundNewJob) {
+          const el = document.getElementById('storyFoundJob');
+          el.textContent = 'Found new job';
+          el.style.display = '';
+          el.style.background = 'var(--signal-green)';
+          el.style.color = '#000';
+        }
+
+        if (story.aiTool) {
+          const el = document.getElementById('storyAiTool');
+          el.textContent = `AI Tool: ${story.aiTool}`;
+          el.style.display = '';
+        }
+
+        if (story.confidenceScore != null) {
+          const el = document.getElementById('storyConfidence');
+          el.textContent = `Confidence: ${Math.round(story.confidenceScore * 100)}%`;
+          el.style.display = '';
+        }
+
+        // Me Too button
+        document.getElementById('storyMeTooBtn').addEventListener('click', async function() {
+          const btn = this;
+          btn.disabled = true;
+          try {
+            const r = await fetch(`/api/stories/${encodeURIComponent(storyId)}/me-too`, { method: 'POST', credentials: 'include' });
+            if (r.ok) {
+              const data = await r.json();
+              document.getElementById('storyMeTooCount').textContent = String(data.meToo || 0);
+            }
+          } catch (_e) {}
+          btn.disabled = false;
+        });
+
+        // Share button
+        document.getElementById('storyShareBtn').addEventListener('click', function() {
+          if (navigator.share) {
+            navigator.share({ title: pageTitle, text: pageDesc, url: pageUrl }).catch(() => {});
+          } else {
+            navigator.clipboard.writeText(pageUrl).then(() => {
+              this.textContent = 'Link copied!';
+              setTimeout(() => { this.innerHTML = '<i class="ph ph-share-network"></i> Share'; }, 2000);
+            }).catch(() => {});
+          }
+        });
+
+        // Show content
+        document.getElementById('storyLoading').style.display = 'none';
+        document.getElementById('storyContent').style.display = 'block';
+
+      } catch (_e) {
+        showError();
+      }
+    })();
+  </script>
+
+</body>
+</html>
