@@ -43,11 +43,11 @@
       </a>
 
       <div class="nav-links" id="navLinks">
-        <a href="#dashboard" class="nav-link active">Dashboard</a>
-        <a href="#stories" class="nav-link">Stories</a>
-        <a href="#community" class="nav-link">Community</a>
+        <a href="#dashboard" class="nav-link active" data-i18n="navDashboard">Dashboard</a>
+        <a href="#stories" class="nav-link" data-i18n="navStories">Stories</a>
+        <a href="#community" class="nav-link" data-i18n="navCommunity">Community</a>
         <a href="#news" class="nav-link" data-i18n="navNews">News</a>
-        <a href="#resources" class="nav-link">Resources</a>
+        <a href="#resources" class="nav-link" data-i18n="navResources">Resources</a>
       </div>
 
       <div class="nav-actions">
@@ -71,7 +71,7 @@
         </button>
         <a href="/forum" class="btn btn-primary btn-sm">
           <i class="ph ph-user"></i>
-          Account
+          <span data-i18n="navAccount">Account</span>
         </a>
         <button class="nav-mobile-toggle" id="mobileMenuToggle" aria-label="Menu">
           <i class="ph ph-list"></i>
@@ -87,25 +87,25 @@
         <div class="hero-content">
           <div class="hero-eyebrow fade-up">
             <div class="signal-line"></div>
-            <span class="hero-eyebrow-text">Documenting the human cost</span>
+            <span class="hero-eyebrow-text" data-i18n="heroEyebrow">Documenting the human cost</span>
           </div>
 
-          <h1 class="hero-title fade-up fade-up-1">
+          <h1 class="hero-title fade-up fade-up-1" data-i18n-html="heroTitle">
             The <em>human</em> cost of artificial intelligence
           </h1>
 
-          <p class="hero-subtitle fade-up fade-up-2">
+          <p class="hero-subtitle fade-up fade-up-2" data-i18n="heroSubtitle">
             Real stories from real people displaced by AI. A community built on truth, transparency, and resilience.
           </p>
 
           <div class="hero-actions fade-up fade-up-3">
             <button class="btn btn-primary btn-lg" id="shareStoryBtn">
               <i class="ph ph-pencil-line"></i>
-              Share Your Story
+              <span data-i18n="ctaShareStory">Share Your Story</span>
             </button>
             <button class="btn btn-ghost btn-lg" id="authTriggerBtn">
               <i class="ph ph-sign-in"></i>
-              Sign In
+              <span data-i18n="ctaSignIn">Sign In</span>
             </button>
           </div>
         </div>
@@ -113,32 +113,32 @@
         <div class="hero-sidebar fade-up fade-up-4">
           <div class="live-badge">
             <span class="live-dot"></span>
-            Live data
+            <span data-i18n="liveData">Live data</span>
           </div>
 
           <div class="hero-stats-grid">
             <div class="hero-stat-card">
               <div class="stat-block">
                 <span class="stat-value" data-stat="affected">--</span>
-                <span class="stat-label">Affected</span>
+                <span class="stat-label" data-i18n="statAffected">Affected</span>
               </div>
             </div>
             <div class="hero-stat-card">
               <div class="stat-block">
                 <span class="stat-value" data-stat="stories">--</span>
-                <span class="stat-label">Stories</span>
+                <span class="stat-label" data-i18n="statStories">Stories</span>
               </div>
             </div>
             <div class="hero-stat-card">
               <div class="stat-block">
                 <span class="stat-value" data-stat="foundJobs">--</span>
-                <span class="stat-label">Found Jobs</span>
+                <span class="stat-label" data-i18n="statFoundJobs">Found Jobs</span>
               </div>
             </div>
             <div class="hero-stat-card">
               <div class="stat-block">
                 <span class="stat-value" data-stat="countries">--</span>
-                <span class="stat-label">Companies</span>
+                <span class="stat-label" data-i18n="statCompanies">Companies</span>
               </div>
             </div>
           </div>
@@ -151,76 +151,76 @@
   <div class="modal-overlay" id="authModal" role="dialog" aria-modal="true" aria-label="Account Access" aria-hidden="true">
     <div class="modal-panel">
       <div class="modal-header">
-        <h3 class="modal-title">Account Access</h3>
+        <h3 class="modal-title" data-i18n="authModalTitle">Account Access</h3>
         <button class="modal-close" id="authModalClose">&times;</button>
       </div>
       <div id="authMessage" style="display:none; padding:var(--sp-3); margin-bottom:var(--sp-3); border-radius:var(--radius-sm); font-size:var(--text-sm); text-align:center;"></div>
       <div id="authTabs">
         <div class="tabs">
-          <button class="tab-btn active" data-tab="login">Sign In</button>
-          <button class="tab-btn" data-tab="register">Register</button>
+          <button class="tab-btn active" data-tab="login" data-i18n="tabSignIn">Sign In</button>
+          <button class="tab-btn" data-tab="register" data-i18n="tabRegister">Register</button>
         </div>
         <div class="tab-pane active" id="loginTab">
           <form id="loginForm">
             <div class="form-group mb-4">
-              <label class="form-label" for="loginEmail">Email</label>
+              <label class="form-label" for="loginEmail" data-i18n="email">Email</label>
               <input type="email" id="loginEmail" name="loginEmail" class="input" placeholder="you@example.com" required>
             </div>
             <div class="form-group mb-4">
-              <label class="form-label" for="loginPassword">Password</label>
+              <label class="form-label" for="loginPassword" data-i18n="password">Password</label>
               <input type="password" id="loginPassword" name="loginPassword" class="input" placeholder="Your password" required>
             </div>
-            <button type="submit" class="btn btn-primary full-width">Sign In</button>
+            <button type="submit" class="btn btn-primary full-width" data-i18n="btnSignIn">Sign In</button>
           </form>
         </div>
         <div class="tab-pane" id="registerTab">
           <form id="registerForm">
             <div class="form-group mb-4">
-              <label class="form-label" for="registerEmail">Email</label>
+              <label class="form-label" for="registerEmail" data-i18n="email">Email</label>
               <input type="email" id="registerEmail" name="email" class="input" placeholder="you@example.com" required>
             </div>
             <div class="form-group mb-4">
-              <label class="form-label" for="registerPassword">Password</label>
+              <label class="form-label" for="registerPassword" data-i18n="password">Password</label>
               <input type="password" id="registerPassword" name="password" class="input" placeholder="Min. 10 characters" required>
             </div>
             <div class="form-group mb-4">
-              <label class="form-label" for="confirmPassword">Confirm Password</label>
+              <label class="form-label" for="confirmPassword" data-i18n="confirmPassword">Confirm Password</label>
               <input type="password" id="confirmPassword" name="confirmPassword" class="input" placeholder="Repeat password" required>
             </div>
-            <button type="submit" class="btn btn-primary full-width">Create Account</button>
+            <button type="submit" class="btn btn-primary full-width" data-i18n="btnCreateAccount">Create Account</button>
           </form>
         </div>
       </div>
 
       <!-- Phone verification (shown after registration/login) -->
       <div id="phoneSection" style="display:none;">
-        <p style="font-size:var(--text-sm); color:var(--text-muted); margin-bottom:var(--sp-4);">Verify your phone to submit stories.</p>
+        <p style="font-size:var(--text-sm); color:var(--text-muted); margin-bottom:var(--sp-4);" data-i18n="phoneVerify">Verify your phone to submit stories.</p>
         <div id="phoneMessage" style="display:none; padding:var(--sp-2); margin-bottom:var(--sp-3); border-radius:var(--radius-sm); font-size:var(--text-sm); text-align:center;"></div>
         <form id="phoneStartForm" style="margin-bottom:var(--sp-4);">
           <div class="form-group mb-4">
-            <label class="form-label" for="phoneNumber">Phone Number</label>
+            <label class="form-label" for="phoneNumber" data-i18n="phoneLabel">Phone Number</label>
             <input type="tel" id="phoneNumber" name="phone" class="input" placeholder="+1 555 555 0123" required>
           </div>
-          <button type="submit" class="btn btn-primary full-width">Send Verification Code</button>
+          <button type="submit" class="btn btn-primary full-width" data-i18n="sendCode">Send Verification Code</button>
         </form>
         <form id="phoneConfirmForm">
           <div class="form-group mb-4">
-            <label class="form-label" for="phoneConfirmNumber">Phone Number</label>
+            <label class="form-label" for="phoneConfirmNumber" data-i18n="phoneLabel">Phone Number</label>
             <input type="tel" id="phoneConfirmNumber" name="phone" class="input" placeholder="+1 555 555 0123" required>
           </div>
           <div class="form-group mb-4">
-            <label class="form-label" for="phoneCode">Verification Code</label>
+            <label class="form-label" for="phoneCode" data-i18n="codeLabel">Verification Code</label>
             <input type="text" id="phoneCode" name="code" class="input" placeholder="6-digit code" required maxlength="6">
           </div>
-          <button type="submit" class="btn btn-primary full-width">Verify Phone</button>
+          <button type="submit" class="btn btn-primary full-width" data-i18n="verifyPhone">Verify Phone</button>
         </form>
       </div>
 
       <!-- Session controls (shown when logged in) -->
       <div id="sessionSection" style="display:none;">
         <div style="display:flex; gap:var(--sp-2); justify-content:center;">
-          <button class="btn btn-ghost btn-sm" id="sessionCheckBtn">Check session</button>
-          <button class="btn btn-ghost btn-sm" id="sessionLogoutBtn">Logout</button>
+          <button class="btn btn-ghost btn-sm" id="sessionCheckBtn" data-i18n="checkSession">Check session</button>
+          <button class="btn btn-ghost btn-sm" id="sessionLogoutBtn" data-i18n="logout">Logout</button>
         </div>
       </div>
     </div>
@@ -230,36 +230,36 @@
   <div class="modal-overlay" id="storyModal" role="dialog" aria-modal="true" aria-label="Share Your Story" aria-hidden="true">
     <div class="modal-panel modal-panel-lg">
       <div class="modal-header">
-        <h3 class="modal-title">Share Your Story</h3>
+        <h3 class="modal-title" data-i18n="storyModalTitle">Share Your Story</h3>
         <button class="modal-close" id="storyModalClose">&times;</button>
       </div>
       <form id="storyForm">
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label" for="storyName">Your Name (or alias)</label>
+            <label class="form-label" for="storyName" data-i18n="storyNameLabel">Your Name (or alias)</label>
             <input type="text" id="storyName" name="name" class="input" placeholder="First name or alias" required minlength="2" maxlength="80">
           </div>
           <div class="form-group">
-            <label class="form-label" for="storyProfession">Profession</label>
+            <label class="form-label" for="storyProfession" data-i18n="storyProfessionLabel">Profession</label>
             <input type="text" id="storyProfession" name="profession" class="input" placeholder="e.g. UX Designer, Developer" required minlength="2" maxlength="80">
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label" for="storyCompany">Company</label>
+            <label class="form-label" for="storyCompany" data-i18n="storyCompanyLabel">Company</label>
             <input type="text" id="storyCompany" name="company" class="input" placeholder="Company name (or 'Undisclosed')" maxlength="120">
           </div>
           <div class="form-group">
-            <label class="form-label" for="storyDate">When were you laid off?</label>
+            <label class="form-label" for="storyDate" data-i18n="storyDateLabel">When were you laid off?</label>
             <input type="text" id="storyDate" name="laidOffAt" class="input" placeholder="e.g. January 2026" required minlength="4" maxlength="20">
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label" for="storyReason">Reason (brief)</label>
+          <label class="form-label" for="storyReason" data-i18n="storyReasonLabel">Reason (brief)</label>
           <input type="text" id="storyReason" name="reason" class="input" placeholder="e.g. Role replaced by AI automation" required minlength="8" maxlength="240">
         </div>
         <div class="form-group">
-          <label class="form-label" for="storyText">Your Story</label>
+          <label class="form-label" for="storyText" data-i18n="storyTextLabel">Your Story</label>
           <textarea id="storyText" name="story" class="input" rows="5" placeholder="Tell your story. What happened? How did it affect you? (min 40 characters)" required minlength="40" maxlength="3000"></textarea>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:var(--sp-1);">
             <span id="storyCharCount" style="font-size:var(--text-xs); color:var(--text-muted);">0 / 3,000</span>
@@ -274,7 +274,7 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label" for="storyCountry">Country</label>
+            <label class="form-label" for="storyCountry" data-i18n="storyCountryLabel">Country</label>
             <select id="storyCountry" name="country" class="select">
               <option value="global">Global</option>
               <option value="us">United States</option>
@@ -286,21 +286,21 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" for="storyAiTool">AI Tool (optional)</label>
+            <label class="form-label" for="storyAiTool" data-i18n="storyAiToolLabel">AI Tool (optional)</label>
             <input type="text" id="storyAiTool" name="aiTool" class="input" placeholder="e.g. ChatGPT, Copilot" maxlength="120">
           </div>
         </div>
         <div class="form-row" style="align-items:center;">
           <label class="form-label" style="display:flex;align-items:center;gap:var(--sp-2);cursor:pointer;">
-            <input type="checkbox" id="storyFoundJob" name="foundNewJob"> I found a new job since
+            <input type="checkbox" id="storyFoundJob" name="foundNewJob"> <span data-i18n="storyFoundJob">I found a new job since</span>
           </label>
           <label class="form-label" style="display:flex;align-items:center;gap:var(--sp-2);cursor:pointer;">
-            <input type="checkbox" id="storyNda" name="ndaConfirmed" required> I confirm this does not violate any NDA
+            <input type="checkbox" id="storyNda" name="ndaConfirmed" required> <span data-i18n="storyNda">I confirm this does not violate any NDA</span>
           </label>
         </div>
         <div id="storyFormError" style="color:var(--signal-red);font-size:var(--text-sm);display:none;margin-bottom:var(--sp-3);"></div>
-        <button type="submit" class="btn btn-primary full-width" id="storySubmitBtn">Submit Story</button>
-        <p style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--sp-3);text-align:center;">
+        <button type="submit" class="btn btn-primary full-width" id="storySubmitBtn" data-i18n="storySubmitBtn">Submit Story</button>
+        <p style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--sp-3);text-align:center;" data-i18n="storySubmitNote">
           Stories are reviewed before publishing. No account needed for anonymous submission.
         </p>
       </form>
@@ -308,9 +308,9 @@
         <div id="storySuccessCheckmark" style="width:64px;height:64px;border-radius:50%;background:var(--signal-green);margin:0 auto var(--sp-4);display:flex;align-items:center;justify-content:center;transform:scale(0);transition:transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);">
           <i class="ph ph-check-bold" style="font-size:2rem;color:#000;"></i>
         </div>
-        <h3 style="font-family:var(--font-display); margin-bottom:var(--sp-2);">Story Submitted</h3>
-        <p style="color:var(--text-muted); font-size:var(--text-sm); margin-bottom:var(--sp-4);">Thank you for sharing. Your story will be reviewed and published shortly.</p>
-        <button type="button" id="storySuccessClose" class="btn btn-primary">Close</button>
+        <h3 style="font-family:var(--font-display); margin-bottom:var(--sp-2);" data-i18n="storySubmittedTitle">Story Submitted</h3>
+        <p style="color:var(--text-muted); font-size:var(--text-sm); margin-bottom:var(--sp-4);" data-i18n="storySubmittedMsg">Thank you for sharing. Your story will be reviewed and published shortly.</p>
+        <button type="button" id="storySuccessClose" class="btn btn-primary" data-i18n="close">Close</button>
       </div>
     </div>
   </div>
@@ -321,8 +321,8 @@
     <div class="container">
       <div class="section-header">
         <div>
-          <h2 class="section-title">Impact Dashboard</h2>
-          <p class="section-subtitle">Global AI displacement data, updated in real-time</p>
+          <h2 class="section-title" data-i18n="sectionDashboard">Impact Dashboard</h2>
+          <p class="section-subtitle" data-i18n="sectionDashboardSub">Global AI displacement data, updated in real-time</p>
         </div>
         <div class="section-actions">
           <select class="select">
@@ -359,11 +359,11 @@
     <div class="container">
       <div class="section-header">
         <div>
-          <h2 class="section-title">Recent Stories</h2>
-          <p class="section-subtitle">Voices from the frontlines of AI displacement</p>
+          <h2 class="section-title" data-i18n="sectionStories">Recent Stories</h2>
+          <p class="section-subtitle" data-i18n="sectionStoriesSub">Voices from the frontlines of AI displacement</p>
         </div>
         <div class="section-actions">
-          <input type="text" id="storySearch" class="input" placeholder="Search stories..." style="width: 220px;">
+          <input type="text" id="storySearch" class="input" data-i18n-placeholder="searchPlaceholder" placeholder="Search stories..." style="width: 220px;">
           <select class="select" id="storyRegionFilter">
             <option value="">All Regions</option>
             <option value="us,ca,mx">North America</option>
@@ -376,7 +376,7 @@
       <div class="stories-grid" id="storiesContainer"></div>
       <div id="storiesPagination" style="text-align:center;margin-top:var(--sp-6);display:none;">
         <button class="btn btn-ghost btn-lg" id="loadMoreStories">
-          <i class="ph ph-arrow-down"></i> Load More Stories
+          <i class="ph ph-arrow-down"></i> <span data-i18n="loadMoreStories">Load More Stories</span>
         </button>
       </div>
     </div>
@@ -387,13 +387,13 @@
     <div class="container">
       <div class="section-header">
         <div>
-          <h2 class="section-title">Community</h2>
-          <p class="section-subtitle">Connect with others navigating AI displacement</p>
+          <h2 class="section-title" data-i18n="sectionCommunity">Community</h2>
+          <p class="section-subtitle" data-i18n="sectionCommunitySub">Connect with others navigating AI displacement</p>
         </div>
         <div class="section-actions">
           <a href="/forum" class="btn btn-primary btn-sm">
             <i class="ph ph-chat-circle"></i>
-            Join Forum
+            <span data-i18n="joinForum">Join Forum</span>
           </a>
         </div>
       </div>
@@ -401,7 +401,7 @@
       <div class="community-grid">
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--sp-5);">
-            <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600;">Active Discussions</h3>
+            <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600;" data-i18n="activeDiscussions">Active Discussions</h3>
             <span class="tag tag-amber" id="communityDiscussionTag" style="display:none;">Trending</span>
           </div>
           <div id="communityDiscussions" style="display:flex; flex-direction:column; gap:var(--sp-2);">
@@ -411,7 +411,7 @@
 
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--sp-5);">
-            <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600;">Support Groups</h3>
+            <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600;" data-i18n="supportGroups">Support Groups</h3>
             <span class="online-badge" id="communityOnlineBadge" style="display:none;"></span>
           </div>
           <div style="display:flex; flex-direction:column; gap:var(--sp-2);">
@@ -442,8 +442,8 @@
     <div class="container">
       <div class="section-header">
         <div>
-          <h2 class="section-title" id="newsSectionTitle">AI in the News</h2>
-          <p class="section-subtitle" id="newsSectionSubtitle">How artificial intelligence is reshaping work and daily life</p>
+          <h2 class="section-title" id="newsSectionTitle" data-i18n="newsTitle">AI in the News</h2>
+          <p class="section-subtitle" id="newsSectionSubtitle" data-i18n="newsSubtitle">How artificial intelligence is reshaping work and daily life</p>
         </div>
       </div>
       <div class="news-grid" id="newsContainer"></div>
@@ -455,8 +455,8 @@
     <div class="container">
       <div class="section-header">
         <div>
-          <h2 class="section-title">Resources</h2>
-          <p class="section-subtitle">Tools, programs, and support to help you move forward</p>
+          <h2 class="section-title" data-i18n="sectionResources">Resources</h2>
+          <p class="section-subtitle" data-i18n="sectionResourcesSub">Tools, programs, and support to help you move forward</p>
         </div>
       </div>
       <div class="resources-grid" id="resourcesContainer">
@@ -475,29 +475,29 @@
           <div class="nav-brand-mark"></div>
           <span class="nav-brand-name">AI Took My Job</span>
         </div>
-        <p class="footer-brand-desc">Documenting the human cost of artificial intelligence with truth, transparency, and community resilience.</p>
+        <p class="footer-brand-desc" data-i18n="footerDesc">Documenting the human cost of artificial intelligence with truth, transparency, and community resilience.</p>
       </div>
       <div class="footer-col">
-        <h4>About</h4>
-        <a href="#dashboard">Dashboard</a>
-        <a href="#stories">Stories</a>
-        <a href="#news">News</a>
+        <h4 data-i18n="footerAbout">About</h4>
+        <a href="#dashboard" data-i18n="navDashboard">Dashboard</a>
+        <a href="#stories" data-i18n="navStories">Stories</a>
+        <a href="#news" data-i18n="navNews">News</a>
       </div>
       <div class="footer-col">
-        <h4>Resources</h4>
-        <a href="#resources">Reskilling</a>
-        <a href="#resources">Legal Aid</a>
-        <a href="#resources">Job Boards</a>
+        <h4 data-i18n="footerResources">Resources</h4>
+        <a href="#resources" data-i18n="footerReskilling">Reskilling</a>
+        <a href="#resources" data-i18n="footerLegal">Legal Aid</a>
+        <a href="#resources" data-i18n="footerJobs">Job Boards</a>
       </div>
       <div class="footer-col">
-        <h4>Community</h4>
-        <a href="/forum">Forum</a>
-        <a href="#community">Support Groups</a>
+        <h4 data-i18n="footerCommunity">Community</h4>
+        <a href="/forum" data-i18n="footerForum">Forum</a>
+        <a href="#community" data-i18n="footerSupportGroups">Support Groups</a>
       </div>
     </div>
     <div class="footer-bottom">
-      <p>&copy; 2026 AI Took My Job. Built for resilience.</p>
-      <p>Open source &middot; Community driven</p>
+      <p data-i18n="footerCopyright">&copy; 2026 AI Took My Job. Built for resilience.</p>
+      <p data-i18n="footerOpen">Open source &middot; Community driven</p>
     </div>
   </footer>
 

@@ -3,9 +3,15 @@
 
 class AITookMyJobApp {
   constructor() {
+    // Parse country and lang from URL path /:country/:lang/
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const urlCountry = pathParts[0] || 'global';
+    const urlLang = pathParts[1] || 'en';
+    const validLangs = ['en', 'ru', 'de', 'fr', 'es'];
+
     this.state = {
-      country: 'global',
-      lang: 'en',
+      country: urlCountry,
+      lang: validLangs.includes(urlLang) ? urlLang : 'en',
       meta: { countries: [], languages: ['en'] },
       t: {},
       stats: { counters: {} },
@@ -25,10 +31,18 @@ class AITookMyJobApp {
 
   async init() {
     this.setupTheme();
+    this.syncSelectorsFromState();
     this.bindStaticListeners();
     await this.loadInitialData();
     this.render();
     this.startRealTimeUpdates();
+  }
+
+  syncSelectorsFromState() {
+    const langSelect = document.getElementById('langSelect');
+    if (langSelect) langSelect.value = this.state.lang;
+    const countrySelect = document.getElementById('countrySelect');
+    if (countrySelect) countrySelect.value = this.state.country;
   }
 
   // ── Data fetching ──
@@ -308,6 +322,7 @@ class AITookMyJobApp {
         this.state.lang = e.target.value;
         await this.loadTranslations(this.state.lang);
         this.renderNews();
+        this.renderResources();
         this.applyTranslations();
       });
     }
@@ -971,13 +986,32 @@ class AITookMyJobApp {
 
   applyTranslations() {
     const t = this.state.t;
-    const titleEl = document.getElementById('newsSectionTitle');
-    const subtitleEl = document.getElementById('newsSectionSubtitle');
-    if (titleEl && t.newsTitle) titleEl.textContent = t.newsTitle;
-    if (subtitleEl && t.newsSubtitle) subtitleEl.textContent = t.newsSubtitle;
+    if (!t || !Object.keys(t).length) return;
 
-    const navNews = document.querySelector('a[data-i18n="navNews"]');
-    if (navNews && t.navNews) navNews.textContent = t.navNews;
+    // Apply textContent to all [data-i18n] elements
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key]) el.textContent = t[key];
+    });
+
+    // Apply innerHTML to [data-i18n-html] elements (for hero title with <em>)
+    document.querySelectorAll('[data-i18n-html]').forEach(el => {
+      const key = el.getAttribute('data-i18n-html');
+      if (t[key]) el.innerHTML = t[key];
+    });
+
+    // Apply placeholder to [data-i18n-placeholder] elements
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      if (t[key]) el.placeholder = t[key];
+    });
+
+    // Update URL path to reflect current language
+    const { country, lang } = this.state;
+    const newPath = `/${country}/${lang}/`;
+    if (window.location.pathname !== newPath) {
+      window.history.replaceState(null, '', newPath);
+    }
   }
 
   // ── Charts ──
