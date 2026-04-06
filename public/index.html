@@ -22,6 +22,7 @@
   <meta name="twitter:description" content="Real stories from real people displaced by AI. A community built on truth, transparency, and resilience.">
 
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/sidebar.css">
   <link rel="stylesheet" href="/live-signals.css">
   <link rel="stylesheet" href="/petitions.css">
   <link rel="stylesheet" href="/reactions.css">
@@ -43,8 +44,7 @@
       </a>
 
       <div class="nav-links" id="navLinks">
-        <a href="#dashboard" class="nav-link active" data-i18n="navDashboard">Dashboard</a>
-        <a href="#stories" class="nav-link" data-i18n="navStories">Stories</a>
+        <a href="#stories" class="nav-link active" data-i18n="navStories">Stories</a>
         <a href="#community" class="nav-link" data-i18n="navCommunity">Community</a>
         <a href="#news" class="nav-link" data-i18n="navNews">News</a>
         <a href="#resources" class="nav-link" data-i18n="navResources">Resources</a>
@@ -80,72 +80,32 @@
     </div>
   </nav>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="container">
-      <div class="hero-inner">
-        <div class="hero-content">
-          <div class="hero-eyebrow fade-up">
-            <div class="signal-line"></div>
-            <span class="hero-eyebrow-text" data-i18n="heroEyebrow">Documenting the human cost</span>
-          </div>
-
-          <h1 class="hero-title fade-up fade-up-1" data-i18n-html="heroTitle">
-            The <em>human</em> cost of artificial intelligence
-          </h1>
-
-          <p class="hero-subtitle fade-up fade-up-2" data-i18n="heroSubtitle">
-            Real stories from real people displaced by AI. A community built on truth, transparency, and resilience.
-          </p>
-
-          <div class="hero-actions fade-up fade-up-3">
-            <button class="btn btn-primary btn-lg" id="shareStoryBtn">
-              <i class="ph ph-pencil-line"></i>
-              <span data-i18n="ctaShareStory">Share Your Story</span>
-            </button>
-            <button class="btn btn-ghost btn-lg" id="authTriggerBtn">
-              <i class="ph ph-sign-in"></i>
-              <span data-i18n="ctaSignIn">Sign In</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="hero-sidebar fade-up fade-up-4">
-          <div class="live-badge">
-            <span class="live-dot"></span>
-            <span data-i18n="liveData">Live data</span>
-          </div>
-
-          <div class="hero-stats-grid">
-            <div class="hero-stat-card">
-              <div class="stat-block">
-                <span class="stat-value" data-stat="affected">--</span>
-                <span class="stat-label" data-i18n="statAffected">Affected</span>
-              </div>
-            </div>
-            <div class="hero-stat-card">
-              <div class="stat-block">
-                <span class="stat-value" data-stat="stories">--</span>
-                <span class="stat-label" data-i18n="statStories">Stories</span>
-              </div>
-            </div>
-            <div class="hero-stat-card">
-              <div class="stat-block">
-                <span class="stat-value" data-stat="foundJobs">--</span>
-                <span class="stat-label" data-i18n="statFoundJobs">Found Jobs</span>
-              </div>
-            </div>
-            <div class="hero-stat-card">
-              <div class="stat-block">
-                <span class="stat-value" data-stat="countries">--</span>
-                <span class="stat-label" data-i18n="statCompanies">Companies</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+  <!-- Mobile Stats Ribbon (visible < 1024px) -->
+  <div class="mobile-ribbon" id="mobileRibbon">
+    <div class="ribbon-stat">
+      <span class="ribbon-stat-value" data-stat="affected">--</span>
+      <span class="ribbon-stat-label" data-i18n="statAffected">Affected</span>
     </div>
-  </section>
+    <div class="ribbon-stat">
+      <span class="ribbon-stat-value" data-stat="stories">--</span>
+      <span class="ribbon-stat-label" data-i18n="statStories">Stories</span>
+    </div>
+    <div class="ribbon-stat">
+      <span class="ribbon-stat-value" data-stat="foundJobs">--</span>
+      <span class="ribbon-stat-label" data-i18n="statFoundJobs">Found Jobs</span>
+    </div>
+    <div class="ribbon-stat">
+      <span class="ribbon-stat-value" data-stat="countries">--</span>
+      <span class="ribbon-stat-label" data-i18n="statCompanies">Companies</span>
+    </div>
+    <button class="ribbon-chart-btn" id="ribbonChartToggle">
+      <i class="ph ph-chart-line"></i>
+      <span>Charts</span>
+    </button>
+  </div>
+  <div class="ribbon-expand" id="ribbonChartPanel">
+    <div class="chart-wrap"><canvas id="mobileChart"></canvas></div>
+  </div>
 
   <!-- Auth Modal -->
   <div class="modal-overlay" id="authModal" role="dialog" aria-modal="true" aria-label="Account Access" aria-hidden="true">
@@ -315,157 +275,243 @@
     </div>
   </div>
 
-  <main id="main-content">
-  <!-- Dashboard Section -->
-  <section id="dashboard" class="section">
-    <div class="container">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title" data-i18n="sectionDashboard">Impact Dashboard</h2>
-          <p class="section-subtitle" data-i18n="sectionDashboardSub">Global AI displacement data, updated in real-time</p>
-        </div>
-        <div class="section-actions">
-          <select class="select">
-            <option>Last 30 Days</option>
-            <option>Last Quarter</option>
-            <option>Last Year</option>
-          </select>
-        </div>
+  <div class="app-layout">
+    <!-- Left Data Sidebar (desktop only) -->
+    <aside class="data-sidebar" id="dataSidebar">
+      <div class="sidebar-live">
+        <span class="live-dot"></span>
+        <span class="sidebar-live-text" data-i18n="liveData">Live data</span>
       </div>
 
-      <div class="dashboard-grid">
-        <div class="card">
-          <h3 style="font-family: var(--font-body); font-size: var(--text-base); font-weight: 600; margin-bottom: var(--sp-2);">Layoff Trend</h3>
-          <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
-        </div>
-        <div class="card">
-          <h3 style="font-family: var(--font-body); font-size: var(--text-base); font-weight: 600; margin-bottom: var(--sp-2);">Geographic Distribution</h3>
-          <div class="chart-wrap"><canvas id="geoChart"></canvas></div>
-        </div>
-        <div class="card">
-          <h3 style="font-family: var(--font-body); font-size: var(--text-base); font-weight: 600; margin-bottom: var(--sp-2);">Industries Affected</h3>
-          <div class="chart-wrap"><canvas id="industryChart"></canvas></div>
-        </div>
-        <div class="card">
-          <h3 style="font-family: var(--font-body); font-size: var(--text-base); font-weight: 600; margin-bottom: var(--sp-2);">Recovery Rate</h3>
-          <div class="chart-wrap"><canvas id="recoveryChart"></canvas></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Stories Section -->
-  <section id="stories" class="section">
-    <div class="container">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title" data-i18n="sectionStories">Recent Stories</h2>
-          <p class="section-subtitle" data-i18n="sectionStoriesSub">Voices from the frontlines of AI displacement</p>
-        </div>
-        <div class="section-actions">
-          <input type="text" id="storySearch" class="input" data-i18n-placeholder="searchPlaceholder" placeholder="Search stories..." style="width: 220px;">
-          <select class="select" id="storyRegionFilter">
-            <option value="">All Regions</option>
-            <option value="us,ca,mx">North America</option>
-            <option value="de,fr,es,gb,it,nl,se,ru">Europe</option>
-            <option value="in,jp,kr">Asia</option>
-            <option value="au">Oceania</option>
-          </select>
-        </div>
-      </div>
-      <div class="stories-grid" id="storiesContainer"></div>
-      <div id="storiesPagination" style="text-align:center;margin-top:var(--sp-6);display:none;">
-        <button class="btn btn-ghost btn-lg" id="loadMoreStories">
-          <i class="ph ph-arrow-down"></i> <span data-i18n="loadMoreStories">Load More Stories</span>
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <!-- Community Section -->
-  <section id="community" class="section">
-    <div class="container">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title" data-i18n="sectionCommunity">Community</h2>
-          <p class="section-subtitle" data-i18n="sectionCommunitySub">Connect with others navigating AI displacement</p>
-        </div>
-        <div class="section-actions">
-          <a href="/forum" class="btn btn-primary btn-sm">
-            <i class="ph ph-chat-circle"></i>
-            <span data-i18n="joinForum">Join Forum</span>
-          </a>
-        </div>
-      </div>
-
-      <div class="community-grid">
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--sp-5);">
-            <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600;" data-i18n="activeDiscussions">Active Discussions</h3>
-            <span class="tag tag-amber" id="communityDiscussionTag" style="display:none;">Trending</span>
-          </div>
-          <div id="communityDiscussions" style="display:flex; flex-direction:column; gap:var(--sp-2);">
-            <p style="color:var(--text-muted); font-size:var(--text-sm);">Loading discussions...</p>
-          </div>
-        </div>
-
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--sp-5);">
-            <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600;" data-i18n="supportGroups">Support Groups</h3>
-            <span class="online-badge" id="communityOnlineBadge" style="display:none;"></span>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:var(--sp-2);">
-            <div class="group-item">
-              <div class="group-icon"><i class="ph ph-code"></i></div>
-              <div class="group-info"><h4>Developers &amp; QA</h4><p id="groupDevCount" style="color:var(--text-muted);">—</p></div>
+      <div class="sidebar-item">
+        <div class="sidebar-icon"><i class="ph ph-pulse"></i></div>
+        <div class="sidebar-content">
+          <h4 data-i18n="statAffected">Live Stats</h4>
+          <div class="sidebar-stat-grid">
+            <div class="sidebar-stat">
+              <span class="sidebar-stat-value" data-stat="affected">--</span>
+              <span class="sidebar-stat-label" data-i18n="statAffected">Affected</span>
             </div>
-            <div class="group-item">
-              <div class="group-icon"><i class="ph ph-paint-brush-broad"></i></div>
-              <div class="group-info"><h4>Designers &amp; Artists</h4><p id="groupDesignCount" style="color:var(--text-muted);">—</p></div>
+            <div class="sidebar-stat">
+              <span class="sidebar-stat-value" data-stat="stories">--</span>
+              <span class="sidebar-stat-label" data-i18n="statStories">Stories</span>
             </div>
-            <div class="group-item">
-              <div class="group-icon"><i class="ph ph-pencil-line"></i></div>
-              <div class="group-info"><h4>Content Creators</h4><p id="groupContentCount" style="color:var(--text-muted);">—</p></div>
+            <div class="sidebar-stat">
+              <span class="sidebar-stat-value" data-stat="foundJobs">--</span>
+              <span class="sidebar-stat-label" data-i18n="statFoundJobs">Found Jobs</span>
             </div>
-            <div class="group-item">
-              <div class="group-icon"><i class="ph ph-headset"></i></div>
-              <div class="group-info"><h4>Support &amp; Call Centers</h4><p id="groupSupportCount" style="color:var(--text-muted);">—</p></div>
+            <div class="sidebar-stat">
+              <span class="sidebar-stat-value" data-stat="countries">--</span>
+              <span class="sidebar-stat-label" data-i18n="statCompanies">Companies</span>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- News Section -->
-  <section id="news" class="section">
-    <div class="container">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title" id="newsSectionTitle" data-i18n="newsTitle">AI in the News</h2>
-          <p class="section-subtitle" id="newsSectionSubtitle" data-i18n="newsSubtitle">How artificial intelligence is reshaping work and daily life</p>
+      <div class="sidebar-item">
+        <div class="sidebar-icon"><i class="ph ph-chart-line-up"></i></div>
+        <div class="sidebar-content">
+          <h4 data-i18n="chartTrend">Layoff Trend</h4>
+          <div class="sidebar-chart-wrap"><canvas id="trendChart"></canvas></div>
         </div>
       </div>
-      <div class="news-grid" id="newsContainer"></div>
-    </div>
-  </section>
 
-  <!-- Resources Section -->
-  <section id="resources" class="section">
-    <div class="container">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title" data-i18n="sectionResources">Resources</h2>
-          <p class="section-subtitle" data-i18n="sectionResourcesSub">Tools, programs, and support to help you move forward</p>
+      <div class="sidebar-item">
+        <div class="sidebar-icon"><i class="ph ph-factory"></i></div>
+        <div class="sidebar-content">
+          <h4 data-i18n="chartIndustry">Industries Affected</h4>
+          <div class="sidebar-chart-wrap"><canvas id="industryChart"></canvas></div>
         </div>
       </div>
-      <div class="resources-grid" id="resourcesContainer">
-        <p style="color:var(--text-muted);text-align:center;grid-column:1/-1;">Loading resources...</p>
-      </div>
-    </div>
-  </section>
 
-  </main>
+      <div class="sidebar-item">
+        <div class="sidebar-icon"><i class="ph ph-globe-hemisphere-west"></i></div>
+        <div class="sidebar-content">
+          <h4 data-i18n="chartGeo">Geographic Distribution</h4>
+          <div class="sidebar-chart-wrap"><canvas id="geoChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="sidebar-item">
+        <div class="sidebar-icon"><i class="ph ph-arrow-clockwise"></i></div>
+        <div class="sidebar-content">
+          <h4 data-i18n="chartRecovery">Recovery Rate</h4>
+          <div class="sidebar-chart-wrap"><canvas id="recoveryChart"></canvas></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main-content" class="main-content-area">
+
+      <!-- Featured Story (Above the Fold) -->
+      <section class="featured-hero fade-up" id="featuredStory">
+        <div class="featured-quote">
+          <p class="featured-quote-text" id="featuredQuoteText">
+            Real stories from real people displaced by AI. A community built on truth, transparency, and resilience.
+          </p>
+        </div>
+        <div class="featured-author" id="featuredAuthor">
+          <div class="featured-avatar" id="featuredAvatar">?</div>
+          <div class="featured-author-info">
+            <span class="featured-author-name" id="featuredName" data-i18n="heroEyebrow">Documenting the human cost</span>
+            <span class="featured-author-meta" id="featuredMeta">
+              <span class="tag tag-amber">AI Took My Job</span>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Onboarding CTA -->
+      <section class="onboarding-cta fade-up">
+        <h2>Your story <em>matters</em></h2>
+        <p>Share it anonymously in 2 minutes. No employer notification. Just community and support.</p>
+        <div class="onboarding-actions">
+          <button class="btn btn-primary btn-lg" id="shareStoryBtn">
+            <i class="ph ph-pencil-line"></i>
+            <span data-i18n="ctaShareStory">Share Your Story</span>
+          </button>
+          <button class="btn btn-ghost btn-lg" id="authTriggerBtn">
+            <i class="ph ph-sign-in"></i>
+            <span data-i18n="ctaSignIn">Sign In</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- How It Works -->
+      <section class="how-it-works fade-up">
+        <h3>How it works</h3>
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-icon"><i class="ph ph-shield-check"></i></div>
+            <div>
+              <h4>Share anonymously</h4>
+              <p>Tell your story in your own words. No real name required. Your privacy is protected.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-icon"><i class="ph ph-users-three"></i></div>
+            <div>
+              <h4>Connect with others</h4>
+              <p>Find people who understand. Forum discussions, support groups, solidarity.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-icon"><i class="ph ph-rocket-launch"></i></div>
+            <div>
+              <h4>Find new opportunities</h4>
+              <p>Reskilling resources, job boards, legal aid, and counseling all in one place.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Story Feed -->
+      <section id="stories" class="story-feed">
+        <div class="story-feed-header">
+          <h2 class="story-feed-title" data-i18n="sectionStories">Recent Stories</h2>
+          <div class="story-feed-filters">
+            <input type="text" id="storySearch" class="input" data-i18n-placeholder="searchPlaceholder" placeholder="Search stories..." style="width: 180px;">
+            <select class="select" id="storyRegionFilter">
+              <option value="">All Regions</option>
+              <option value="us,ca,mx">North America</option>
+              <option value="de,fr,es,gb,it,nl,se,ru">Europe</option>
+              <option value="in,jp,kr">Asia</option>
+              <option value="au">Oceania</option>
+            </select>
+          </div>
+        </div>
+        <div id="storiesContainer"></div>
+        <div id="storiesPagination" style="text-align:center;margin-top:var(--sp-6);display:none;">
+          <button class="btn btn-ghost btn-lg" id="loadMoreStories">
+            <i class="ph ph-arrow-down"></i> <span data-i18n="loadMoreStories">Load More Stories</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Community Section -->
+      <section id="community" class="section">
+        <div class="container">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title" data-i18n="sectionCommunity">Community</h2>
+              <p class="section-subtitle" data-i18n="sectionCommunitySub">Connect with others navigating AI displacement</p>
+            </div>
+            <div class="section-actions">
+              <a href="/forum" class="btn btn-primary btn-sm">
+                <i class="ph ph-chat-circle"></i>
+                <span data-i18n="joinForum">Join Forum</span>
+              </a>
+            </div>
+          </div>
+          <div class="community-grid">
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--sp-5);">
+                <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600;" data-i18n="activeDiscussions">Active Discussions</h3>
+                <span class="tag tag-amber" id="communityDiscussionTag" style="display:none;">Trending</span>
+              </div>
+              <div id="communityDiscussions" style="display:flex; flex-direction:column; gap:var(--sp-2);">
+                <p style="color:var(--text-muted); font-size:var(--text-sm);">Loading discussions...</p>
+              </div>
+            </div>
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--sp-5);">
+                <h3 style="font-family:var(--font-body); font-size:var(--text-base); font-weight:600;" data-i18n="supportGroups">Support Groups</h3>
+                <span class="online-badge" id="communityOnlineBadge" style="display:none;"></span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:var(--sp-2);">
+                <div class="group-item">
+                  <div class="group-icon"><i class="ph ph-code"></i></div>
+                  <div class="group-info"><h4>Developers &amp; QA</h4><p id="groupDevCount" style="color:var(--text-muted);">—</p></div>
+                </div>
+                <div class="group-item">
+                  <div class="group-icon"><i class="ph ph-paint-brush-broad"></i></div>
+                  <div class="group-info"><h4>Designers &amp; Artists</h4><p id="groupDesignCount" style="color:var(--text-muted);">—</p></div>
+                </div>
+                <div class="group-item">
+                  <div class="group-icon"><i class="ph ph-pencil-line"></i></div>
+                  <div class="group-info"><h4>Content Creators</h4><p id="groupContentCount" style="color:var(--text-muted);">—</p></div>
+                </div>
+                <div class="group-item">
+                  <div class="group-icon"><i class="ph ph-headset"></i></div>
+                  <div class="group-info"><h4>Support &amp; Call Centers</h4><p id="groupSupportCount" style="color:var(--text-muted);">—</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- News Section -->
+      <section id="news" class="section">
+        <div class="container">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title" id="newsSectionTitle" data-i18n="newsTitle">AI in the News</h2>
+              <p class="section-subtitle" id="newsSectionSubtitle" data-i18n="newsSubtitle">How artificial intelligence is reshaping work and daily life</p>
+            </div>
+          </div>
+          <div class="news-grid" id="newsContainer"></div>
+        </div>
+      </section>
+
+      <!-- Resources Section -->
+      <section id="resources" class="section">
+        <div class="container">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title" data-i18n="sectionResources">Resources</h2>
+              <p class="section-subtitle" data-i18n="sectionResourcesSub">Tools, programs, and support to help you move forward</p>
+            </div>
+          </div>
+          <div class="resources-grid" id="resourcesContainer">
+            <p style="color:var(--text-muted);text-align:center;grid-column:1/-1;">Loading resources...</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div><!-- end .app-layout -->
 
   <!-- Footer -->
   <footer class="site-footer">
