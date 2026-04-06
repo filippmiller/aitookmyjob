@@ -165,13 +165,15 @@ router.get("/api/counters", async (req, res) => {
 // Sitemap
 router.get("/sitemap.xml", async (_req, res) => {
   const stories = (await ctx.storageGetStories()).filter((s) => s.status === "published");
-  const baseUrl = process.env.BASE_URL || "https://aitookmyjob.com";
+  const baseUrl = process.env.BASE_URL || "https://aitookmyjob.filippmiller.com";
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
   xml += `  <url><loc>${baseUrl}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n`;
   xml += `  <url><loc>${baseUrl}/forum</loc><changefreq>daily</changefreq><priority>0.7</priority></url>\n`;
   for (const s of stories) {
-    xml += `  <url><loc>${baseUrl}/story/${s.id}</loc><lastmod>${(s.updatedAt || s.createdAt || new Date().toISOString()).split("T")[0]}</lastmod><priority>0.8</priority></url>\n`;
+    const dateVal = s.updatedAt || s.createdAt || new Date();
+    const lastmod = (dateVal instanceof Date ? dateVal.toISOString() : String(dateVal)).split("T")[0];
+    xml += `  <url><loc>${baseUrl}/story/${s.id}</loc><lastmod>${lastmod}</lastmod><priority>0.8</priority></url>\n`;
   }
   xml += '</urlset>';
   res.set("Content-Type", "application/xml");
