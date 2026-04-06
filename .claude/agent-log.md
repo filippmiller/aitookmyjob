@@ -1,5 +1,42 @@
 # Agent Log
 
+## 2026-04-06 — Complete UX Overhaul: Stories-First Homepage
+
+**Category:** features (80%), tests (20%)
+**Status:** Completed
+
+### What was done
+
+1. **Replaced dashboard-first layout with stories-first design**
+   - Removed hero section with cold stats
+   - Added featured story with large quote, avatar, author info above the fold
+   - Added warm onboarding CTA: "Your story matters"
+   - Added "How it works" 3-step section (Share, Connect, Find opportunities)
+
+2. **Left sidebar with collapsible charts (desktop)**
+   - 60px collapsed, 360px on hover with smooth CSS transitions
+   - Contains: Live Stats grid, Layoff Trend, Industries, Geographic, Recovery charts
+   - Icon + label visible when collapsed, full chart on hover
+
+3. **Mobile top ribbon (< 1024px)**
+   - Horizontal scrollable stat ribbon replacing sidebar
+   - Charts button to expand/collapse chart panel
+
+4. **Enhanced story cards (v2)**
+   - Avatar circles with initials, profession/company metadata
+   - Left border accent on hover, 4-line body clamp
+   - Me Too + Share actions in footer
+
+5. **All 27 E2E tests passing** after layout changes
+
+### Files Changed
+- `public/index.html` — Complete layout restructure
+- `public/sidebar.css` — New file: sidebar, ribbon, featured story, how-it-works, v2 cards
+- `public/app.js` — Added renderFeaturedStory(), v2 card rendering, ribbon toggle
+- `tests/e2e-comprehensive.spec.js` — Updated for new layout selectors
+
+---
+
 ## 2026-04-06 — Fix Language Switcher + E2E Test Suite
 
 **Category:** features (60%), bugs (20%), tests (20%)

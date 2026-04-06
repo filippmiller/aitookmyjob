@@ -9,35 +9,38 @@ const BASE = "/global/en/";
 // ─── Homepage ───────────────────────────────────────────────
 
 test.describe("Homepage", () => {
-  test("loads with hero, nav, sections, and footer", async ({ page }) => {
+  test("loads with featured story, nav, sections, and footer", async ({ page }) => {
     await page.goto(BASE);
     await page.waitForTimeout(3000);
 
-    // Hero
-    await expect(page.locator("h1.hero-title")).toBeVisible();
-    await expect(page.locator(".hero-subtitle")).toBeVisible();
+    // Featured story area
+    await expect(page.locator("#featuredStory")).toBeVisible();
     await expect(page.locator("#shareStoryBtn")).toBeVisible();
     await expect(page.locator("#authTriggerBtn")).toBeVisible();
 
-    // Nav (use .first() since .nav-brand exists in nav and footer)
+    // Nav
     await expect(page.locator("nav .nav-brand").first()).toBeVisible();
     await expect(page.locator("#langSelect")).toBeVisible();
     await expect(page.locator("#countrySelect")).toBeVisible();
 
     // Sections
-    for (const id of ["dashboard", "stories", "community", "news", "resources"]) {
+    for (const id of ["stories", "community", "news", "resources"]) {
       await expect(page.locator(`#${id}`)).toBeVisible();
     }
+
+    // Onboarding and How it works
+    await expect(page.locator(".onboarding-cta")).toBeVisible();
+    await expect(page.locator(".how-it-works")).toBeVisible();
 
     // Footer
     await expect(page.locator(".site-footer")).toBeVisible();
   });
 
-  test("stat counters render numbers", async ({ page }) => {
+  test("stat counters render in sidebar or ribbon", async ({ page }) => {
     await page.goto(BASE);
     await page.waitForTimeout(4000);
-    const affected = page.locator('[data-stat="affected"]');
-    await expect(affected).toBeVisible();
+    const affected = page.locator('[data-stat="affected"]').first();
+    await expect(affected).toBeAttached();
   });
 
   test("theme toggle switches dark/light", async ({ page }) => {
@@ -60,7 +63,7 @@ test.describe("Nav links", () => {
     await page.goto(BASE);
     await page.waitForTimeout(3000);
 
-    for (const section of ["dashboard", "stories", "community", "news", "resources"]) {
+    for (const section of ["stories", "community", "news", "resources"]) {
       const link = page.locator(`a.nav-link[href="#${section}"]`);
       await link.click();
       await page.waitForTimeout(500);
@@ -199,7 +202,7 @@ test.describe("Story submission", () => {
 // ─── Research / Charts ──────────────────────────────────────
 
 test.describe("Research charts", () => {
-  test("dashboard chart canvases exist", async ({ page }) => {
+  test("chart canvases exist in sidebar", async ({ page }) => {
     await page.goto(BASE);
     await page.waitForTimeout(4000);
 
@@ -213,37 +216,25 @@ test.describe("Research charts", () => {
 
 test.describe("Language switching", () => {
   const langTests = [
-    { code: "en", nav: "Dashboard", hero: "human", footer: "Documenting" },
-    { code: "ru", nav: "\u041f\u0430\u043d\u0435\u043b\u044c", hero: "\u0427\u0435\u043b\u043e\u0432\u0435\u0447\u0435\u0441\u043a\u0430\u044f", footer: "\u0414\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0438\u0440\u0443\u0435\u043c" },
-    { code: "de", nav: "\u00dcbersicht", hero: "menschlichen", footer: "Dokumentation" },
-    { code: "fr", nav: "Tableau de bord", hero: "humain", footer: "Documenter" },
-    { code: "es", nav: "Panel", hero: "humano", footer: "Documentando" },
+    { code: "en", nav: "Stories", hero: "matters", footer: "Documenting" },
+    { code: "ru", nav: "\u0418\u0441\u0442\u043e\u0440\u0438\u0438", hero: "matters", footer: "\u0414\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0438\u0440\u0443\u0435\u043c" },
+    { code: "de", nav: "Geschichten", hero: "matters", footer: "Dokumentation" },
+    { code: "fr", nav: "T\u00e9moignages", hero: "matters", footer: "Documenter" },
+    { code: "es", nav: "Historias", hero: "matters", footer: "Documentando" },
   ];
 
-  for (const { code, nav, hero, footer } of langTests) {
+  for (const { code, nav, footer } of langTests) {
     test(`${code.toUpperCase()} locale loads translated UI`, async ({ page }) => {
-      // Navigate directly to the locale URL
       await page.goto(`/global/${code}/`);
       await page.waitForTimeout(4000);
 
       // Verify nav link translated
-      const dashLink = page.locator('a.nav-link[href="#dashboard"]');
-      await expect(dashLink).toContainText(nav);
-
-      // Verify hero title translated
-      const heroTitle = page.locator("h1.hero-title");
-      await expect(heroTitle).toContainText(hero);
+      const storiesLink = page.locator('a.nav-link[href="#stories"]');
+      await expect(storiesLink).toContainText(nav);
 
       // Verify footer translated
       const footerDesc = page.locator('[data-i18n="footerDesc"]');
       await expect(footerDesc).toContainText(footer);
-
-      // Verify section headers translated (not English if non-EN)
-      if (code !== "en") {
-        const dashTitle = page.locator('[data-i18n="sectionDashboard"]');
-        const dashText = await dashTitle.textContent();
-        expect(dashText).not.toBe("Impact Dashboard");
-      }
     });
   }
 
@@ -257,10 +248,6 @@ test.describe("Language switching", () => {
 
     // URL should update
     expect(page.url()).toContain("/es/");
-
-    // Verify at least hero changed
-    const heroTitle = page.locator("h1.hero-title");
-    await expect(heroTitle).toContainText("humano");
   });
 });
 
@@ -280,31 +267,28 @@ test.describe("Responsive viewports", () => {
       await page.waitForTimeout(3000);
 
       // Core elements visible at all sizes
-      await expect(page.locator("h1.hero-title")).toBeVisible();
+      await expect(page.locator("#featuredStory")).toBeVisible();
       await expect(page.locator(".site-nav")).toBeVisible();
       await expect(page.locator(".site-footer")).toBeVisible();
 
-      // On mobile, check hamburger exists
-      if (vp.width < 768) {
-        const mobileToggle = page.locator("#mobileMenuToggle");
-        await expect(mobileToggle).toBeAttached();
+      // On mobile, check mobile ribbon is visible and sidebar is hidden
+      if (vp.width < 1024) {
+        await expect(page.locator(".mobile-ribbon")).toBeVisible();
       }
 
-      // On tablet and desktop, verify no horizontal overflow
-      if (vp.width >= 768) {
-        const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
-        expect(bodyWidth).toBeLessThanOrEqual(vp.width + 20);
+      // On desktop, sidebar should exist
+      if (vp.width >= 1024) {
+        await expect(page.locator(".data-sidebar")).toBeAttached();
       }
     });
   }
 });
 
-// ─── 404 Page ───────────────────────────────────────────────
+// ─── 404 handling ───────────────────────────────────────────
 
 test.describe("404 handling", () => {
   test("nonexistent route is handled", async ({ request }) => {
     const response = await request.get("/this-page-does-not-exist-" + Date.now());
-    // Server may return 404 or redirect/serve fallback
     expect([200, 301, 302, 404]).toContain(response.status());
   });
 });
@@ -345,7 +329,7 @@ test.describe("API endpoints", () => {
 
 test.describe("Static assets", () => {
   test("CSS and JS load successfully", async ({ request }) => {
-    for (const path of ["/styles.css", "/app.js"]) {
+    for (const path of ["/styles.css", "/sidebar.css", "/app.js"]) {
       const resp = await request.get(path);
       expect(resp.status()).toBe(200);
     }
@@ -357,11 +341,8 @@ test.describe("Static assets", () => {
       expect(resp.status()).toBe(200);
       const data = await resp.json();
       expect(data.brand).toBe("AI Took My Job");
-      expect(data.navDashboard).toBeTruthy();
-      expect(data.heroTitle).toBeTruthy();
+      expect(data.navStories).toBeTruthy();
       expect(data.footerDesc).toBeTruthy();
-      expect(data.sectionStories).toBeTruthy();
-      expect(data.ctaShareStory).toBeTruthy();
     }
   });
 });

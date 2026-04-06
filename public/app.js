@@ -674,6 +674,7 @@ class AITookMyJobApp {
 
   render() {
     this.animateCounters();
+    this.renderFeaturedStory();
     this.renderStories();
     this.renderNews();
     this.renderResources();
@@ -682,6 +683,7 @@ class AITookMyJobApp {
     this.initCharts();
     this.onAuthChange();
     this.setupScrollAnimations();
+    this.setupRibbonToggle();
   }
 
   animateCounters() {
@@ -721,6 +723,37 @@ class AITookMyJobApp {
     });
   }
 
+  getInitials(name) {
+    return (name || '?').split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  renderFeaturedStory() {
+    const stories = this.state.stories;
+    if (!stories.length) return;
+
+    // Pick the story with most engagement or most recent
+    const featured = stories.reduce((best, s) => {
+      const score = (s.metrics?.meToo || s.meToo || 0) + (s.views || 0);
+      const bestScore = (best.metrics?.meToo || best.meToo || 0) + (best.views || 0);
+      return score > bestScore ? s : best;
+    }, stories[0]);
+
+    const quoteEl = document.getElementById('featuredQuoteText');
+    const nameEl = document.getElementById('featuredName');
+    const metaEl = document.getElementById('featuredMeta');
+    const avatarEl = document.getElementById('featuredAvatar');
+
+    if (quoteEl) {
+      const excerpt = featured.story.length > 280 ? featured.story.slice(0, 280) + '...' : featured.story;
+      quoteEl.textContent = excerpt;
+    }
+    if (nameEl) nameEl.textContent = featured.name;
+    if (metaEl) {
+      metaEl.innerHTML = `${this.esc(featured.profession)} at ${this.esc(featured.company)} <span class="tag tag-amber" style="margin-left:var(--sp-2);">${this.esc(featured.laidOffAt)}</span>`;
+    }
+    if (avatarEl) avatarEl.textContent = this.getInitials(featured.name);
+  }
+
   renderStories() {
     const container = document.getElementById('storiesContainer');
     if (!container || !this.state.stories.length) return;
@@ -742,42 +775,37 @@ class AITookMyJobApp {
     });
 
     if (!filtered.length) {
-      container.innerHTML = '<p style="color:var(--text-muted);text-align:center;grid-column:1/-1;padding:var(--sp-8);">No stories match your filters.</p>';
+      container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:var(--sp-8);">No stories match your filters.</p>';
       return;
     }
 
     container.innerHTML = filtered.map(story => `
-      <article class="story-card">
-        <a href="/story/${this.esc(story.id)}" class="story-card-link" style="text-decoration:none;color:inherit;display:block;">
-        <div class="story-card-header">
-          <div>
-            <div class="story-author">${this.esc(story.name)}</div>
-            <div class="story-company">${this.esc(story.company)}</div>
+      <article class="story-card-v2">
+        <a href="/story/${this.esc(story.id)}" style="text-decoration:none;color:inherit;display:block;">
+          <div class="story-card-v2-header">
+            <div class="story-avatar">${this.esc(this.getInitials(story.name))}</div>
+            <div class="story-card-v2-author">
+              <div class="story-card-v2-name">${this.esc(story.name)}</div>
+              <div class="story-card-v2-meta">${this.esc(story.profession)} at ${this.esc(story.company)} &middot; ${this.esc(story.laidOffAt)}</div>
+            </div>
+            <span class="tag tag-amber">${this.esc(story.country || 'Global')}</span>
           </div>
-          <span class="tag tag-amber">${this.esc(story.profession)}</span>
-        </div>
-        <div class="story-body">${this.esc(story.story)}</div>
+          <div class="story-card-v2-body">${this.esc(story.story)}</div>
         </a>
-        <div class="story-meta">
-          <span class="story-meta-item">
-            <i class="ph ph-calendar-blank"></i> ${this.esc(story.laidOffAt)}
-          </span>
-          <span class="story-meta-item">
-            <i class="ph ph-eye"></i> ${this.fmt(story.views || 0)}
-          </span>
-          <span class="story-meta-item">
-            <i class="ph ph-map-pin"></i> ${this.esc(story.country || 'Global')}
-          </span>
-        </div>
-        <div class="story-actions">
-          <button class="btn-metoo" data-story-id="${this.esc(story.id)}" title="I experienced this too">
-            <i class="ph ph-hand-fist"></i>
-            <span>Me Too</span>
-            <span class="metoo-count">${story.metrics?.meToo || story.meToo || 0}</span>
-          </button>
-          <button class="btn-share" data-story-id="${this.esc(story.id)}" title="Share this story">
-            <i class="ph ph-share-network"></i>
-          </button>
+        <div class="story-card-v2-footer">
+          <div class="story-card-v2-tags">
+            <span style="font-size:var(--text-xs);color:var(--text-muted);"><i class="ph ph-eye"></i> ${this.fmt(story.views || 0)}</span>
+          </div>
+          <div style="display:flex;gap:var(--sp-2);">
+            <button class="btn-metoo" data-story-id="${this.esc(story.id)}" title="I experienced this too">
+              <i class="ph ph-hand-fist"></i>
+              <span>Me Too</span>
+              <span class="metoo-count">${story.metrics?.meToo || story.meToo || 0}</span>
+            </button>
+            <button class="btn-share" data-story-id="${this.esc(story.id)}" title="Share this story">
+              <i class="ph ph-share-network"></i>
+            </button>
+          </div>
         </div>
       </article>
     `).join('');
@@ -1165,13 +1193,54 @@ class AITookMyJobApp {
       });
     }, { threshold: 0.1 });
 
-    document.querySelectorAll('.card, .story-card, .news-card, .topic-item').forEach(el => {
+    document.querySelectorAll('.card, .story-card, .story-card-v2, .news-card, .topic-item').forEach(el => {
       if (!el.dataset.observed) {
         el.dataset.observed = '1';
         el.style.opacity = '0';
         el.style.transform = 'translateY(16px)';
         el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
         observer.observe(el);
+      }
+    });
+  }
+
+  setupRibbonToggle() {
+    const btn = document.getElementById('ribbonChartToggle');
+    const panel = document.getElementById('ribbonChartPanel');
+    if (!btn || !panel) return;
+    if (btn._bound) return;
+    btn._bound = true;
+
+    btn.addEventListener('click', () => {
+      panel.classList.toggle('is-open');
+      if (panel.classList.contains('is-open')) {
+        // Render a simple trend chart in the mobile panel
+        const canvas = document.getElementById('mobileChart');
+        if (canvas && !canvas._chart) {
+          const style = getComputedStyle(document.documentElement);
+          const amber = style.getPropertyValue('--amber').trim() || '#D4956B';
+          const data = this.state.stats?.monthlyTrend || [];
+          canvas._chart = new Chart(canvas, {
+            type: 'line',
+            data: {
+              labels: data.map(d => d.month || ''),
+              datasets: [{
+                data: data.map(d => d.count || 0),
+                borderColor: amber,
+                backgroundColor: 'rgba(212,149,107,0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: { x: { display: false }, y: { display: false } }
+            }
+          });
+        }
       }
     });
   }
