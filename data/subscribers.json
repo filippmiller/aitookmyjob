@@ -1,0 +1,37 @@
+[
+  {
+    "id": "sub-j52srssg2o9eza",
+    "email": "digest_1775536784856_59894@example.com",
+    "subscribedAt": "2026-04-07T04:39:44.866Z",
+    "country": "global",
+    "language": "en"
+  },
+  {
+    "id": "sub-zvvcbfjn8dqd9q",
+    "email": "dup_1775536784944_75967@example.com",
+    "subscribedAt": "2026-04-07T04:39:44.951Z",
+    "country": "global",
+    "language": "en"
+  },
+  {
+    "id": "sub-qpoxibqzgue25l",
+    "email": "digest_1775537748911_903@example.com",
+    "subscribedAt": "2026-04-07T04:55:48.920Z",
+    "country": "global",
+    "language": "en"
+  },
+  {
+    "id": "sub-9coy6hisdq7h77",
+    "email": "dup_1775537749016_50283@example.com",
+    "subscribedAt": "2026-04-07T04:55:49.030Z",
+    "country": "global",
+    "language": "en"
+  },
+  {
+    "id": "sub-5uxztag73zyevh",
+    "email": "digest_1775538336210_37990@example.com",
+    "subscribedAt": "2026-04-07T05:05:36.219Z",
+    "country": "global",
+    "language": "en"
+  }
+]

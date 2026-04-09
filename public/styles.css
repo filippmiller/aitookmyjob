@@ -257,6 +257,8 @@
     transition: background var(--dur-fast);
   }
 
+  .nav-mobile-selects { display: none; }
+
   .nav-mobile-toggle:hover { background: var(--bg-elevated); }
 
   /* ── Buttons ── */
@@ -1490,6 +1492,22 @@
 
     .nav-links { display: none; }
     .nav-mobile-toggle { display: flex; }
+    .nav-actions .select { display: none; }
+    .nav-actions .btn-primary { display: none; }
+
+    .nav-mobile-selects {
+      display: flex;
+      gap: var(--sp-3);
+      align-items: center;
+      padding-top: var(--sp-3);
+      border-top: 1px solid var(--border-subtle);
+      margin-top: var(--sp-2);
+    }
+
+    .nav-mobile-selects .select {
+      display: block;
+      flex: 1;
+    }
 
     .nav-links.is-open {
       display: flex;

@@ -74,7 +74,7 @@ test.describe("Nav links", () => {
   test("forum link navigates to /forum", async ({ page }) => {
     await page.goto(BASE);
     await page.waitForTimeout(2000);
-    await page.locator('a[href="/forum"]').first().click();
+    await page.locator('a[href="/forum"]:visible').first().click();
     await page.waitForTimeout(2000);
     expect(page.url()).toContain("/forum");
   });

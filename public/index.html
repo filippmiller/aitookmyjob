@@ -21,6 +21,17 @@
   <meta name="twitter:title" content="AI Took My Job — The Human Cost of AI">
   <meta name="twitter:description" content="Real stories from real people displaced by AI. A community built on truth, transparency, and resilience.">
 
+  <style>
+    /* Skeleton loading screens — visible until JS hydrates content */
+    @keyframes skeleton-pulse { 0%,100%{opacity:.15} 50%{opacity:.3} }
+    .skeleton{background:currentColor;border-radius:4px;animation:skeleton-pulse 1.5s ease-in-out infinite;pointer-events:none}
+    .skeleton-line{height:1em;margin-bottom:.5em;width:80%}
+    .skeleton-line.short{width:40%}
+    .skeleton-line.medium{width:60%}
+    .skeleton-block{height:6em;width:100%;margin-bottom:1em}
+    .skeleton-circle{width:48px;height:48px;border-radius:50%}
+    [data-loaded] .skeleton-placeholder{display:none}
+  </style>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/sidebar.css">
   <link rel="stylesheet" href="/carousel.css">
@@ -49,6 +60,24 @@
         <a href="#community" class="nav-link" data-i18n="navCommunity">Community</a>
         <a href="#news" class="nav-link" data-i18n="navNews">News</a>
         <a href="#resources" class="nav-link" data-i18n="navResources">Resources</a>
+        <div class="nav-mobile-selects">
+          <select class="select" id="countrySelectMobile">
+            <option value="global">Global</option>
+            <option value="us">US</option>
+            <option value="de">DE</option>
+            <option value="fr">FR</option>
+            <option value="gb">UK</option>
+            <option value="ru">RU</option>
+          </select>
+          <select class="select" id="langSelectMobile">
+            <option value="en">EN</option>
+            <option value="ru">RU</option>
+            <option value="de">DE</option>
+            <option value="fr">FR</option>
+            <option value="es">ES</option>
+          </select>
+          <a href="/forum" class="nav-link" data-i18n="navAccount">Account</a>
+        </div>
       </div>
 
       <div class="nav-actions">
@@ -193,6 +222,13 @@
       <div class="modal-header">
         <h3 class="modal-title" data-i18n="storyModalTitle">Share Your Story</h3>
         <button class="modal-close" id="storyModalClose">&times;</button>
+      </div>
+      <div id="storyAnonBanner" class="anon-submit-banner" style="display:none; background:rgba(212,149,107,0.12); border:1px solid rgba(212,149,107,0.3); border-radius:var(--radius-md); padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-4); text-align:center;">
+        <p style="font-size:var(--text-sm); color:var(--amber); margin:0; font-weight:500;">
+          <i class="ph ph-shield-check" style="margin-right:var(--sp-1);"></i>
+          You're submitting anonymously — no account needed.
+          <a href="#" id="anonSignInLink" style="color:var(--text-muted); text-decoration:underline; margin-left:var(--sp-2); font-size:var(--text-xs);">Sign in for tracking</a>
+        </p>
       </div>
       <form id="storyForm">
         <div class="form-row">
@@ -347,6 +383,13 @@
 
       <!-- Featured Story (Above the Fold) -->
       <section class="featured-hero fade-up" id="featuredStory">
+        <div class="skeleton-placeholder" aria-hidden="true" style="padding:var(--sp-6);">
+          <div class="skeleton skeleton-block" style="height:4em;margin-bottom:1em;"></div>
+          <div style="display:flex;align-items:center;gap:var(--sp-3);">
+            <div class="skeleton skeleton-circle"></div>
+            <div style="flex:1"><div class="skeleton skeleton-line short"></div></div>
+          </div>
+        </div>
         <div class="featured-quote">
           <p class="featured-quote-text" id="featuredQuoteText">
             Real stories from real people displaced by AI. A community built on truth, transparency, and resilience.
@@ -422,7 +465,25 @@
             </select>
           </div>
         </div>
-        <div id="storiesContainer"></div>
+        <div id="storiesContainer">
+          <div class="skeleton-placeholder" aria-hidden="true" style="display:grid;gap:var(--sp-4);grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">
+            <div style="padding:var(--sp-4);border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.06);">
+              <div class="skeleton skeleton-line medium"></div>
+              <div class="skeleton skeleton-line"></div>
+              <div class="skeleton skeleton-line short"></div>
+            </div>
+            <div style="padding:var(--sp-4);border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.06);">
+              <div class="skeleton skeleton-line medium"></div>
+              <div class="skeleton skeleton-line"></div>
+              <div class="skeleton skeleton-line short"></div>
+            </div>
+            <div style="padding:var(--sp-4);border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.06);">
+              <div class="skeleton skeleton-line medium"></div>
+              <div class="skeleton skeleton-line"></div>
+              <div class="skeleton skeleton-line short"></div>
+            </div>
+          </div>
+        </div>
         <div id="storiesPagination" style="text-align:center;margin-top:var(--sp-6);display:none;">
           <button class="btn btn-ghost btn-lg" id="loadMoreStories">
             <i class="ph ph-arrow-down"></i> <span data-i18n="loadMoreStories">Load More Stories</span>

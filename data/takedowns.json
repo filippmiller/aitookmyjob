@@ -7,5 +7,32 @@
     "legalBasis": "privacy",
     "createdAt": "2026-02-11T17:32:22.418Z",
     "status": "pending"
+  },
+  {
+    "id": "3foi9ced939wht",
+    "email": "legal@example.com",
+    "reason": "E2E test takedown request for testing purposes only",
+    "targetUrl": "https://aitookmyjob.filippmiller.com/story/test-123",
+    "legalBasis": "test",
+    "createdAt": "2026-04-07T04:39:42.201Z",
+    "status": "pending"
+  },
+  {
+    "id": "4w8if1wujxey8d",
+    "email": "legal@example.com",
+    "reason": "E2E test takedown request for testing purposes only",
+    "targetUrl": "https://aitookmyjob.filippmiller.com/story/test-123",
+    "legalBasis": "test",
+    "createdAt": "2026-04-07T04:55:46.714Z",
+    "status": "pending"
+  },
+  {
+    "id": "pwl6naxogwcwge",
+    "email": "legal@example.com",
+    "reason": "E2E test takedown request for testing purposes only",
+    "targetUrl": "https://aitookmyjob.filippmiller.com/story/test-123",
+    "legalBasis": "test",
+    "createdAt": "2026-04-07T05:05:34.251Z",
+    "status": "pending"
   }
 ]

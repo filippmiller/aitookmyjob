@@ -120,7 +120,8 @@
     // Build news items
     news.slice(0, 6).forEach(article => {
       const time = relativeTime(article.publishedAt || article.date);
-      const title = (article.title || '').slice(0, 90);
+      const rawTitle = typeof article.title === 'object' ? (article.title.en || '') : (article.title || '');
+      const title = rawTitle.slice(0, 90);
       const source = article.source || '';
 
       items.push({
@@ -153,7 +154,8 @@
       if (i < news.length) {
         const a = news[i];
         const time = relativeTime(a.publishedAt || a.date);
-        const title = (a.title || '').slice(0, 90);
+        const rawTitle2 = typeof a.title === 'object' ? (a.title.en || '') : (a.title || '');
+        const title = rawTitle2.slice(0, 90);
         const source = a.source || '';
         interleaved.push({
           time,

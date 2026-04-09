@@ -25,6 +25,7 @@
     "morgan": "^1.10.1",
     "nanoid": "^5.1.6",
     "pg": "^8.18.0",
+    "proper-lockfile": "^4.1.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {

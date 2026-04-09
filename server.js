@@ -67,10 +67,31 @@ app.use(express.json({ limit: "50kb", strict: true }));
 app.use(express.urlencoded({ extended: false, limit: "50kb" }));
 app.use(authMiddleware);
 
-const globalLimiter = rateLimit({ windowMs: 60 * 1000, max: 240, standardHeaders: true, legacyHeaders: false });
-app.use(globalLimiter);
+// ── CSRF protection ──
+// Issue a CSRF token cookie on every request; validate on state-changing methods
+app.use((req, res, next) => {
+  const cookies = ctx.parseCookies(req);
+  if (!cookies.csrf_token) {
+    ctx.setCsrfCookie(res, ctx.generateCsrfToken());
+  }
+  const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
+  if (safeMethods.has(req.method)) { next(); return; }
+  // Skip CSRF for API-token-authenticated admin endpoints
+  if (req.headers.authorization) { next(); return; }
+  // Skip CSRF for Telegram webhook (uses its own secret validation)
+  if (req.path.includes("/telegram/webhook")) { next(); return; }
+  if (!ctx.validateCsrfToken(req)) {
+    res.status(403).json({ message: "CSRF token missing or invalid. Include X-CSRF-Token header." });
+    return;
+  }
+  next();
+});
+
 app.use(compression());
 app.use(express.static(ctx.publicDir, { extensions: ["html"] }));
+
+const globalLimiter = rateLimit({ windowMs: 60 * 1000, max: 240, standardHeaders: true, legacyHeaders: false });
+app.use(globalLimiter);
 
 // ── Health & meta (kept in server.js — small, foundational) ──
 

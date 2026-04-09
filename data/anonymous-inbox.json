@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "id": "dhsay2mr8euvir",
+    "trackingCode": "INB-4JFWIK24",
+    "message": "This is an anonymous E2E test message submitted to the inbox for testing purposes.",
+    "channel": "web",
+    "status": "received",
+    "createdAt": "2026-04-07T04:39:44.781Z"
+  },
+  {
+    "id": "l7wghrr0c51uwj",
+    "trackingCode": "INB-9IEX969B",
+    "message": "This is an anonymous E2E test message submitted to the inbox for testing purposes.",
+    "channel": "web",
+    "status": "received",
+    "createdAt": "2026-04-07T04:55:48.825Z"
+  },
+  {
+    "id": "d4t5xs6trucbuz",
+    "trackingCode": "INB-95FGN90N",
+    "message": "This is an anonymous E2E test message submitted to the inbox for testing purposes.",
+    "channel": "web",
+    "status": "received",
+    "createdAt": "2026-04-07T05:05:36.132Z"
+  }
+]

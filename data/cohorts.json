@@ -8,5 +8,35 @@
     "enrolled": 12,
     "startsAt": "2026-03-01",
     "status": "open"
+  },
+  {
+    "id": "cohort-xhm2bpze2eiih2",
+    "title": "E2E Cohort e2e_1775536784400_85717",
+    "profession": "QA Engineer",
+    "country": "global",
+    "capacity": 20,
+    "enrolled": 0,
+    "startsAt": "",
+    "status": "open"
+  },
+  {
+    "id": "cohort-2qkpo1gh8l9t94",
+    "title": "E2E Cohort e2e_1775537748549_20877",
+    "profession": "QA Engineer",
+    "country": "global",
+    "capacity": 20,
+    "enrolled": 0,
+    "startsAt": "",
+    "status": "open"
+  },
+  {
+    "id": "cohort-unnyxb5beitjcc",
+    "title": "E2E Cohort e2e_1775538335795_16315",
+    "profession": "QA Engineer",
+    "country": "global",
+    "capacity": 20,
+    "enrolled": 0,
+    "startsAt": "",
+    "status": "open"
   }
 ]

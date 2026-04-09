@@ -6,6 +6,8 @@ const ctx = require("../lib/context");
 
 const authLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 const phoneLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 12, standardHeaders: true, legacyHeaders: false });
+// Separate, stricter rate limiter for OTP verification attempts to prevent brute-force
+const otpVerifyLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many verification attempts. Try again later." } });
 
 router.post("/register", authLimiter, async (req, res) => {
   const payload = {
@@ -131,7 +133,7 @@ async function handlePhoneVerify(req, res, alias) {
   res.json({ ok: true, phoneVerified: true });
 }
 
-router.post("/phone/verify", requireAuth, phoneLimiter, (req, res) => handlePhoneVerify(req, res, null));
-router.post("/phone/confirm", requireAuth, phoneLimiter, (req, res) => handlePhoneVerify(req, res, "confirm"));
+router.post("/phone/verify", requireAuth, phoneLimiter, otpVerifyLimiter, (req, res) => handlePhoneVerify(req, res, null));
+router.post("/phone/confirm", requireAuth, phoneLimiter, otpVerifyLimiter, (req, res) => handlePhoneVerify(req, res, "confirm"));
 
 module.exports = router;

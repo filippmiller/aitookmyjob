@@ -4,8 +4,35 @@
     "title": "Require disclosure when companies replace workers with AI",
     "description": "Public petition for transparent layoff notices and transition support.",
     "goal": 1000,
-    "signatures": 128,
+    "signatures": 131,
     "status": "open",
     "createdAt": "2026-02-09T12:00:00.000Z"
+  },
+  {
+    "id": "pet-xmvn4ef8igfdem",
+    "title": "E2E Petition e2e_1775536784127_16437",
+    "description": "This is an E2E test petition with enough text to pass validation requirements.",
+    "goal": 500,
+    "signatures": 0,
+    "status": "open",
+    "createdAt": "2026-04-07T04:39:44.135Z"
+  },
+  {
+    "id": "pet-ztu29fmny1vcwe",
+    "title": "E2E Petition e2e_1775537748320_63636",
+    "description": "This is an E2E test petition with enough text to pass validation requirements.",
+    "goal": 500,
+    "signatures": 0,
+    "status": "open",
+    "createdAt": "2026-04-07T04:55:48.330Z"
+  },
+  {
+    "id": "pet-uua6a08bdwrbik",
+    "title": "E2E Petition e2e_1775538335557_83487",
+    "description": "This is an E2E test petition with enough text to pass validation requirements.",
+    "goal": 500,
+    "signatures": 0,
+    "status": "open",
+    "createdAt": "2026-04-07T05:05:35.566Z"
   }
 ]

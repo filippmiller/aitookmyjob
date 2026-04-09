@@ -108,5 +108,38 @@
       "reason": "Playwright moderation approval"
     },
     "createdAt": "2026-02-12T05:03:11.466Z"
+  },
+  {
+    "id": "mc5c5ww151e582",
+    "eventType": "sanction",
+    "status": "warn",
+    "details": {
+      "targetUserId": "9chswvexo4jh7o",
+      "reason": "E2E test sanction — warning only",
+      "durationDays": null
+    },
+    "createdAt": "2026-04-07T04:39:40.930Z"
+  },
+  {
+    "id": "3f4fcct7lozksm",
+    "eventType": "sanction",
+    "status": "warn",
+    "details": {
+      "targetUserId": "e57hdn76hud9fw",
+      "reason": "E2E test sanction — warning only",
+      "durationDays": null
+    },
+    "createdAt": "2026-04-07T04:55:45.923Z"
+  },
+  {
+    "id": "2przxxhkvtxcdj",
+    "eventType": "sanction",
+    "status": "warn",
+    "details": {
+      "targetUserId": "oke10ky757slll",
+      "reason": "E2E test sanction — warning only",
+      "durationDays": null
+    },
+    "createdAt": "2026-04-07T05:05:33.775Z"
   }
 ]

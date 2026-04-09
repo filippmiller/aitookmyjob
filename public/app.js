@@ -35,14 +35,20 @@ class AITookMyJobApp {
     this.bindStaticListeners();
     await this.loadInitialData();
     this.render();
+    // Mark page as loaded — hides skeleton placeholders
+    document.documentElement.setAttribute('data-loaded', '');
     this.startRealTimeUpdates();
   }
 
   syncSelectorsFromState() {
     const langSelect = document.getElementById('langSelect');
     if (langSelect) langSelect.value = this.state.lang;
+    const langSelectMobile = document.getElementById('langSelectMobile');
+    if (langSelectMobile) langSelectMobile.value = this.state.lang;
     const countrySelect = document.getElementById('countrySelect');
     if (countrySelect) countrySelect.value = this.state.country;
+    const countrySelectMobile = document.getElementById('countrySelectMobile');
+    if (countrySelectMobile) countrySelectMobile.value = this.state.country;
   }
 
   // ── Data fetching ──
@@ -65,6 +71,11 @@ class AITookMyJobApp {
     }
   }
 
+  getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
   async postJSON(url, body) {
     try {
       const ctrl = new AbortController();
@@ -72,7 +83,7 @@ class AITookMyJobApp {
       const res = await fetch(url, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': this.getCsrfToken() },
         body: JSON.stringify(body),
         signal: ctrl.signal
       });
@@ -178,7 +189,21 @@ class AITookMyJobApp {
     const storyClose = document.getElementById('storyModalClose');
 
     if (shareBtn && storyModal) {
-      shareBtn.addEventListener('click', () => this.openModal(storyModal));
+      shareBtn.addEventListener('click', () => {
+        // Show/hide anonymous banner based on auth state
+        const anonBanner = document.getElementById('storyAnonBanner');
+        if (anonBanner) anonBanner.style.display = this.state.authUser ? 'none' : 'block';
+        this.openModal(storyModal);
+      });
+    }
+    // "Sign in for tracking" link inside anon banner opens auth modal
+    const anonSignInLink = document.getElementById('anonSignInLink');
+    if (anonSignInLink && authModal && storyModal) {
+      anonSignInLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.closeModal(storyModal);
+        this.openModal(authModal);
+      });
     }
     if (storyClose && storyModal) {
       storyClose.addEventListener('click', () => this.closeModal(storyModal));
@@ -308,24 +333,31 @@ class AITookMyJobApp {
       sessionLogoutBtn.addEventListener('click', () => this.handleLogout());
     }
 
-    // Country / Language selectors
+    // Country / Language selectors (desktop + mobile)
     const countrySelect = document.getElementById('countrySelect');
-    if (countrySelect) {
-      countrySelect.addEventListener('change', (e) => {
-        this.state.country = e.target.value;
-        this.loadInitialData().then(() => this.render());
-      });
-    }
+    const countrySelectMobile = document.getElementById('countrySelectMobile');
+    const syncCountry = (value) => {
+      this.state.country = value;
+      if (countrySelect) countrySelect.value = value;
+      if (countrySelectMobile) countrySelectMobile.value = value;
+      this.loadInitialData().then(() => this.render());
+    };
+    if (countrySelect) countrySelect.addEventListener('change', (e) => syncCountry(e.target.value));
+    if (countrySelectMobile) countrySelectMobile.addEventListener('change', (e) => syncCountry(e.target.value));
+
     const langSelect = document.getElementById('langSelect');
-    if (langSelect) {
-      langSelect.addEventListener('change', async (e) => {
-        this.state.lang = e.target.value;
-        await this.loadTranslations(this.state.lang);
-        this.renderNews();
-        this.renderResources();
-        this.applyTranslations();
-      });
-    }
+    const langSelectMobile = document.getElementById('langSelectMobile');
+    const syncLang = async (value) => {
+      this.state.lang = value;
+      if (langSelect) langSelect.value = value;
+      if (langSelectMobile) langSelectMobile.value = value;
+      await this.loadTranslations(this.state.lang);
+      this.renderNews();
+      this.renderResources();
+      this.applyTranslations();
+    };
+    if (langSelect) langSelect.addEventListener('change', (e) => syncLang(e.target.value));
+    if (langSelectMobile) langSelectMobile.addEventListener('change', (e) => syncLang(e.target.value));
 
     // Load More Stories
     const loadMoreBtn = document.getElementById('loadMoreStories');
