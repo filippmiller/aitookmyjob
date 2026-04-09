@@ -20,3 +20,11 @@ test-results/
 
 docs/
 docs
+
+# Session logs / scratch
+.claude/sessions/
+.claude/CLAUDE.md
+TL-SESSION-LOG-*.md
+
+# Ad-hoc screenshot dir from debug sessions
+/screenshots/
