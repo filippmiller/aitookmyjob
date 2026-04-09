@@ -6,9 +6,15 @@
 # 1. Push changes to master
 git push origin master
 
-# 2. Trigger Coolify redeploy (requires SSH tunnel to Hetzner)
+# 2. Open SSH tunnel to Hetzner Coolify (panel not public)
 ssh -f -N -L 8000:localhost:8000 root@89.167.42.128
-# Then trigger via Coolify API or panel
+
+# 3. Trigger redeploy via Coolify API
+#    NOTE: The Coolify app UUID for aitookmyjob is NOT documented in this repo.
+#    Look it up via the Coolify panel at http://localhost:8000 after tunneling,
+#    or from ~/.claude/projects/C--dev/memory/hetzner-vps.md if documented there.
+curl -s -H "Authorization: Bearer $COOLIFY_API_TOKEN" \
+  "http://localhost:8000/api/v1/deploy?uuid=<AITOOKMYJOB_UUID>&force=true"
 ```
 
 ## Build
