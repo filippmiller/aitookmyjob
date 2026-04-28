@@ -23,6 +23,27 @@ const rawOrigins = (process.env.CORS_ORIGINS || "").split(",").map((v) => v.trim
 const ENABLE_HSTS = String(process.env.ENABLE_HSTS || "false").toLowerCase() === "true";
 const REQUIRE_STRICT_SECRETS = String(process.env.REQUIRE_STRICT_SECRETS || (ctx.isProduction ? "true" : "false")).toLowerCase() === "true";
 
+const activityClients = new Set();
+app.locals.activityEvents = [];
+app.locals.publishActivity = (event) => {
+  const entry = {
+    id: `act_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    timestamp: new Date().toISOString(),
+    ...event
+  };
+  app.locals.activityEvents.unshift(entry);
+  app.locals.activityEvents = app.locals.activityEvents.slice(0, 40);
+  const payload = `event: activity\ndata: ${JSON.stringify(entry)}\n\n`;
+  for (const client of activityClients) {
+    try {
+      client.write(payload);
+    } catch (_err) {
+      activityClients.delete(client);
+    }
+  }
+  return entry;
+};
+
 // ── Security & middleware ──
 
 app.disable("x-powered-by");
@@ -57,7 +78,7 @@ app.use(
       callback(new Error("Origin not allowed"));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
     maxAge: 86400
   })
 );
@@ -76,8 +97,8 @@ app.use((req, res, next) => {
   }
   const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
   if (safeMethods.has(req.method)) { next(); return; }
-  // Skip CSRF for API-token-authenticated admin endpoints
-  if (req.headers.authorization) { next(); return; }
+  // Skip CSRF only for requests authenticated with the configured admin API token.
+  if (req.headers.authorization && ctx.hasAdminToken(req)) { next(); return; }
   // Skip CSRF for Telegram webhook (uses its own secret validation)
   if (req.path.includes("/telegram/webhook")) { next(); return; }
   if (!ctx.validateCsrfToken(req)) {
@@ -128,12 +149,34 @@ app.get("/sw.js", (req, res) => {
 
 // ── Server-Sent Events ──
 
+app.get("/api/activity", async (_req, res) => {
+  const runtimeEvents = app.locals.activityEvents || [];
+  const stories = (await ctx.storageGetStories())
+    .filter((story) => story.status === "published")
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 8)
+    .map((story) => {
+      const visible = ctx.maskStoryByPrivacy(ctx.ensureStoryDefaults(story));
+      return {
+        id: `story_${visible.id}`,
+        type: "story.published",
+        title: `${visible.profession || "Worker"} story added`,
+        detail: `${visible.country || "global"} · ${visible.company || "Undisclosed"}`,
+        href: `/story/${visible.id}`,
+        timestamp: visible.createdAt || new Date().toISOString()
+      };
+    });
+  res.json({ events: [...runtimeEvents, ...stories].slice(0, 20) });
+});
+
 app.get("/api/events", (req, res) => {
   res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" });
+  activityClients.add(res);
+  res.write(`event: ready\ndata: ${JSON.stringify({ type: "ready", timestamp: new Date().toISOString() })}\n\n`);
   const interval = setInterval(() => {
-    res.write(`data: ${JSON.stringify({ type: "heartbeat", timestamp: new Date().toISOString() })}\n\n`);
+    res.write(`event: heartbeat\ndata: ${JSON.stringify({ type: "heartbeat", timestamp: new Date().toISOString() })}\n\n`);
   }, 30000);
-  req.on("close", () => { clearInterval(interval); });
+  req.on("close", () => { clearInterval(interval); activityClients.delete(res); });
 });
 
 // ── Story page route ──

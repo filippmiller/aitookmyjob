@@ -1,10 +1,123 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
+const crypto = require("crypto");
 const router = express.Router();
 const { requireAuth, requireVerifiedPhone } = require("../middleware/auth");
 const ctx = require("../lib/context");
 
 const storySubmitLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
+const storyReactionLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
+const reactionTypes = new Set(["support", "useful", "same-industry"]);
+
+function publishActivity(req, event) {
+  if (req.app?.locals?.publishActivity) req.app.locals.publishActivity(event);
+}
+
+function publicStory(story) {
+  const masked = ctx.maskStoryByPrivacy(ctx.ensureStoryDefaults(story));
+  const metrics = masked.metrics || {};
+  const publicMetrics = {
+    views: Number(metrics.views || 0),
+    meToo: Number(metrics.meToo || 0),
+    commentsCount: Number(metrics.commentsCount || 0),
+    reactions: metrics.reactions || {}
+  };
+  return {
+    id: masked.id,
+    name: masked.name,
+    country: masked.country,
+    language: masked.language,
+    profession: masked.profession,
+    company: masked.company,
+    laidOffAt: masked.laidOffAt,
+    foundNewJob: Boolean(masked.foundNewJob),
+    reason: masked.reason,
+    story: masked.story,
+    status: masked.status,
+    estimatedLayoffs: Number(masked.estimatedLayoffs || 1),
+    createdAt: masked.createdAt,
+    updatedAt: masked.updatedAt,
+    city: masked.city,
+    tenureYears: masked.tenureYears,
+    salaryBefore: masked.salaryBefore,
+    salaryAfter: masked.salaryAfter,
+    layoffType: masked.layoffType,
+    aiTool: masked.aiTool,
+    warnedAhead: masked.warnedAhead,
+    compensationMonths: masked.compensationMonths,
+    searchingMonths: masked.searchingMonths,
+    newRoleField: masked.newRoleField,
+    moodScore: masked.moodScore,
+    updateLabel: masked.updateLabel,
+    evidenceTier: masked.evidenceTier,
+    metrics: publicMetrics,
+    views: publicMetrics.views,
+    meToo: publicMetrics.meToo,
+    commentsCount: publicMetrics.commentsCount,
+    confidenceScore: ctx.computeConfidenceScore(masked)
+  };
+}
+
+function getReactionVisitorHash(req, res) {
+  const cookies = ctx.parseCookies(req);
+  let visitorId = cookies.aitmj_vid;
+  if (!visitorId || !/^[a-zA-Z0-9_-]{16,96}$/.test(visitorId)) {
+    visitorId = ctx.generateCsrfToken();
+    const secure = ctx.isProduction ? "; Secure" : "";
+    res.append("Set-Cookie", `aitmj_vid=${encodeURIComponent(visitorId)}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`);
+  }
+  const actor = req.user?.id ? `user:${req.user.id}` : `visitor:${visitorId}`;
+  return crypto.createHmac("sha256", ctx.AUTH_SECRET).update(actor).digest("hex").slice(0, 32);
+}
+
+function applyIdempotentReaction(story, type, visitorHash) {
+  const metrics = story.metrics || {};
+  const reactedBy = { ...(metrics.reactedBy || {}) };
+  const currentActors = Array.isArray(reactedBy[type]) ? reactedBy[type] : [];
+  if (currentActors.includes(visitorHash)) {
+    return { metrics, duplicate: true };
+  }
+  const nextActors = [...currentActors, visitorHash].slice(-1000);
+  reactedBy[type] = nextActors;
+  if (type === "me-too") {
+    return {
+      duplicate: false,
+      metrics: { ...metrics, meToo: Number(metrics.meToo || 0) + 1, reactedBy }
+    };
+  }
+  const reactions = { ...(metrics.reactions || {}) };
+  reactions[type] = Number(reactions[type] || 0) + 1;
+  return {
+    duplicate: false,
+    metrics: { ...metrics, reactions, reactedBy }
+  };
+}
+
+function buildStoryFacets(stories) {
+  const countsFor = (field) => {
+    const counts = new Map();
+    for (const story of stories) {
+      const value = story[field];
+      if (!value) continue;
+      counts.set(value, (counts.get(value) || 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([value, count]) => ({ value, count }));
+  };
+  const foundNewJob = stories.filter((story) => story.foundNewJob).length;
+  return {
+    total: stories.length,
+    professions: countsFor("profession"),
+    countries: countsFor("country"),
+    companies: countsFor("company").slice(0, 25),
+    aiTools: countsFor("aiTool").slice(0, 25),
+    outcomes: [
+      { value: "found", label: "Found new work", count: foundNewJob },
+      { value: "searching", label: "Still searching", count: Math.max(0, stories.length - foundNewJob) }
+    ]
+  };
+}
 
 router.get("/api/stats", async (req, res) => {
   const country = ctx.normalizeCountry(req.query.country || "global");
@@ -21,19 +134,42 @@ router.get("/api/stories", async (req, res) => {
   const country = ctx.normalizeCountry(req.query.country || "global");
   const limit = Math.min(Math.max(Number(req.query.limit || 12), 1), 50);
   const offset = Math.max(Number(req.query.offset || 0), 0);
+  const search = ctx.sanitizeText(req.query.search || "").toLowerCase();
+  const profession = ctx.sanitizeText(req.query.profession || "");
+  const outcome = ctx.sanitizeText(req.query.outcome || "");
+  const countryList = ctx.sanitizeText(req.query.countries || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
   const all = (await ctx.storageGetStories())
     .filter((s) => s.status === "published" && (country === "global" || s.country === country))
+    .filter((s) => !countryList.length || countryList.includes(s.country))
+    .filter((s) => !profession || s.profession === profession)
+    .filter((s) => outcome !== "found" || s.foundNewJob)
+    .filter((s) => outcome !== "searching" || !s.foundNewJob)
+    .filter((s) => {
+      if (!search) return true;
+      const haystack = `${s.name} ${s.company} ${s.profession} ${s.reason || ""} ${s.story || ""} ${s.aiTool || ""}`.toLowerCase();
+      return haystack.includes(search);
+    })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  const stories = all.slice(offset, offset + limit).map(ctx.maskStoryByPrivacy).map((s) => ({ ...s, confidenceScore: ctx.computeConfidenceScore(s) }));
+  const stories = all.slice(offset, offset + limit).map(publicStory);
   res.json({ country, stories, total: all.length, crisisResources: ctx.getCrisisResources(country) });
+});
+
+router.get("/api/stories/facets", async (req, res) => {
+  const country = ctx.normalizeCountry(req.query.country || "global");
+  const stories = (await ctx.storageGetStories())
+    .filter((s) => s.status === "published" && (country === "global" || s.country === country))
+    .map(ctx.ensureStoryDefaults);
+  res.json({ country, facets: buildStoryFacets(stories) });
 });
 
 router.get("/api/stories/:id", async (req, res) => {
   const id = ctx.sanitizeText(req.params.id);
   const story = (await ctx.storageGetStories()).find((s) => s.id === id && s.status === "published");
   if (!story) { res.status(404).json({ message: "Story not found" }); return; }
-  const masked = ctx.maskStoryByPrivacy(story);
-  res.json({ ...masked, confidenceScore: ctx.computeConfidenceScore(story) });
+  res.json(publicStory(story));
 });
 
 router.post("/api/stories", storySubmitLimiter, requireAuth, requireVerifiedPhone, async (req, res) => {
@@ -49,6 +185,12 @@ router.post("/api/stories", storySubmitLimiter, requireAuth, requireVerifiedPhon
   if (moderation.riskBand !== "low" && ctx.TELEGRAM_MOD_CHAT_ID) {
     await ctx.sendTelegramMessage(ctx.TELEGRAM_MOD_CHAT_ID, `New story flagged (${moderation.riskBand})\nID: ${newStory.id}\nCountry: ${newStory.country}\nRisk: ${JSON.stringify(moderation)}`);
   }
+  publishActivity(req, {
+    type: "story.submitted",
+    title: "Story submitted for review",
+    detail: `${newStory.profession} · ${newStory.country}`,
+    href: `/story/${newStory.id}`
+  });
   res.status(initialStatus === "rejected" ? 202 : 201).json({
     message: initialStatus === "rejected" ? "Story auto-flagged for high-risk review" : "Story submitted for moderation",
     id: newStory.id, status: newStory.status, moderation,
@@ -67,6 +209,12 @@ router.post("/api/stories/anonymous", storySubmitLimiter, async (req, res) => {
   const newStory = ctx.buildStoryRecord(prepared.data, null, moderation, initialStatus);
   await ctx.storageInsertStory(newStory);
   await ctx.storageAudit({ action: "story.submit.anonymous", actorId: null, targetType: "story", targetId: newStory.id, metadata: { country: newStory.country, language: newStory.language, moderation }, ip: req.ip });
+  publishActivity(req, {
+    type: "story.submitted",
+    title: "Anonymous story submitted",
+    detail: `${newStory.profession} · ${newStory.country}`,
+    href: `/story/${newStory.id}`
+  });
   res.status(initialStatus === "rejected" ? 202 : 201).json({ message: "Anonymous story submitted for moderation", id: newStory.id, status: newStory.status, moderation });
 });
 
@@ -76,10 +224,46 @@ router.post("/api/stories/:id/view", async (req, res) => {
   res.json({ id: updated.id, views: updated.metrics.views });
 });
 
-router.post("/api/stories/:id/me-too", async (req, res) => {
-  const updated = await ctx.storagePatchStory(req.params.id, (story) => ({ metrics: { ...story.metrics, meToo: Number(story.metrics?.meToo || 0) + 1 } }));
+router.post("/api/stories/:id/me-too", storyReactionLimiter, async (req, res) => {
+  let duplicate = false;
+  const visitorHash = getReactionVisitorHash(req, res);
+  const updated = await ctx.storagePatchStory(req.params.id, (story) => {
+    const result = applyIdempotentReaction(story, "me-too", visitorHash);
+    duplicate = result.duplicate;
+    return { metrics: result.metrics };
+  });
   if (!updated) { res.status(404).json({ message: "Story not found" }); return; }
-  res.json({ id: updated.id, meToo: updated.metrics.meToo });
+  if (!duplicate) {
+    publishActivity(req, {
+      type: "reaction.me-too",
+      title: "Someone marked Me too",
+      detail: `${updated.profession || "Worker"} story · ${updated.country || "global"}`,
+      href: `/story/${updated.id}`
+    });
+  }
+  res.json({ id: updated.id, meToo: updated.metrics.meToo || 0, duplicate });
+});
+
+router.post("/api/stories/:id/reactions", storyReactionLimiter, async (req, res) => {
+  const type = ctx.sanitizeText(req.body.type || "");
+  if (!reactionTypes.has(type)) { res.status(422).json({ message: "Unknown reaction type" }); return; }
+  let duplicate = false;
+  const visitorHash = getReactionVisitorHash(req, res);
+  const updated = await ctx.storagePatchStory(req.params.id, (story) => {
+    const result = applyIdempotentReaction(story, type, visitorHash);
+    duplicate = result.duplicate;
+    return { metrics: result.metrics };
+  });
+  if (!updated) { res.status(404).json({ message: "Story not found" }); return; }
+  if (!duplicate) {
+    publishActivity(req, {
+      type: `reaction.${type}`,
+      title: type === "support" ? "Support sent" : type === "useful" ? "Story saved as useful" : "Same-field signal added",
+      detail: `${updated.profession || "Worker"} story · ${updated.country || "global"}`,
+      href: `/story/${updated.id}`
+    });
+  }
+  res.json({ id: updated.id, reactions: updated.metrics.reactions || {}, duplicate });
 });
 
 router.post("/api/stories/:id/comment", requireAuth, async (req, res) => {

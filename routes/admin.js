@@ -70,6 +70,14 @@ router.post("/moderation/:id/action", requireAdminOrToken, async (req, res) => {
       await ctx.storageInsertStoryVersion({ id: ctx.auditId(), storyId: storyKey, versionNo: 2, payload: { status: current.status, moderationReason: parsed.data.reason }, createdBy: req.user?.id || "admin-token", createdAt: new Date().toISOString() });
     }
     await ctx.storageInsertTransparencyEvent({ id: ctx.auditId(), eventType: "moderation", status: parsed.data.action, details: { entryId: req.params.id, reason: parsed.data.reason }, createdAt: new Date().toISOString() });
+    if (parsed.data.action === "approve" && req.app?.locals?.publishActivity) {
+      req.app.locals.publishActivity({
+        type: "story.published",
+        title: "Story published",
+        detail: current ? `${current.profession || "Worker"} · ${current.country || "global"}` : storyKey,
+        href: `/story/${storyKey}`
+      });
+    }
   }
   res.json({ ok: true });
 });

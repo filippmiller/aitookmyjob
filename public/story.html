@@ -107,7 +107,7 @@
 
   <script>
     (async function() {
-      const pathParts = window.location.pathname.split('/');
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
       const storyId = pathParts[pathParts.length - 1];
       if (!storyId) { showError(); return; }
 
@@ -122,13 +122,30 @@
         document.getElementById('storyError').style.display = 'block';
       }
 
+      function getCsrfToken() {
+        const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+        return match ? decodeURIComponent(match[1]) : '';
+      }
+
+      function postJSON(url, body) {
+        return fetch(url, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCsrfToken()
+          },
+          body: JSON.stringify(body || {})
+        });
+      }
+
       try {
         const res = await fetch(`/api/stories/${encodeURIComponent(storyId)}`, { credentials: 'include' });
         if (!res.ok) { showError(); return; }
         const story = await res.json();
 
         // Record view
-        fetch(`/api/stories/${encodeURIComponent(storyId)}/view`, { method: 'POST', credentials: 'include' }).catch(() => {});
+        postJSON(`/api/stories/${encodeURIComponent(storyId)}/view`).catch(() => {});
 
         // Update OG meta tags for social sharing
         const pageTitle = `${story.profession} at ${story.company} — AI Took My Job`;
@@ -179,7 +196,7 @@
           const btn = this;
           btn.disabled = true;
           try {
-            const r = await fetch(`/api/stories/${encodeURIComponent(storyId)}/me-too`, { method: 'POST', credentials: 'include' });
+            const r = await postJSON(`/api/stories/${encodeURIComponent(storyId)}/me-too`);
             if (r.ok) {
               const data = await r.json();
               document.getElementById('storyMeTooCount').textContent = String(data.meToo || 0);

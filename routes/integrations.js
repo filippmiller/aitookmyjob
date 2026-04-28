@@ -197,6 +197,14 @@ router.post("/api/campaigns/petitions/:id/sign", async (req, res) => {
   if (idx < 0) { res.status(404).json({ message: "Petition not found" }); return; }
   entries[idx].signatures = Number(entries[idx].signatures || 0) + 1;
   ctx.writeJsonArray(ctx.petitionsPath, entries);
+  if (req.app?.locals?.publishActivity) {
+    req.app.locals.publishActivity({
+      type: "petition.signed",
+      title: "Petition signed",
+      detail: `${entries[idx].signatures} signatures · ${entries[idx].title}`,
+      href: "#community"
+    });
+  }
   res.json({ id, signatures: entries[idx].signatures });
 });
 
@@ -313,6 +321,14 @@ router.post("/api/digest/subscribe", digestSubscribeLimiter, (req, res) => {
   const entry = { id: `sub-${ctx.topicId()}`, email: parsed.data.email, subscribedAt: new Date().toISOString(), country: ctx.normalizeCountry(String(req.body.country || ctx.defaultCountry)), language: ctx.normalizeLanguage(String(req.body.language || ctx.defaultLang)) };
   subscribers.push(entry);
   ctx.writeJsonArray(ctx.subscribersPath, subscribers.slice(-50000));
+  if (req.app?.locals?.publishActivity) {
+    req.app.locals.publishActivity({
+      type: "digest.subscribed",
+      title: "New weekly digest subscriber",
+      detail: `${entry.country} · ${entry.language}`,
+      href: "#resources"
+    });
+  }
   res.status(201).json({ id: entry.id, subscribedAt: entry.subscribedAt });
 });
 

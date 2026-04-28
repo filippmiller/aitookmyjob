@@ -18,10 +18,12 @@ class AITookMyJobApp {
       stories: [],
       news: [],
       resources: [],
+      storyFacets: null,
       authUser: null,
       dashboard: null,
       storiesPage: 0,
       storiesPerPage: 6,
+      storiesTotal: 0,
       allStoriesLoaded: false
     };
 
@@ -106,6 +108,32 @@ class AITookMyJobApp {
 
   fmt(n) {
     return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(n || 0));
+  }
+
+  storyReactionTypes() {
+    return [
+      { type: 'me-too', icon: 'ph-hand-fist', label: 'Me too', title: 'I experienced this too' },
+      { type: 'support', icon: 'ph-heart', label: 'Support', title: 'Send support' },
+      { type: 'same-industry', icon: 'ph-briefcase', label: 'Same field', title: 'I work in this field too' },
+      { type: 'useful', icon: 'ph-bookmark-simple', label: 'Useful', title: 'Save this as useful signal' }
+    ];
+  }
+
+  storyReactionStorageKey(storyId, type) {
+    return `aitmj:reaction:${storyId}:${type}`;
+  }
+
+  hasStoryReaction(storyId, type) {
+    return localStorage.getItem(this.storyReactionStorageKey(storyId, type)) === '1';
+  }
+
+  rememberStoryReaction(storyId, type) {
+    localStorage.setItem(this.storyReactionStorageKey(storyId, type), '1');
+  }
+
+  getReactionCount(story, type) {
+    if (type === 'me-too') return Number(story.metrics?.meToo || story.meToo || 0);
+    return Number(story.metrics?.reactions?.[type] || 0);
   }
 
   // ── Theme ──
@@ -236,23 +264,29 @@ class AITookMyJobApp {
       updateCount();
     }
 
-    // Preview toggle
+    // Public story preview
     const previewToggle = document.getElementById('storyPreviewToggle');
     const previewPanel = document.getElementById('storyPreviewPanel');
     const previewContent = document.getElementById('storyPreviewContent');
-    if (previewToggle && previewPanel && previewContent && storyTextarea) {
+    if (previewToggle && previewPanel && previewContent && storyForm) {
+      const previewInputs = [
+        'storyName', 'storyProfession', 'storyCompany', 'storyDate', 'storyReason', 'storyText',
+        'storyCountry', 'storyAiTool', 'storyPrivacyName', 'storyPrivacyCompany', 'storyPrivacyDate',
+        'storyPrivacyGeo', 'storyFoundJob'
+      ];
+      const updatePreview = () => this.updateStoryPrivacyPreview(storyForm, previewContent);
       previewToggle.addEventListener('click', () => {
         const showing = previewPanel.style.display !== 'none';
         previewPanel.style.display = showing ? 'none' : 'block';
         previewToggle.innerHTML = showing ? '<i class="ph ph-eye"></i> Preview' : '<i class="ph ph-eye-slash"></i> Hide Preview';
-        if (!showing) {
-          previewContent.textContent = storyTextarea.value || '(empty)';
-        }
+        if (!showing) updatePreview();
       });
-      storyTextarea.addEventListener('input', () => {
-        if (previewPanel.style.display !== 'none') {
-          previewContent.textContent = storyTextarea.value || '(empty)';
-        }
+      previewInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (!input) return;
+        input.addEventListener(input.tagName === 'SELECT' || input.type === 'checkbox' ? 'change' : 'input', () => {
+          if (previewPanel.style.display !== 'none') updatePreview();
+        });
       });
     }
 
@@ -368,16 +402,18 @@ class AITookMyJobApp {
     // Story search and filter
     const storySearch = document.getElementById('storySearch');
     const storyRegionFilter = document.getElementById('storyRegionFilter');
+    const storyProfessionFilter = document.getElementById('storyProfessionFilter');
+    const storyOutcomeFilter = document.getElementById('storyOutcomeFilter');
     if (storySearch) {
       let debounce;
       storySearch.addEventListener('input', () => {
         clearTimeout(debounce);
-        debounce = setTimeout(() => this.renderStories(), 250);
+        debounce = setTimeout(() => this.reloadStoriesForFilters(), 250);
       });
     }
-    if (storyRegionFilter) {
-      storyRegionFilter.addEventListener('change', () => this.renderStories());
-    }
+    [storyRegionFilter, storyProfessionFilter, storyOutcomeFilter].forEach(filter => {
+      if (filter) filter.addEventListener('change', () => this.reloadStoriesForFilters());
+    });
 
     // Keyboard accessibility: Escape closes modals
     document.addEventListener('keydown', (e) => {
@@ -601,7 +637,13 @@ class AITookMyJobApp {
       language: this.state.lang,
       aiTool: form.aiTool.value.trim() || undefined,
       foundNewJob: form.foundNewJob.checked,
-      ndaConfirmed: form.ndaConfirmed.checked
+      ndaConfirmed: form.ndaConfirmed.checked,
+      privacy: {
+        name: form.privacyName.value,
+        company: form.privacyCompany.value,
+        date: form.privacyDate.value,
+        geo: form.privacyGeo.value
+      }
     };
 
     if (body.story.length < 40) {
@@ -644,6 +686,54 @@ class AITookMyJobApp {
     this.setLoading(btn, false, 'Submit Story');
   }
 
+  updateStoryPrivacyPreview(form, container) {
+    if (!form || !container) return;
+    const rawName = form.name.value.trim() || 'Your alias';
+    const words = rawName.split(/\s+/).filter(Boolean);
+    const nameVisibility = form.privacyName.value;
+    const companyVisibility = form.privacyCompany.value;
+    const dateVisibility = form.privacyDate.value;
+    const geoVisibility = form.privacyGeo.value;
+
+    let publicName = rawName;
+    if (nameVisibility === 'hidden') publicName = 'Anonymous';
+    if (nameVisibility === 'coarse') publicName = words.length ? words.map(word => `${word[0].toUpperCase()}.`).join(' ') : 'A.';
+
+    let publicCompany = form.company.value.trim() || 'Undisclosed company';
+    if (companyVisibility === 'hidden') publicCompany = 'Undisclosed company';
+    if (companyVisibility === 'coarse') publicCompany = 'Technology company';
+
+    let publicDate = form.laidOffAt.value.trim() || 'Year hidden';
+    if (dateVisibility === 'hidden') publicDate = 'Hidden';
+    if (dateVisibility === 'coarse') {
+      const yearMatch = publicDate.match(/\b(19|20)\d{2}\b/);
+      publicDate = yearMatch ? yearMatch[0] : 'Year only';
+    }
+
+    const country = form.country.options[form.country.selectedIndex]?.text || 'Global';
+    const publicGeo = geoVisibility === 'hidden' ? 'Location hidden' : country;
+    const aiTool = form.aiTool.value.trim();
+    const reason = form.reason.value.trim() || 'Brief reason will appear here.';
+    const story = form.story.value.trim() || 'Your story preview will appear here as readers will see it.';
+
+    container.innerHTML = `
+      <div class="story-preview-topline">
+        <div class="story-avatar">${this.esc(this.getInitials(publicName))}</div>
+        <div>
+          <strong>${this.esc(publicName)}</strong>
+          <span>${this.esc(form.profession.value.trim() || 'Profession')} at ${this.esc(publicCompany)} · ${this.esc(publicDate)}</span>
+        </div>
+      </div>
+      <p class="story-preview-reason">${this.esc(reason)}</p>
+      <p class="story-preview-body">${this.esc(story)}</p>
+      <div class="story-signal-row">
+        <span class="story-signal"><i class="ph ph-map-pin"></i> ${this.esc(publicGeo)}</span>
+        ${aiTool ? `<span class="story-signal"><i class="ph ph-robot"></i> ${this.esc(aiTool)}</span>` : ''}
+        ${form.foundNewJob.checked ? '<span class="story-signal story-signal-good"><i class="ph ph-check-circle"></i> Found new work</span>' : '<span class="story-signal"><i class="ph ph-clock"></i> Still searching</span>'}
+      </div>
+    `;
+  }
+
   setLoading(btn, loading, text) {
     if (!btn) return;
     btn.disabled = loading;
@@ -683,18 +773,23 @@ class AITookMyJobApp {
   async loadInitialData() {
     const country = this.state.country;
 
-    const [statsData, storiesData, newsData, meData, resourcesData] = await Promise.allSettled([
+    const [statsData, storiesData, newsData, meData, resourcesData, facetsData] = await Promise.allSettled([
       this.fetchJSON(`/api/stats?country=${country}`, { counters: {} }),
       this.fetchJSON(`/api/stories?country=${country}&limit=${this.state.storiesPerPage}`, { stories: [] }),
       this.fetchJSON(`/api/news?country=${country}`, { news: [] }),
       this.fetchJSON('/api/auth/me', null),
-      this.fetchJSON(`/api/resources?country=${country}`, { resources: [] })
+      this.fetchJSON(`/api/resources?country=${country}`, { resources: [] }),
+      this.fetchJSON(`/api/stories/facets?country=${country}`, { facets: null })
     ]);
 
     this.state.stats = statsData.status === 'fulfilled' ? statsData.value : { counters: {} };
     this.state.stories = storiesData.status === 'fulfilled' ? (storiesData.value.stories || []) : [];
+    this.state.storiesTotal = storiesData.status === 'fulfilled' ? Number(storiesData.value.total || this.state.stories.length) : 0;
     this.state.news = newsData.status === 'fulfilled' ? (newsData.value.news || []) : [];
     this.state.resources = resourcesData.status === 'fulfilled' ? (resourcesData.value.resources || []) : [];
+    this.state.storyFacets = facetsData.status === 'fulfilled' ? facetsData.value.facets : null;
+    this.state.storiesPage = 0;
+    this.state.allStoriesLoaded = this.state.stories.length >= this.state.storiesTotal;
 
     const me = meData.status === 'fulfilled' ? meData.value : null;
     this.state.authUser = me && me.id ? me : null;
@@ -789,26 +884,38 @@ class AITookMyJobApp {
 
   renderStories() {
     const container = document.getElementById('storiesContainer');
-    if (!container || !this.state.stories.length) return;
+    if (!container) return;
+
+    this.renderStoryFilterOptions();
 
     const searchEl = document.getElementById('storySearch');
     const regionEl = document.getElementById('storyRegionFilter');
+    const professionEl = document.getElementById('storyProfessionFilter');
+    const outcomeEl = document.getElementById('storyOutcomeFilter');
     const query = (searchEl?.value || '').toLowerCase().trim();
     const regionCodes = (regionEl?.value || '').split(',').filter(Boolean);
+    const profession = professionEl?.value || '';
+    const outcome = outcomeEl?.value || '';
 
     const filtered = this.state.stories.filter(story => {
       if (query) {
-        const haystack = `${story.name} ${story.company} ${story.profession} ${story.story} ${story.reason || ''}`.toLowerCase();
+        const haystack = `${story.name} ${story.company} ${story.profession} ${story.story} ${story.reason || ''} ${story.aiTool || ''}`.toLowerCase();
         if (!haystack.includes(query)) return false;
       }
       if (regionCodes.length) {
         if (!regionCodes.includes(story.country)) return false;
       }
+      if (profession && story.profession !== profession) return false;
+      if (outcome === 'found' && !story.foundNewJob) return false;
+      if (outcome === 'searching' && story.foundNewJob) return false;
       return true;
     });
 
+    this.renderStoryFilterSummary(filtered);
+
     if (!filtered.length) {
       container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:var(--sp-8);">No stories match your filters.</p>';
+      this.updatePagination();
       return;
     }
 
@@ -824,17 +931,30 @@ class AITookMyJobApp {
             <span class="tag tag-amber">${this.esc(story.country || 'Global')}</span>
           </div>
           <div class="story-card-v2-body">${this.esc(story.story)}</div>
+          <div class="story-signal-row">
+            ${story.foundNewJob ? '<span class="story-signal story-signal-good"><i class="ph ph-check-circle"></i> Found new work</span>' : '<span class="story-signal"><i class="ph ph-clock"></i> Still searching</span>'}
+            ${story.aiTool ? `<span class="story-signal"><i class="ph ph-robot"></i> ${this.esc(story.aiTool)}</span>` : ''}
+            <span class="story-signal"><i class="ph ph-gauge"></i> ${Math.round(Number(story.confidenceScore || 0) * 100)}% signal</span>
+          </div>
         </a>
         <div class="story-card-v2-footer">
           <div class="story-card-v2-tags">
             <span style="font-size:var(--text-xs);color:var(--text-muted);"><i class="ph ph-eye"></i> ${this.fmt(story.views || 0)}</span>
           </div>
-          <div style="display:flex;gap:var(--sp-2);">
-            <button class="btn-metoo" data-story-id="${this.esc(story.id)}" title="I experienced this too">
-              <i class="ph ph-hand-fist"></i>
-              <span>Me Too</span>
-              <span class="metoo-count">${story.metrics?.meToo || story.meToo || 0}</span>
-            </button>
+          <div class="story-interaction-row">
+            <div class="story-reaction-bar" aria-label="Story reactions">
+              ${this.storyReactionTypes().map(reaction => {
+                const count = this.getReactionCount(story, reaction.type);
+                const active = this.hasStoryReaction(story.id, reaction.type);
+                return `
+                  <button class="story-reaction-btn ${active ? 'is-active' : ''}" data-story-id="${this.esc(story.id)}" data-reaction-type="${this.esc(reaction.type)}" title="${this.esc(reaction.title)}" aria-pressed="${active}">
+                    <i class="ph ${this.esc(reaction.icon)}"></i>
+                    <span>${this.esc(reaction.label)}</span>
+                    <strong>${this.fmt(count)}</strong>
+                  </button>
+                `;
+              }).join('')}
+            </div>
             <button class="btn-share" data-story-id="${this.esc(story.id)}" title="Share this story">
               <i class="ph ph-share-network"></i>
             </button>
@@ -843,14 +963,79 @@ class AITookMyJobApp {
       </article>
     `).join('');
 
-    container.querySelectorAll('.btn-metoo').forEach(btn => {
-      btn.addEventListener('click', (e) => this.handleMeToo(e));
+    container.querySelectorAll('.story-reaction-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => this.handleStoryReaction(e));
     });
     container.querySelectorAll('.btn-share').forEach(btn => {
       btn.addEventListener('click', (e) => this.handleShare(e));
     });
 
     this.updatePagination();
+  }
+
+  getStoryFilterParams() {
+    const search = (document.getElementById('storySearch')?.value || '').trim();
+    const countries = (document.getElementById('storyRegionFilter')?.value || '').trim();
+    const profession = document.getElementById('storyProfessionFilter')?.value || '';
+    const outcome = document.getElementById('storyOutcomeFilter')?.value || '';
+    const params = new URLSearchParams({ country: this.state.country, limit: String(this.state.storiesPerPage), offset: '0' });
+    if (search) params.set('search', search);
+    if (countries) params.set('countries', countries);
+    if (profession) params.set('profession', profession);
+    if (outcome) params.set('outcome', outcome);
+    return params;
+  }
+
+  async reloadStoriesForFilters() {
+    const data = await this.fetchJSON(`/api/stories?${this.getStoryFilterParams().toString()}`, { stories: [], total: 0 });
+    this.state.stories = data.stories || [];
+    this.state.storiesTotal = Number(data.total || this.state.stories.length);
+    this.state.storiesPage = 0;
+    this.state.allStoriesLoaded = this.state.stories.length >= this.state.storiesTotal;
+    this.renderStories();
+  }
+
+  renderStoryFilterOptions() {
+    const professionEl = document.getElementById('storyProfessionFilter');
+    if (!professionEl) return;
+    const current = professionEl.value;
+    const professions = (this.state.storyFacets?.professions || [...new Set(this.state.stories.map(story => story.profession).filter(Boolean)).map(value => ({ value }))])
+      .map(item => item.value)
+      .filter(Boolean);
+    professionEl.innerHTML = '<option value="">All Professions</option>' + professions
+      .map(profession => `<option value="${this.esc(profession)}">${this.esc(profession)}</option>`)
+      .join('');
+    if (professions.includes(current)) professionEl.value = current;
+  }
+
+  renderStoryFilterSummary(filteredStories) {
+    const el = document.getElementById('storyFilterSummary');
+    if (!el) return;
+    const count = filteredStories.length;
+    const affected = filteredStories.reduce((sum, story) => sum + Number(story.estimatedLayoffs || 1), 0);
+    const recovered = filteredStories.filter(story => story.foundNewJob).length;
+    const hasFilters = this.hasActiveStoryFilters();
+    el.innerHTML = `
+      <span><strong>${this.fmt(count)}</strong> visible stories</span>
+      <span><strong>${this.fmt(affected)}</strong> reported affected</span>
+      <span><strong>${this.fmt(recovered)}</strong> found work</span>
+      ${hasFilters ? `<button class="story-clear-filters" type="button">Clear filters</button>` : ''}
+    `;
+    const clearBtn = el.querySelector('.story-clear-filters');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        ['storySearch', 'storyRegionFilter', 'storyProfessionFilter', 'storyOutcomeFilter'].forEach(id => {
+          const input = document.getElementById(id);
+          if (input) input.value = '';
+        });
+        this.reloadStoriesForFilters();
+      });
+    }
+  }
+
+  hasActiveStoryFilters() {
+    return ['storySearch', 'storyRegionFilter', 'storyProfessionFilter', 'storyOutcomeFilter']
+      .some(id => Boolean((document.getElementById(id)?.value || '').trim()));
   }
 
   // ── Story pagination ──
@@ -861,13 +1046,13 @@ class AITookMyJobApp {
 
     this.state.storiesPage++;
     const offset = this.state.storiesPage * this.state.storiesPerPage;
-    const data = await this.fetchJSON(
-      `/api/stories?country=${this.state.country}&limit=${this.state.storiesPerPage}&offset=${offset}`,
-      { stories: [] }
-    );
+    const params = this.getStoryFilterParams();
+    params.set('offset', String(offset));
+    const data = await this.fetchJSON(`/api/stories?${params.toString()}`, { stories: [], total: 0 });
 
     const newStories = data.stories || [];
-    if (newStories.length < this.state.storiesPerPage) {
+    this.state.storiesTotal = Number(data.total || this.state.stories.length + newStories.length);
+    if (newStories.length < this.state.storiesPerPage || this.state.stories.length + newStories.length >= this.state.storiesTotal) {
       this.state.allStoriesLoaded = true;
     }
 
@@ -883,6 +1068,49 @@ class AITookMyJobApp {
   }
 
   // ── Story interactions ──
+
+  async handleStoryReaction(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const btn = e.currentTarget;
+    const id = btn.dataset.storyId;
+    const type = btn.dataset.reactionType;
+    if (!id || !type || btn.disabled || this.hasStoryReaction(id, type)) return;
+
+    btn.disabled = true;
+    const endpoint = type === 'me-too' ? `/api/stories/${id}/me-too` : `/api/stories/${id}/reactions`;
+    const body = type === 'me-too' ? {} : { type };
+    const res = await this.postJSON(endpoint, body);
+
+    if (res.ok) {
+      this.rememberStoryReaction(id, type);
+      btn.classList.add('is-active');
+      btn.setAttribute('aria-pressed', 'true');
+      const countEl = btn.querySelector('strong');
+      if (countEl) {
+        const nextValue = type === 'me-too'
+          ? Number(res.data?.meToo || 0)
+          : Number(res.data?.reactions?.[type] || 0);
+        countEl.textContent = this.fmt(nextValue);
+        countEl.classList.add('count-bump');
+        setTimeout(() => countEl.classList.remove('count-bump'), 350);
+      }
+      const story = this.state.stories.find(item => item.id === id);
+      if (story) {
+        story.metrics = story.metrics || {};
+        if (type === 'me-too') {
+          story.metrics.meToo = Number(res.data?.meToo || story.metrics.meToo || 0);
+          story.meToo = story.metrics.meToo;
+        } else {
+          story.metrics.reactions = { ...(story.metrics.reactions || {}), ...(res.data?.reactions || {}) };
+        }
+      }
+      this.toast(type === 'me-too' ? 'Solidarity noted' : 'Reaction recorded', 'success');
+    } else {
+      btn.disabled = false;
+      this.toast(res.error || 'Could not save reaction', 'error');
+    }
+  }
 
   async handleMeToo(e) {
     const btn = e.currentTarget;
@@ -903,7 +1131,7 @@ class AITookMyJobApp {
 
   handleShare(e) {
     const id = e.currentTarget.dataset.storyId;
-    const url = `${window.location.origin}/#story-${id}`;
+    const url = `${window.location.origin}/story/${id}`;
 
     if (navigator.share) {
       navigator.share({ title: 'AI Took My Job — A Story', url }).catch(() => {});

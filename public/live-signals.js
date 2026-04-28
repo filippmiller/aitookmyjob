@@ -86,6 +86,8 @@
     carouselIndex: 0,
     carouselTimer: null,
     counterRafId: null,
+    activityEvents: [],
+    activitySource: null,
   };
 
   // ── 1. TICKER BAR ──────────────────────────────────────────────────────────
@@ -411,6 +413,136 @@
     state.carouselIndex = nextIndex;
   }
 
+  // ── 4. LIVE ACTIVITY RAIL ─────────────────────────────────────────────────
+
+  function activityIcon(type) {
+    if (type && type.startsWith('reaction.')) return 'ph-heart';
+    if (type === 'story.submitted') return 'ph-pencil-line';
+    if (type === 'story.published') return 'ph-check-circle';
+    if (type === 'petition.signed') return 'ph-signature';
+    if (type === 'digest.subscribed') return 'ph-envelope-simple';
+    return 'ph-pulse';
+  }
+
+  function normalizeActivity(event) {
+    return {
+      id: event.id || `local_${Date.now()}`,
+      type: event.type || 'activity',
+      title: event.title || 'Activity recorded',
+      detail: event.detail || '',
+      href: event.href || '',
+      timestamp: event.timestamp || new Date().toISOString()
+    };
+  }
+
+  function mergeActivity(events) {
+    const seen = new Set();
+    state.activityEvents = [...events.map(normalizeActivity), ...state.activityEvents]
+      .filter(event => {
+        if (seen.has(event.id)) return false;
+        seen.add(event.id);
+        return true;
+      })
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 16);
+  }
+
+  function buildActivityPanel(kind) {
+    return `
+      <section class="live-activity-panel live-activity-${kind}" aria-label="Live platform activity">
+        <div class="live-activity-header">
+          <div>
+            <span class="live-activity-eyebrow"><span></span> Live activity</span>
+            <h3>What is happening now</h3>
+          </div>
+          <span class="live-activity-count" data-live-activity-count>0</span>
+        </div>
+        <div class="live-activity-list" data-live-activity-list>
+          <div class="live-activity-empty">Listening for platform signals...</div>
+        </div>
+      </section>
+    `;
+  }
+
+  function initActivityPanels() {
+    const sidebar = document.querySelector('.data-sidebar');
+    if (sidebar && !sidebar.querySelector('.live-activity-panel')) {
+      const firstChart = sidebar.querySelector('.sidebar-item:nth-of-type(2)');
+      if (firstChart) {
+        firstChart.insertAdjacentHTML('beforebegin', buildActivityPanel('sidebar'));
+      } else {
+        sidebar.insertAdjacentHTML('beforeend', buildActivityPanel('sidebar'));
+      }
+    }
+
+    const onboarding = document.querySelector('.onboarding-cta');
+    if (onboarding && !document.querySelector('.live-activity-inline')) {
+      onboarding.insertAdjacentHTML('afterend', buildActivityPanel('inline'));
+    }
+  }
+
+  function renderActivity() {
+    const lists = document.querySelectorAll('[data-live-activity-list]');
+    const counters = document.querySelectorAll('[data-live-activity-count]');
+    counters.forEach(counter => { counter.textContent = String(state.activityEvents.length); });
+    if (!lists.length) return;
+
+    const html = state.activityEvents.slice(0, 6).map(event => {
+      const body = `
+        <span class="live-activity-icon"><i class="ph ${activityIcon(event.type)}"></i></span>
+        <span class="live-activity-copy">
+          <strong>${escHtml(event.title)}</strong>
+          ${event.detail ? `<small>${escHtml(event.detail)}</small>` : ''}
+        </span>
+        <time>${escHtml(relativeTime(event.timestamp))}</time>
+      `;
+      return event.href
+        ? `<a class="live-activity-item" href="${escHtml(event.href)}">${body}</a>`
+        : `<div class="live-activity-item">${body}</div>`;
+    }).join('');
+
+    lists.forEach(list => {
+      list.innerHTML = html || '<div class="live-activity-empty">Listening for platform signals...</div>';
+    });
+  }
+
+  async function loadInitialActivity() {
+    const app = getApp();
+    const data = app
+      ? await app.fetchJSON('/api/activity', { events: [] })
+      : { events: [] };
+    mergeActivity(data.events || []);
+    renderActivity();
+  }
+
+  function showActivityToast(event) {
+    const app = getApp();
+    if (app && typeof app.toast === 'function') {
+      app.toast(`${event.title}${event.detail ? `: ${event.detail}` : ''}`, 'info');
+    }
+  }
+
+  function startActivityStream() {
+    if (!window.EventSource || state.activitySource) return;
+    state.activitySource = new EventSource('/api/events');
+    state.activitySource.addEventListener('activity', (message) => {
+      try {
+        const event = normalizeActivity(JSON.parse(message.data || '{}'));
+        mergeActivity([event]);
+        renderActivity();
+        showActivityToast(event);
+      } catch (_) {
+        // Ignore malformed activity events.
+      }
+    });
+  }
+
+  async function initActivity() {
+    initActivityPanels();
+    await loadInitialActivity();
+    startActivityStream();
+  }
+
   // ── INIT ───────────────────────────────────────────────────────────────────
 
   function init() {
@@ -418,6 +550,7 @@
     initTicker();
     initPulseCounter();
     initCarousel();
+    initActivity();
   }
 
   // Wait for DOM to be ready, and also wait for window.app to be available
