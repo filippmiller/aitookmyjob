@@ -43,7 +43,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet">
-  <script type="module" src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css">
 </head>
 <body>
 
@@ -668,6 +668,15 @@
       </section>
 
     </main>
+
+    <aside class="poll-rail" aria-labelledby="pollRailTitle">
+      <div class="poll-rail-header">
+        <span class="section-kicker">Boundary polls</span>
+        <h2 id="pollRailTitle">Where do you draw the line?</h2>
+        <p>Quick signals on the kinds of AI people will accept near their bodies, families, jobs, and rights.</p>
+      </div>
+      <div class="poll-stack" id="aiBoundaryPolls" aria-live="polite"></div>
+    </aside>
   </div><!-- end .app-layout -->
 
   <!-- Footer -->

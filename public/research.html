@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet">
-  <script type="module" src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css">
 </head>
 <body>
 
@@ -289,14 +289,13 @@
 
       // Theme
       const toggle = document.getElementById('themeToggle');
-      const theme = localStorage.getItem('theme') || 'dark';
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
       document.documentElement.setAttribute('data-theme', theme);
       if (toggle) {
         toggle.addEventListener('click', () => {
           const current = document.documentElement.getAttribute('data-theme');
           const next = current === 'dark' ? 'light' : 'dark';
           document.documentElement.setAttribute('data-theme', next);
-          localStorage.setItem('theme', next);
         });
       }
 

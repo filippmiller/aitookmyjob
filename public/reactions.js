@@ -32,21 +32,17 @@
     }
   ];
 
-  // ── Local storage helpers (track which reactions user made) ──
+  // ── Current-page reaction state. Persistence is handled by the API. ──
+
+  const myReactions = {};
 
   function getMyReactions() {
-    try {
-      return JSON.parse(localStorage.getItem('myReactions') || '{}');
-    } catch (e) {
-      return {};
-    }
+    return myReactions;
   }
 
   function saveReaction(storyId, type) {
-    const reactions = getMyReactions();
-    if (!reactions[storyId]) reactions[storyId] = {};
-    reactions[storyId][type] = true;
-    localStorage.setItem('myReactions', JSON.stringify(reactions));
+    if (!myReactions[storyId]) myReactions[storyId] = {};
+    myReactions[storyId][type] = true;
   }
 
   function hasReacted(storyId, type) {
@@ -228,6 +224,7 @@
     setTimeout(() => btn.classList.remove('ripple'), 400);
 
     let serverOk = false;
+    let countUpdatedFromServer = false;
 
     // solidarity → reuse /api/stories/:id/me-too
     if (type === 'solidarity') {
@@ -241,18 +238,28 @@
           if (countEl && newCount !== undefined) {
             countEl.textContent = formatCount(newCount);
             bumpCount(countEl);
+            countUpdatedFromServer = true;
           }
         }
       } else {
         serverOk = true;
       }
-    } else {
-      // strength / gratitude: no dedicated endpoint yet, just local optimistic update
-      serverOk = true;
+    } else if (app) {
+      const mappedType = type === 'strength' ? 'support' : 'useful';
+      const res = await app.postJSON(`/api/stories/${storyId}/reactions`, { type: mappedType });
+      serverOk = res.ok;
+      if (serverOk) {
+        const newCount = res.data?.reactions?.[mappedType];
+        const countEl = btn.querySelector('.reaction-count');
+        if (countEl && newCount !== undefined) {
+          countEl.textContent = formatCount(newCount);
+          bumpCount(countEl);
+          countUpdatedFromServer = true;
+        }
+      }
     }
 
     if (serverOk) {
-      // Save to localStorage
       saveReaction(storyId, type);
 
       // Activate button
@@ -260,7 +267,7 @@
 
       // Optimistically increment count if no server value
       const countEl = btn.querySelector('.reaction-count');
-      if (countEl) {
+      if (countEl && !countUpdatedFromServer) {
         const current = parseInt(countEl.textContent, 10) || 0;
         const newVal = current + 1;
         countEl.textContent = formatCount(newVal);

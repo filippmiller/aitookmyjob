@@ -1,8 +1,41 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
+const crypto = require("crypto");
 const router = express.Router();
 const { requireAuth, requireAdminOrToken } = require("../middleware/auth");
 const ctx = require("../lib/context");
+
+const boundaryPolls = [
+  { id: "robot-doctor-touch", icon: "ph-stethoscope", question: "Are you ok with robot doctor touching you?" },
+  { id: "ai-therapist-crisis", icon: "ph-brain", question: "Would you let an AI therapist guide a crisis conversation?" },
+  { id: "driverless-bus", icon: "ph-bus", question: "Would you ride in a bus with no human driver?" },
+  { id: "ai-job-interview", icon: "ph-identification-card", question: "Should AI decide who gets a job interview?" },
+  { id: "robot-teacher-grade", icon: "ph-graduation-cap", question: "Would you let a robot teacher grade your child?" },
+  { id: "ai-judge-sentencing", icon: "ph-scales", question: "Should an AI judge recommend prison sentences?" },
+  { id: "ai-firing-worker", icon: "ph-user-minus", question: "Would you trust AI to fire someone at your company?" },
+  { id: "robot-elder-care", icon: "ph-hand-heart", question: "Would you let a robot caregiver lift an elderly parent?" },
+  { id: "ai-medical-diagnosis", icon: "ph-first-aid-kit", question: "Should AI write your medical diagnosis before a human sees it?" },
+  { id: "robot-cooked-food", icon: "ph-cooking-pot", question: "Would you eat food cooked entirely by robots?" },
+  { id: "ai-er-triage", icon: "ph-hospital", question: "Should AI choose emergency-room priority when beds are full?" }
+];
+
+function getVisitorHash(req, res) {
+  const cookies = ctx.parseCookies(req);
+  let visitorId = cookies.aitmj_vid;
+  if (!/^[A-Za-z0-9_-]{16,96}$/.test(visitorId || "")) {
+    visitorId = crypto.randomBytes(24).toString("base64url");
+    res.cookie("aitmj_vid", visitorId, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: ctx.isProduction,
+      maxAge: 365 * 24 * 60 * 60 * 1000
+    });
+  }
+  const subject = req.user?.id ? `user:${req.user.id}` : `visitor:${visitorId}`;
+  return crypto.createHmac("sha256", ctx.AUTH_SECRET).update(subject).digest("hex").slice(0, 48);
+}
+
+const pollVoteLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
 
 // ── Telegram ──
 
@@ -173,9 +206,29 @@ router.post("/api/cohorts", requireAuth, async (req, res) => {
   res.status(201).json(row);
 });
 
-router.get("/api/campaigns/petitions", (_req, res) => {
-  const source = ctx.readPetitions();
-  res.json({ petitions: source.length ? source : ctx.defaultPetitions });
+router.get("/api/polls/boundary", async (req, res) => {
+  const visitorHash = getVisitorHash(req, res);
+  const polls = await ctx.storageGetBoundaryPollResults(boundaryPolls, visitorHash);
+  res.json({ polls });
+});
+
+router.post("/api/polls/boundary/:id/vote", pollVoteLimiter, async (req, res) => {
+  const id = ctx.sanitizeText(req.params.id);
+  const option = ctx.sanitizeText(req.body.option || "");
+  const definition = boundaryPolls.find((poll) => poll.id === id);
+  if (!definition) { res.status(404).json({ message: "Poll not found" }); return; }
+  if (!["yes", "no", "unsure"].includes(option)) { res.status(422).json({ message: "Invalid poll option" }); return; }
+
+  const visitorHash = getVisitorHash(req, res);
+  await ctx.storageUpsertBoundaryPollVote(id, option, visitorHash);
+  const [poll] = await ctx.storageGetBoundaryPollResults([definition], visitorHash);
+  res.json({ poll });
+});
+
+router.get("/api/campaigns/petitions", async (req, res) => {
+  const visitorHash = getVisitorHash(req, res);
+  const petitions = await ctx.storageGetPetitions(visitorHash);
+  res.json({ petitions });
 });
 
 router.post("/api/campaigns/petitions", requireAuth, async (req, res) => {
@@ -184,28 +237,24 @@ router.post("/api/campaigns/petitions", requireAuth, async (req, res) => {
   const goal = Number(req.body.goal || 0);
   if (title.length < 10 || description.length < 20 || goal < 10) { res.status(422).json({ message: "Validation failed" }); return; }
   const row = { id: `pet-${ctx.topicId()}`, title, description, goal, signatures: 0, status: "open", createdAt: new Date().toISOString() };
-  const entries = ctx.readPetitions();
-  entries.push(row);
-  ctx.writeJsonArray(ctx.petitionsPath, entries.slice(-1000));
-  res.status(201).json(row);
+  const petition = await ctx.storageCreatePetition(row);
+  res.status(201).json(petition);
 });
 
 router.post("/api/campaigns/petitions/:id/sign", async (req, res) => {
   const id = ctx.sanitizeText(req.params.id);
-  const entries = ctx.readPetitions();
-  const idx = entries.findIndex((p) => p.id === id);
-  if (idx < 0) { res.status(404).json({ message: "Petition not found" }); return; }
-  entries[idx].signatures = Number(entries[idx].signatures || 0) + 1;
-  ctx.writeJsonArray(ctx.petitionsPath, entries);
-  if (req.app?.locals?.publishActivity) {
+  const visitorHash = getVisitorHash(req, res);
+  const signed = await ctx.storageSignPetition(id, visitorHash);
+  if (!signed) { res.status(404).json({ message: "Petition not found" }); return; }
+  if (!signed.duplicate && req.app?.locals?.publishActivity) {
     req.app.locals.publishActivity({
       type: "petition.signed",
       title: "Petition signed",
-      detail: `${entries[idx].signatures} signatures · ${entries[idx].title}`,
+      detail: `${signed.petition.signatures} signatures · ${signed.petition.title}`,
       href: "#community"
     });
   }
-  res.json({ id, signatures: entries[idx].signatures });
+  res.json({ id, signatures: signed.petition.signatures, viewerSigned: true, duplicate: signed.duplicate, petition: signed.petition });
 });
 
 router.get("/api/transparency/center", async (req, res) => {

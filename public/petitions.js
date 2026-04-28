@@ -37,28 +37,26 @@
     signatureKey: 'open_letter_ai_reporting'
   };
 
+  let petitionRows = [];
+
   // ── Helpers ──
 
   function getApp() {
     return window.app;
   }
 
-  function getSignedPetitions() {
-    try {
-      return JSON.parse(localStorage.getItem('signedPetitions') || '{}');
-    } catch (e) {
-      return {};
+  function markSigned(id, patch = {}) {
+    petitionRows = petitionRows.map((petition) => (
+      petition.id === id ? { ...petition, ...patch, viewerSigned: true } : petition
+    ));
+    window._petitionRows = petitionRows;
+    if (window._petitionOpenLetter?.id === id) {
+      window._petitionOpenLetter = { ...window._petitionOpenLetter, ...patch, viewerSigned: true };
     }
   }
 
-  function markSigned(id) {
-    const signed = getSignedPetitions();
-    signed[id] = Date.now();
-    localStorage.setItem('signedPetitions', JSON.stringify(signed));
-  }
-
   function hasSigned(id) {
-    return !!getSignedPetitions()[id];
+    return Boolean(petitionRows.find((petition) => petition.id === id)?.viewerSigned || (window._petitionOpenLetter?.id === id && window._petitionOpenLetter.viewerSigned));
   }
 
   // ── Inject petition section into DOM ──
@@ -183,7 +181,7 @@
       const signatures = petition.signatures || petition.signatureCount || 0;
       const goal = petition.goal || 10000;
       const pct = Math.min(100, Math.round((signatures / goal) * 100));
-      const signed = hasSigned(petition.id);
+      const signed = Boolean(petition.viewerSigned);
 
       return `
         <div class="petition-card" data-petition-id="${app?.esc(petition.id) || petition.id}">
@@ -263,7 +261,7 @@
     const res = await app.postJSON(`/api/campaigns/petitions/${id}/sign`, {});
 
     if (res.ok || res.status === 200) {
-      markSigned(id);
+      markSigned(id, res.data?.petition || { signatures: res.data?.signatures });
       btn.classList.add('is-signed');
       btn.innerHTML = '<i class="ph ph-check"></i> Signed';
 
@@ -342,11 +340,11 @@
     const sharePanel = document.getElementById('openLetterSharePanel');
     const metaEl = document.getElementById('petitionLetterMeta');
 
-    // Derive letter signature count from site stats + a base
-    const baseSigs = 12847;
+    const letterPetition = window._petitionOpenLetter;
+    const baseSigs = Number(letterPetition?.signatures || 12847);
     const storyCount = stats?.counters?.sharedStories || 0;
     const countryCount = stats?.counters?.distinctCompanies || 0;
-    let letterSigs = baseSigs + Math.floor(storyCount * 3.4);
+    let letterSigs = letterPetition ? baseSigs : baseSigs + Math.floor(storyCount * 3.4);
 
     // Display meta text
     if (metaEl) {
@@ -362,7 +360,7 @@
       sigSubtext.textContent = `${app?.fmt(letterSigs) || letterSigs} people have already added their voices.`;
     }
 
-    const isSigned = hasSigned(OPEN_LETTER.signatureKey);
+    const isSigned = Boolean(letterPetition?.viewerSigned);
     if (isSigned && signBtn) {
       signBtn.classList.add('is-signed');
       signBtn.innerHTML = '<i class="ph ph-check"></i> You signed';
@@ -378,8 +376,7 @@
         signBtn.disabled = true;
         signBtn.innerHTML = '<i class="ph ph-spinner" style="animation:spin 1s linear infinite"></i> Signing...';
 
-        // We sign via the petitions endpoint if possible, else just local
-        const petitionId = window._petitionOpenLetterId;
+        const petitionId = window._petitionOpenLetterId || OPEN_LETTER.signatureKey;
         let ok = false;
 
         if (petitionId && app) {
@@ -388,14 +385,10 @@
           if (ok && res.data?.signatures) {
             letterSigs = res.data.signatures;
           }
-        } else {
-          // Graceful degradation: local only
-          ok = true;
-          letterSigs += 1;
         }
 
         if (ok) {
-          markSigned(OPEN_LETTER.signatureKey);
+          markSigned(petitionId, { signatures: letterSigs });
           signBtn.classList.add('is-signed');
           signBtn.innerHTML = '<i class="ph ph-check"></i> Signed — Thank you!';
 
@@ -407,7 +400,7 @@
           }
 
           if (sharePanel) sharePanel.classList.add('is-visible');
-          app?.toast('Your signature has been added. Thank you for standing up.', 'success');
+          app?.toast('Your signature has been added to the database.', 'success');
         } else {
           signBtn.disabled = false;
           signBtn.innerHTML = '<i class="ph ph-pen-nib"></i> Sign &amp; Add Your Voice';
@@ -498,16 +491,19 @@
 
     const data = await app.fetchJSON('/api/campaigns/petitions', { petitions: [] });
     const petitions = data.petitions || [];
+    petitionRows = petitions;
+    window._petitionRows = petitionRows;
 
     // Stash first petition ID for the open letter to use (if any matches)
     const letterPetition = petitions.find(p =>
-      p.title && p.title.toLowerCase().includes('transparent')
+      p.id === OPEN_LETTER.signatureKey || (p.title && p.title.toLowerCase().includes('transparent'))
     );
     if (letterPetition) {
       window._petitionOpenLetterId = letterPetition.id;
+      window._petitionOpenLetter = letterPetition;
     }
 
-    renderPetitions(petitions);
+    renderPetitions(petitions.filter((petition) => petition.id !== window._petitionOpenLetterId && !petition.featured));
   }
 
   // ── Main initialisation ──
@@ -523,12 +519,12 @@
 
     injectSection();
 
+    // Load petitions
+    await loadPetitions();
+
     // Load stats for open letter context
     const statsData = await app.fetchJSON(`/api/stats?country=global`, { counters: {} });
     setupOpenLetter(statsData);
-
-    // Load petitions
-    await loadPetitions();
 
     // Add "Take Action" nav link
     const navLinks = document.getElementById('navLinks');

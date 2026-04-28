@@ -21,13 +21,15 @@ class AITookMyJobApp {
       storyFacets: null,
       authUser: null,
       dashboard: null,
+      boundaryPolls: [],
       storiesPage: 0,
       storiesPerPage: 6,
       storiesTotal: 0,
       allStoriesLoaded: false
     };
 
-    this.theme = localStorage.getItem('theme') || 'dark';
+    this.theme = document.documentElement.getAttribute('data-theme') || 'dark';
+    this.storyReactionMemory = new Set();
     this.init();
   }
 
@@ -119,16 +121,12 @@ class AITookMyJobApp {
     ];
   }
 
-  storyReactionStorageKey(storyId, type) {
-    return `aitmj:reaction:${storyId}:${type}`;
-  }
-
   hasStoryReaction(storyId, type) {
-    return localStorage.getItem(this.storyReactionStorageKey(storyId, type)) === '1';
+    return this.storyReactionMemory.has(`${storyId}:${type}`);
   }
 
   rememberStoryReaction(storyId, type) {
-    localStorage.setItem(this.storyReactionStorageKey(storyId, type), '1');
+    this.storyReactionMemory.add(`${storyId}:${type}`);
   }
 
   getReactionCount(story, type) {
@@ -145,7 +143,6 @@ class AITookMyJobApp {
 
   toggleTheme() {
     this.theme = this.theme === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('theme', this.theme);
     document.documentElement.setAttribute('data-theme', this.theme);
     this.updateThemeIcon();
   }
@@ -773,13 +770,14 @@ class AITookMyJobApp {
   async loadInitialData() {
     const country = this.state.country;
 
-    const [statsData, storiesData, newsData, meData, resourcesData, facetsData] = await Promise.allSettled([
+    const [statsData, storiesData, newsData, meData, resourcesData, facetsData, pollsData] = await Promise.allSettled([
       this.fetchJSON(`/api/stats?country=${country}`, { counters: {} }),
       this.fetchJSON(`/api/stories?country=${country}&limit=${this.state.storiesPerPage}`, { stories: [] }),
       this.fetchJSON(`/api/news?country=${country}`, { news: [] }),
       this.fetchJSON('/api/auth/me', null),
       this.fetchJSON(`/api/resources?country=${country}`, { resources: [] }),
-      this.fetchJSON(`/api/stories/facets?country=${country}`, { facets: null })
+      this.fetchJSON(`/api/stories/facets?country=${country}`, { facets: null }),
+      this.fetchJSON('/api/polls/boundary', { polls: [] })
     ]);
 
     this.state.stats = statsData.status === 'fulfilled' ? statsData.value : { counters: {} };
@@ -788,6 +786,7 @@ class AITookMyJobApp {
     this.state.news = newsData.status === 'fulfilled' ? (newsData.value.news || []) : [];
     this.state.resources = resourcesData.status === 'fulfilled' ? (resourcesData.value.resources || []) : [];
     this.state.storyFacets = facetsData.status === 'fulfilled' ? facetsData.value.facets : null;
+    this.state.boundaryPolls = pollsData.status === 'fulfilled' ? (pollsData.value.polls || []) : [];
     this.state.storiesPage = 0;
     this.state.allStoriesLoaded = this.state.stories.length >= this.state.storiesTotal;
 
@@ -802,6 +801,7 @@ class AITookMyJobApp {
   render() {
     this.animateCounters();
     this.renderFeaturedStory();
+    this.renderBoundaryPolls();
     this.renderStories();
     this.renderNewsCarousel();
     this.renderNews();
@@ -971,6 +971,81 @@ class AITookMyJobApp {
     });
 
     this.updatePagination();
+  }
+
+  renderBoundaryPolls() {
+    const container = document.getElementById('aiBoundaryPolls');
+    if (!container) return;
+
+    const polls = this.state.boundaryPolls || [];
+    if (!polls.length) {
+      container.innerHTML = '<p class="boundary-poll-note">Loading polls...</p>';
+      return;
+    }
+
+    container.innerHTML = polls.map((poll, index) => {
+      const vote = poll.selected || '';
+      const totals = poll.totals || { yes: 0, no: 0, unsure: 0 };
+      const totalVotes = Math.max(0, Number(poll.totalVotes || totals.yes + totals.no + totals.unsure || 0));
+      const percent = (option) => totalVotes > 0 ? Math.round((Number(totals[option] || 0) / totalVotes) * 100) : 0;
+      return `
+        <article class="boundary-poll" style="--poll-delay:${index * 35}ms;">
+          <div class="boundary-poll-top">
+            <span class="boundary-poll-icon"><i class="ph ${this.esc(poll.icon)}"></i></span>
+            <h3>${this.esc(poll.question)}</h3>
+          </div>
+          <div class="boundary-poll-actions" role="group" aria-label="${this.esc(poll.question)}">
+            ${[
+              ['yes', 'Yes'],
+              ['no', 'No'],
+              ['unsure', 'Not sure']
+            ].map(([option, label]) => `
+              <button type="button" class="boundary-poll-btn ${vote === option ? 'is-selected' : ''}" data-poll-id="${this.esc(poll.id)}" data-poll-option="${option}">
+                ${label}
+              </button>
+            `).join('')}
+          </div>
+          <div class="boundary-poll-results" aria-label="Poll results">
+            ${[
+              ['yes', 'Yes'],
+              ['no', 'No'],
+              ['unsure', 'Not sure']
+            ].map(([option, label]) => `
+              <div class="boundary-result-row">
+                <span>${label}</span>
+                <div class="boundary-result-track"><div class="boundary-result-fill boundary-result-${option}" style="width:${percent(option)}%;"></div></div>
+                <strong>${percent(option)}%</strong>
+              </div>
+            `).join('')}
+          </div>
+          <p class="boundary-poll-note">${vote ? `Vote saved in the database. ${this.fmt(totalVotes)} total votes.` : `${this.fmt(totalVotes)} total votes.`}</p>
+        </article>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.boundary-poll-btn').forEach((btn) => {
+      btn.addEventListener('click', (event) => this.handleBoundaryPollVote(event));
+    });
+  }
+
+  async handleBoundaryPollVote(event) {
+    const btn = event.currentTarget;
+    const pollId = btn.dataset.pollId;
+    const option = btn.dataset.pollOption;
+    if (!pollId || !['yes', 'no', 'unsure'].includes(option)) return;
+
+    btn.disabled = true;
+    const res = await this.postJSON(`/api/polls/boundary/${pollId}/vote`, { option });
+    if (res.ok && res.data?.poll) {
+      this.state.boundaryPolls = (this.state.boundaryPolls || []).map((poll) => (
+        poll.id === pollId ? res.data.poll : poll
+      ));
+      this.renderBoundaryPolls();
+      this.toast('Vote saved in database', 'success');
+    } else {
+      btn.disabled = false;
+      this.toast(res.error || 'Could not save vote', 'error');
+    }
   }
 
   getStoryFilterParams() {
