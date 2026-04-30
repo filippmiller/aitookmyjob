@@ -114,7 +114,12 @@ app.use((req, res, next) => {
 app.use(compression());
 app.use(express.static(ctx.publicDir, { extensions: ["html"] }));
 
-const globalLimiter = rateLimit({ windowMs: 60 * 1000, max: 240, standardHeaders: true, legacyHeaders: false });
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: process.env.NODE_ENV === "test" ? 5000 : 240,
+  standardHeaders: true,
+  legacyHeaders: false
+});
 app.use(globalLimiter);
 
 // ── Health & meta (kept in server.js — small, foundational) ──

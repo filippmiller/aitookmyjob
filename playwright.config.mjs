@@ -19,7 +19,7 @@ export default defineConfig({
     video: "retain-on-failure"
   },
   webServer: {
-    command: `set PORT=${process.env.TEST_PORT || 8080}&& npm run dev`,
+    command: `set NODE_ENV=test&& set NEWS_INGEST_ENABLED=false&& set PORT=${process.env.TEST_PORT || 8080}&& npm run dev`,
     url: `http://127.0.0.1:${process.env.TEST_PORT || 8080}/health`,
     timeout: 120000,
     reuseExistingServer: true
