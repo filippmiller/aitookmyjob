@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { requireAdminOrToken } = require("../middleware/auth");
 const ctx = require("../lib/context");
+const { ingestNews } = require("../lib/news-ingest");
 
 router.get("/overview", async (req, res) => {
   if (!(ctx.hasAdminToken(req) || ctx.hasModeratorRole(req.user))) { res.status(401).json({ message: "Unauthorized" }); return; }
@@ -56,6 +57,37 @@ router.get("/anomalies", requireAdminOrToken, async (req, res) => {
 
 router.get("/anomaly/signals", requireAdminOrToken, getAnomalySignals);
 router.get("/anomalies/signals", requireAdminOrToken, getAnomalySignals);
+
+router.get("/news/items", requireAdminOrToken, async (req, res) => {
+  const country = ctx.normalizeCountry(req.query.country || "global");
+  const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 100);
+  const news = await ctx.storageGetNews({ country, limit });
+  res.json({ country, news });
+});
+
+router.post("/news/ingest", requireAdminOrToken, async (req, res) => {
+  const result = await ingestNews(ctx, {
+    daysBack: Number(req.body.daysBack || req.query.daysBack || process.env.NEWS_INGEST_DAYS_BACK || 14),
+    maxRecords: Number(req.body.maxRecords || req.query.maxRecords || process.env.NEWS_INGEST_MAX_RECORDS || 25)
+  });
+  await ctx.storageAudit({
+    action: "news.ingest",
+    actorId: req.user?.id || "admin-token",
+    targetType: "news_items",
+    targetId: "gdelt",
+    metadata: result,
+    ip: req.ip
+  });
+  if ((result.inserted || result.updated) && req.app?.locals?.publishActivity) {
+    req.app.locals.publishActivity({
+      type: "news.ingested",
+      title: "News feed refreshed",
+      detail: `${result.inserted} new headlines, ${result.updated} updated`,
+      href: "#news"
+    });
+  }
+  res.json({ ok: true, ...result });
+});
 
 router.post("/moderation/:id/action", requireAdminOrToken, async (req, res) => {
   const parsed = ctx.moderationActionSchema.safeParse({ action: req.body.action, reason: ctx.sanitizeText(req.body.reason || "") });

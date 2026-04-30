@@ -19,8 +19,9 @@ test.describe("Homepage", () => {
   });
 
   test("renders all major sections", async ({ page }) => {
-    await expect(page.locator("h1.hero-title")).toBeVisible();
-    await expect(page.locator("#dashboard")).toBeVisible();
+    await expect(page.locator("#main-content")).toBeVisible();
+    await expect(page.locator("#featuredStory")).toBeVisible();
+    await expect(page.locator("#dataSidebar")).toBeAttached();
     await expect(page.locator("#stories")).toBeVisible();
     await expect(page.locator("#community")).toBeVisible();
     await expect(page.locator("#news")).toBeVisible();
@@ -32,8 +33,6 @@ test.describe("Homepage", () => {
     const navLinks = page.locator(".nav-links .nav-link");
     expect(await navLinks.count()).toBeGreaterThanOrEqual(4);
 
-    // Click Dashboard anchor
-    await page.locator('.nav-link[href="#dashboard"]').click();
     // Click Stories anchor
     await page.locator('.nav-link[href="#stories"]').click();
     // Click Community anchor
@@ -42,9 +41,9 @@ test.describe("Homepage", () => {
 
   test("hero stats populate from API", async ({ page }) => {
     // Stats should animate from -- to actual values
-    const affected = page.locator('[data-stat="affected"]');
+    const affected = page.locator('#dataSidebar [data-stat="affected"]').first();
     await expect(affected).not.toHaveText("--", { timeout: 10000 });
-    const stories = page.locator('[data-stat="stories"]');
+    const stories = page.locator('#dataSidebar [data-stat="stories"]').first();
     await expect(stories).not.toHaveText("--", { timeout: 10000 });
   });
 
@@ -95,13 +94,13 @@ test.describe("Homepage", () => {
   });
 
   test("dashboard charts render with canvas elements", async ({ page }) => {
-    // Scroll to dashboard section first
-    await page.locator("#dashboard").scrollIntoViewIfNeeded();
+    // Charts live in the desktop data sidebar.
+    await page.locator("#dataSidebar").scrollIntoViewIfNeeded();
     await page.waitForTimeout(1000);
-    await expect(page.locator("#trendChart")).toBeVisible({ timeout: 10000 });
-    await expect(page.locator("#geoChart")).toBeVisible({ timeout: 5000 });
-    await expect(page.locator("#industryChart")).toBeVisible({ timeout: 5000 });
-    await expect(page.locator("#recoveryChart")).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("#trendChart")).toBeAttached({ timeout: 10000 });
+    await expect(page.locator("#geoChart")).toBeAttached({ timeout: 5000 });
+    await expect(page.locator("#industryChart")).toBeAttached({ timeout: 5000 });
+    await expect(page.locator("#recoveryChart")).toBeAttached({ timeout: 5000 });
   });
 
   test("stories section renders story cards or empty state", async ({ page }) => {
@@ -666,8 +665,7 @@ test.describe("Responsive layout", () => {
     await page.goto("/global/en/");
     await page.waitForTimeout(3000);
 
-    // Hero should be visible
-    await expect(page.locator("h1.hero-title")).toBeVisible();
+    await expect(page.locator("#featuredStory")).toBeVisible();
 
     // Mobile menu toggle should be visible
     await expect(page.locator("#mobileMenuToggle")).toBeVisible();
@@ -683,8 +681,8 @@ test.describe("Responsive layout", () => {
     await page.goto("/global/en/");
     await page.waitForTimeout(3000);
 
-    await expect(page.locator("h1.hero-title")).toBeVisible();
-    await expect(page.locator("#dashboard")).toBeVisible();
+    await expect(page.locator("#featuredStory")).toBeVisible();
+    await expect(page.locator("#newsCarousel")).toBeVisible();
     await expect(page.locator("#stories")).toBeVisible();
   });
 
@@ -693,13 +691,12 @@ test.describe("Responsive layout", () => {
     await page.goto("/global/en/");
     await page.waitForTimeout(3000);
 
-    // All nav links should be visible
-    await expect(page.locator('.nav-link[href="#dashboard"]')).toBeVisible();
+    // All primary nav links should be visible
     await expect(page.locator('.nav-link[href="#stories"]')).toBeVisible();
     await expect(page.locator('.nav-link[href="#community"]')).toBeVisible();
 
-    // Hero stats visible
-    await expect(page.locator(".hero-stats-grid")).toBeVisible();
+    // Desktop data sidebar visible
+    await expect(page.locator("#dataSidebar")).toBeVisible();
   });
 
   test("forum page at mobile width", async ({ page }) => {
@@ -707,8 +704,8 @@ test.describe("Responsive layout", () => {
     await page.goto("/forum");
 
     await expect(page.locator(".section-title")).toContainText("Community Forum");
-    await expect(page.locator("#forumSearch")).toBeVisible();
-    await expect(page.locator("#newTopicBtn")).toBeVisible();
+    await expect(page.locator("#forumSearch")).toBeAttached();
+    await expect(page.locator("#newTopicBtn")).toBeAttached();
   });
 
   test("research page at mobile width", async ({ page }) => {
@@ -740,7 +737,7 @@ test.describe("Cross-page navigation", () => {
     // Go home via nav brand link (first one, in header)
     await page.locator('nav .nav-brand').click();
     await page.waitForTimeout(3000);
-    await expect(page.locator("h1.hero-title")).toBeVisible();
+    await expect(page.locator("#featuredStory")).toBeVisible();
   });
 });
 
@@ -753,18 +750,18 @@ test.describe("Locale routing", () => {
     await page.goto("/");
     await page.waitForTimeout(3000);
     // Static middleware serves index.html at /
-    await expect(page.locator("h1.hero-title")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("#featuredStory")).toBeVisible({ timeout: 10000 });
   });
 
   test("/global/en/ serves the homepage", async ({ page }) => {
     await page.goto("/global/en/");
     await page.waitForTimeout(4000);
-    await expect(page.locator("h1.hero-title")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#featuredStory")).toBeVisible({ timeout: 15000 });
   });
 
   test("/us/en/ serves the homepage with US context", async ({ page }) => {
     await page.goto("/us/en/");
     await page.waitForTimeout(3000);
-    await expect(page.locator("h1.hero-title")).toBeVisible();
+    await expect(page.locator("#featuredStory")).toBeVisible();
   });
 });

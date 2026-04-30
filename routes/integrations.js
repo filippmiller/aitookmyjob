@@ -140,11 +140,11 @@ router.get("/api/resources/match", (req, res) => {
   res.json({ country, profession, months, resources: matched });
 });
 
-router.get("/api/news", (req, res) => {
+router.get("/api/news", async (req, res) => {
   const country = ctx.normalizeCountry(req.query.country || "global");
-  const source = ctx.readNews();
-  const rows = source.length ? source : ctx.defaultNews;
-  res.json({ country, news: rows.filter((x) => x.region === "global" || x.region === country).sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)) });
+  const limit = Math.min(Math.max(Number(req.query.limit || 24), 1), 100);
+  const news = await ctx.storageGetNews({ country, limit });
+  res.json({ country, news });
 });
 
 // ── Community features ──

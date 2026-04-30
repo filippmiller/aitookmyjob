@@ -18,7 +18,7 @@ test("full user/admin flow covers buttons, forms, and key scenarios", async ({ p
   await expect(page.locator(".loading-skeleton")).not.toBeVisible();
   await expect(page.locator("#main-content")).toBeVisible();
 
-  await expect(page.locator("h1.hero-title")).toBeVisible();
+  await expect(page.locator("#featuredStory")).toBeVisible();
   await expect(page.locator("#stories")).toBeVisible();
   await expect(page.locator("#community")).toBeVisible();
 

@@ -16,12 +16,15 @@ const storiesRoutes = require("./routes/stories");
 const forumRoutes = require("./routes/forum");
 const adminRoutes = require("./routes/admin");
 const integrationsRoutes = require("./routes/integrations");
+const { ingestNews } = require("./lib/news-ingest");
 
 const app = express();
 const port = Number(process.env.PORT || 8080);
 const rawOrigins = (process.env.CORS_ORIGINS || "").split(",").map((v) => v.trim()).filter(Boolean);
 const ENABLE_HSTS = String(process.env.ENABLE_HSTS || "false").toLowerCase() === "true";
 const REQUIRE_STRICT_SECRETS = String(process.env.REQUIRE_STRICT_SECRETS || (ctx.isProduction ? "true" : "false")).toLowerCase() === "true";
+const ENABLE_NEWS_INGEST = String(process.env.NEWS_INGEST_ENABLED || (ctx.usePostgres ? "true" : "false")).toLowerCase() === "true";
+const NEWS_INGEST_INTERVAL_HOURS = Math.min(Math.max(Number(process.env.NEWS_INGEST_INTERVAL_HOURS || 24), 1), 168);
 
 const activityClients = new Set();
 app.locals.activityEvents = [];
@@ -229,6 +232,36 @@ app.use((err, _req, res, _next) => {
 
 // ── Start ──
 
+let newsIngestRunning = false;
+async function runScheduledNewsIngest(reason) {
+  if (!ENABLE_NEWS_INGEST || !ctx.usePostgres || newsIngestRunning) return;
+  newsIngestRunning = true;
+  try {
+    const result = await ingestNews(ctx);
+    await ctx.storageAudit({
+      action: "news.ingest.scheduled",
+      actorId: "system",
+      targetType: "news_items",
+      targetId: reason,
+      metadata: result,
+      ip: ""
+    });
+    console.log(`News ingest ${reason}: ${result.inserted} inserted, ${result.updated} updated, ${result.errors.length} source errors`);
+  } catch (error) {
+    console.error(`News ingest ${reason} failed:`, error);
+  } finally {
+    newsIngestRunning = false;
+  }
+}
+
+function scheduleNewsIngest() {
+  if (!ENABLE_NEWS_INGEST || !ctx.usePostgres) return;
+  const intervalMs = NEWS_INGEST_INTERVAL_HOURS * 60 * 60 * 1000;
+  setTimeout(() => runScheduledNewsIngest("startup"), 15000);
+  const timer = setInterval(() => runScheduledNewsIngest("interval"), intervalMs);
+  if (typeof timer.unref === "function") timer.unref();
+}
+
 async function start() {
   if (REQUIRE_STRICT_SECRETS) {
     const weakSecrets = [];
@@ -249,6 +282,7 @@ async function start() {
     await ctx.initStorage();
     console.log("Storage mode: file-json");
   }
+  scheduleNewsIngest();
   app.listen(port, () => {
     console.log(`aitookmyjob running on :${port}`);
   });

@@ -24,6 +24,12 @@
   color: var(--text-primary);
 }
 
+.news-carousel-subtitle {
+  margin-top: var(--sp-1);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
 .carousel-nav {
   display: flex;
   gap: var(--sp-2);
@@ -154,6 +160,16 @@
 
 .carousel-card-link:hover i {
   transform: translateX(2px);
+}
+
+.carousel-empty {
+  width: 100%;
+  padding: var(--sp-6);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  text-align: center;
 }
 
 /* Category badge */

@@ -383,6 +383,7 @@ class AITookMyJobApp {
       if (langSelect) langSelect.value = value;
       if (langSelectMobile) langSelectMobile.value = value;
       await this.loadTranslations(this.state.lang);
+      this.renderNewsCarousel();
       this.renderNews();
       this.renderResources();
       this.applyTranslations();
@@ -1585,22 +1586,32 @@ class AITookMyJobApp {
 
   async renderNewsCarousel() {
     const track = document.getElementById('carouselTrack');
-    if (!track || track._rendered) return;
-    track._rendered = true;
+    if (!track) return;
 
-    const articles = await this.fetchJSON('/data/articles.json', []);
-    if (!articles.length) return;
+    const articles = (this.state.news || []).slice(0, 18);
+    const signature = `${this.state.lang}:${articles.map(a => a.id || a.url).join('|')}`;
+    if (track.dataset.signature === signature) return;
+    track.dataset.signature = signature;
 
     const readMore = this.state.t.newsReadMore || 'Read article';
+    const lang = this.state.lang;
+
+    if (!articles.length) {
+      if (track._carouselCleanup) track._carouselCleanup();
+      track.innerHTML = '<div class="carousel-empty">No monitored headlines available yet.</div>';
+      const dotsContainer = document.getElementById('carouselDots');
+      if (dotsContainer) dotsContainer.innerHTML = '';
+      return;
+    }
 
     track.innerHTML = articles.map(a => `
       <div class="carousel-card">
         <div class="carousel-card-top">
           <span class="carousel-card-source">${this.esc(a.source)}</span>
-          <span class="carousel-card-date">${this.esc(a.date)}</span>
+          <span class="carousel-card-date">${this.esc(this.formatNewsDate(a.publishedAt || a.date))}</span>
         </div>
-        <h4 class="carousel-card-title">${this.esc(a.title)}</h4>
-        <p class="carousel-card-excerpt">${this.esc(a.excerpt)}</p>
+        <h4 class="carousel-card-title">${this.esc(this.newsTitle(a, lang))}</h4>
+        <p class="carousel-card-excerpt">${this.esc(a.summary || a.excerpt || 'Monitored public coverage of AI and workforce displacement.')}</p>
         <a href="${this.esc(a.url)}" target="_blank" rel="noopener noreferrer" class="carousel-card-link">
           ${this.esc(readMore)} <i class="ph ph-arrow-up-right"></i>
         </a>
@@ -1610,7 +1621,22 @@ class AITookMyJobApp {
     this.initCarouselControls(track, articles.length);
   }
 
+  newsTitle(item, lang = this.state.lang) {
+    if (!item) return '';
+    if (typeof item.title === 'object') return item.title[lang] || item.title.en || Object.values(item.title)[0] || '';
+    return item.title || '';
+  }
+
+  formatNewsDate(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
   initCarouselControls(track, total) {
+    if (track._carouselCleanup) track._carouselCleanup();
+
     const prevBtn = document.getElementById('carouselPrev');
     const nextBtn = document.getElementById('carouselNext');
     const dotsContainer = document.getElementById('carouselDots');
@@ -1659,24 +1685,24 @@ class AITookMyJobApp {
     };
 
     // Arrow navigation
-    if (prevBtn) {
-      prevBtn.addEventListener('click', () => {
+    const onPrev = () => {
         const perView = getCardsPerView();
         currentIndex = Math.max(0, currentIndex - perView);
         scrollToIndex(currentIndex);
         resetAutoScroll();
-      });
-    }
+    };
 
-    if (nextBtn) {
-      nextBtn.addEventListener('click', () => {
+    if (prevBtn) prevBtn.addEventListener('click', onPrev);
+
+    const onNext = () => {
         const perView = getCardsPerView();
         currentIndex = Math.min(total - 1, currentIndex + perView);
         if (currentIndex >= total - perView) currentIndex = 0;
         scrollToIndex(currentIndex);
         resetAutoScroll();
-      });
-    }
+    };
+
+    if (nextBtn) nextBtn.addEventListener('click', onNext);
 
     // Auto-scroll every 5 seconds
     const startAutoScroll = () => {
@@ -1694,22 +1720,36 @@ class AITookMyJobApp {
     };
 
     // Pause on hover
-    track.addEventListener('mouseenter', () => clearInterval(autoScrollTimer));
-    track.addEventListener('mouseleave', () => startAutoScroll());
+    const onMouseEnter = () => clearInterval(autoScrollTimer);
+    const onMouseLeave = () => startAutoScroll();
+    track.addEventListener('mouseenter', onMouseEnter);
+    track.addEventListener('mouseleave', onMouseLeave);
 
     // Sync currentIndex on manual scroll
-    track.addEventListener('scroll', () => {
+    const onScroll = () => {
       if (!track.children.length) return;
       const cardWidth = track.children[0].offsetWidth + 16;
       currentIndex = Math.round(track.scrollLeft / cardWidth);
       updateDots();
-    });
+    };
+    track.addEventListener('scroll', onScroll);
 
     buildDots();
     startAutoScroll();
 
     // Rebuild dots on resize
-    window.addEventListener('resize', () => { buildDots(); });
+    const onResize = () => { buildDots(); };
+    window.addEventListener('resize', onResize);
+
+    track._carouselCleanup = () => {
+      clearInterval(autoScrollTimer);
+      if (prevBtn) prevBtn.removeEventListener('click', onPrev);
+      if (nextBtn) nextBtn.removeEventListener('click', onNext);
+      track.removeEventListener('mouseenter', onMouseEnter);
+      track.removeEventListener('mouseleave', onMouseLeave);
+      track.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+    };
   }
 
   // ── Real-time updates ──

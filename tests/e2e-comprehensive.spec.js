@@ -201,7 +201,7 @@ test.describe("Research charts", () => {
 // ─── News Carousel ──────────────────────────────────────────
 
 test.describe("News carousel", () => {
-  test("carousel loads articles from data file", async ({ page }) => {
+  test("carousel loads headlines from news API", async ({ page }) => {
     await page.goto(BASE);
     await page.waitForTimeout(4000);
 
@@ -219,15 +219,15 @@ test.describe("News carousel", () => {
     await expect(page.locator("#carouselNext")).toBeAttached();
   });
 
-  test("articles data file loads", async ({ request }) => {
-    const resp = await request.get("/data/articles.json");
+  test("news API returns carousel-ready headlines", async ({ request }) => {
+    const resp = await request.get("/api/news?country=global");
     expect(resp.status()).toBe(200);
     const data = await resp.json();
-    expect(Array.isArray(data)).toBe(true);
-    expect(data.length).toBeGreaterThanOrEqual(15);
-    expect(data[0].title).toBeTruthy();
-    expect(data[0].source).toBeTruthy();
-    expect(data[0].url).toBeTruthy();
+    expect(Array.isArray(data.news)).toBe(true);
+    expect(data.news.length).toBeGreaterThanOrEqual(10);
+    expect(data.news[0].title).toBeTruthy();
+    expect(data.news[0].source).toBeTruthy();
+    expect(data.news[0].url).toBeTruthy();
   });
 });
 

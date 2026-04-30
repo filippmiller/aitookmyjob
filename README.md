@@ -9,6 +9,7 @@ Global platform prototype for AI displacement stories.
 - Live counters and company ticker
 - Story submission with moderation status
 - Forum and admin overview blocks
+- Database-backed AI displacement news feed with daily public-source ingest
 - Security baseline: CSP, rate limits, strict payload validation
 
 ## Local run
@@ -32,7 +33,9 @@ Open `http://localhost:8080`.
 - `GET /api/companies/top?country=global`
 - `GET /api/forum/categories`
 - `GET /api/forum/topics?country=global`
+- `GET /api/news?country=global`
 - `GET /api/admin/overview?token=...`
+- `POST /api/admin/news/ingest` with `Authorization: Bearer $ADMIN_TOKEN`
 
 ### WHITEPAPER P0 blueprint (target API surface)
 - Public: `GET /api/meta`, `GET /api/locale`, `GET /api/stats`, `GET /api/stories`, `POST /api/stories`, `GET /api/companies/top`
@@ -58,8 +61,31 @@ Open `http://localhost:8080`.
 | Moderation AI scores | `GET /api/admin/moderation/queue` | P1 | Implemented |
 | Moderation AI scores | `GET /api/admin/moderation/:id/scores` | P1 | Implemented |
 | Telegram webhook test | `POST /api/integrations/telegram/webhook` | P0 | Implemented |
+| News ingest | `POST /api/admin/news/ingest` | P1 | Implemented |
+| News feed | `GET /api/news` | P1 | Implemented |
 | Research aggregates | `GET /api/research/aggregates` | P2 | Implemented |
 | Transparency reports | `GET /api/transparency/report` | P2 | Implemented |
+
+## Daily news ingest
+
+Production news is stored in PostgreSQL table `news_items`. The server refreshes it every
+`NEWS_INGEST_INTERVAL_HOURS` when `NEWS_INGEST_ENABLED=true`, using GDELT plus Google News
+RSS search as public-source providers.
+
+Manual refresh:
+
+```bash
+curl -X POST "$BASE_URL/api/admin/news/ingest" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"daysBack":14,"maxRecords":25}'
+```
+
+Cron-friendly CLI:
+
+```bash
+npm run news:ingest
+```
 
 ## Production validation commands (new flows)
 

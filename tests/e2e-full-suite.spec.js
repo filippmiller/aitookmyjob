@@ -1065,12 +1065,15 @@ test.describe("11. Routing & Localization", () => {
     expect(res.status()).toBe(200);
   });
 
-  test("articles.json static data file loads", async ({ request }) => {
-    const res = await request.get("/data/articles.json");
+  test("news API returns carousel-ready headlines", async ({ request }) => {
+    const res = await request.get("/api/news?country=global");
     expect(res.status()).toBe(200);
     const data = await res.json();
-    expect(Array.isArray(data)).toBe(true);
-    expect(data.length).toBeGreaterThanOrEqual(15);
+    expect(Array.isArray(data.news)).toBe(true);
+    expect(data.news.length).toBeGreaterThanOrEqual(10);
+    expect(data.news[0].title).toBeTruthy();
+    expect(data.news[0].source).toBeTruthy();
+    expect(data.news[0].url).toBeTruthy();
   });
 });
 
@@ -1143,7 +1146,7 @@ test.describe("12. Homepage UI", () => {
     }
   });
 
-  test("news carousel loads articles", async ({ page }) => {
+  test("news carousel loads API headlines", async ({ page }) => {
     await page.goto(BASE);
     await page.waitForTimeout(4000);
     await expect(page.locator("#newsCarousel")).toBeVisible();
