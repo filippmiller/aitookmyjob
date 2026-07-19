@@ -125,11 +125,67 @@ app.use(globalLimiter);
 // ── Health & meta (kept in server.js — small, foundational) ──
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "aitookmyjob", timestamp: new Date().toISOString() });
+  res.json({
+    ok: true,
+    service: "aitookmyjob",
+    timestamp: new Date().toISOString(),
+    schemaVersion: ctx.getSchemaVersion(),
+    storage: ctx.usePostgres ? "postgres" : "file-json"
+  });
+});
+
+app.get("/ready", async (_req, res) => {
+  if (!ctx.usePostgres) {
+    return res.json({
+      ok: true,
+      ready: true,
+      storage: "file-json",
+      schemaVersion: null
+    });
+  }
+  try {
+    const pool = ctx.getPgPool();
+    if (!pool) {
+      return res.status(503).json({ ok: false, ready: false, error: "pool_not_ready" });
+    }
+    await pool.query("SELECT 1;");
+    const { getMigrationStatus } = require("./lib/migrate");
+    const status = await getMigrationStatus(pool);
+    if (!status.ok) {
+      return res.status(503).json({
+        ok: false,
+        ready: false,
+        schemaVersion: status.schemaVersion,
+        pendingCount: status.pendingCount,
+        error: "migrations_pending"
+      });
+    }
+    return res.json({
+      ok: true,
+      ready: true,
+      storage: "postgres",
+      schemaVersion: status.schemaVersion,
+      domainContractVersion: ctx.DOMAIN_CONTRACT_VERSION
+    });
+  } catch (err) {
+    return res.status(503).json({
+      ok: false,
+      ready: false,
+      error: "db_unavailable",
+      message: err.message
+    });
+  }
 });
 
 app.get("/api/meta", (_req, res) => {
-  res.json({ countries: ctx.countries, languages: ctx.languages, roles: ctx.roles });
+  res.json({
+    countries: ctx.countries,
+    languages: ctx.languages,
+    roles: ctx.roles,
+    schemaVersion: ctx.getSchemaVersion(),
+    domainContractVersion: ctx.DOMAIN_CONTRACT_VERSION,
+    storage: ctx.usePostgres ? "postgres" : "file-json"
+  });
 });
 
 app.get("/api/locale", (req, res) => {
