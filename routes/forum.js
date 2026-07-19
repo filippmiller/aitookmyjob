@@ -47,6 +47,7 @@ router.post("/topics/:id/replies", requireAuth, async (req, res) => {
   if (ctx.isAccountMuted(req.user)) { res.status(403).json({ message: "Account temporarily muted" }); return; }
   const topic = (await ctx.storageGetForumTopics(null)).find((t) => t.id === req.params.id);
   if (!topic) { res.status(404).json({ message: "Topic not found" }); return; }
+  const parentId = ctx.sanitizeText(req.body.parentId || req.body.parent_id || "") || null;
   const payload = {
     country: ctx.normalizeCountry(req.body.country || topic.country || ctx.defaultCountry),
     language: ctx.normalizeLanguage(req.body.language || topic.language || ctx.defaultLang),
@@ -58,11 +59,19 @@ router.post("/topics/:id/replies", requireAuth, async (req, res) => {
     id: ctx.replyId(), topicId: topic.id, body: parsed.data.body,
     country: parsed.data.country, language: parsed.data.language,
     status: "published", createdBy: req.user.id,
+    parentId,
     createdAt: new Date().toISOString()
   };
   await ctx.storageInsertForumReply(reply);
-  await ctx.storageAudit({ action: "forum.reply.create", actorId: req.user.id, targetType: "forum_reply", targetId: reply.id, metadata: { topicId: topic.id }, ip: req.ip });
-  res.status(201).json({ id: reply.id, topicId: topic.id });
+  await ctx.storageAudit({
+    action: "forum.reply.create",
+    actorId: req.user.id,
+    targetType: "forum_reply",
+    targetId: reply.id,
+    metadata: { topicId: topic.id, parentId },
+    ip: req.ip
+  });
+  res.status(201).json({ id: reply.id, topicId: topic.id, parentId });
 });
 
 router.get("/topics/:id", async (req, res) => {
@@ -75,6 +84,7 @@ router.get("/topics/:id", async (req, res) => {
     ...topic,
     replies: replies.map(reply => ({
       id: reply.id, body: reply.body, author: reply.createdBy,
+      parentId: reply.parentId || null,
       createdAt: reply.createdAt, likes: reply.likes || 0
     }))
   });

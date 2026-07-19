@@ -50,7 +50,7 @@ describe("loadMigrations — ordering & shape", () => {
     }
   });
 
-  it("orders 001..008 through resources catalog", () => {
+  it("orders 001..008 through resources catalog and 010 social_support", () => {
     const migrations = loadMigrations();
     assert.equal(migrations[0].version, "001");
     assert.equal(migrations[0].name, "baseline_schema");
@@ -68,6 +68,9 @@ describe("loadMigrations — ordering & shape", () => {
     assert.equal(migrations[6].name, "notifications");
     assert.equal(migrations[7].version, "008");
     assert.equal(migrations[7].name, "resources_catalog");
+    const m010 = migrations.find((m) => m.version === "010");
+    assert.ok(m010, "migration 010 social_support required (009 reserved for news)");
+    assert.equal(m010.name, "social_support");
   });
 });
 

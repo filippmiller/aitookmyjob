@@ -25,6 +25,7 @@ const adminRoutes = require("./routes/admin");
 const integrationsRoutes = require("./routes/integrations");
 const insiderRoutes = require("./routes/insider");
 const resourcesRoutes = require("./routes/resources");
+const socialRoutes = require("./routes/social");
 const jobs = require("./lib/jobs");
 const { registerBuiltinHandlers } = require("./lib/job-handlers");
 const os = require("os");
@@ -285,6 +286,7 @@ app.use("/api/forum", forumRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/signals", insiderRoutes); // insider signals — public summary only
 app.use(resourcesRoutes);     // /api/resources, /api/opportunities (aitj-z8q.12)
+app.use("/api/social", socialRoutes); // comments, follows, blocks, saves, reactions, groups (aitj-z8q.11)
 app.use(integrationsRoutes);  // mounted at root — /api/integrations/*, /api/news, etc.
 
 // ── PWA assets ──
