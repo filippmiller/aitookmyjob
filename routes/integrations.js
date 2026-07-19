@@ -116,14 +116,8 @@ router.post("/api/integrations/telegram/webhook", async (req, res) => {
   res.status(200).json({ ok: true });
 });
 
-// ── News (resources live in routes/resources.js — aitj-z8q.12) ──
-
-router.get("/api/news", async (req, res) => {
-  const country = ctx.normalizeCountry(req.query.country || "global");
-  const limit = Math.min(Math.max(Number(req.query.limit || 24), 1), 100);
-  const news = await ctx.storageGetNews({ country, limit });
-  res.json({ country, news });
-});
+// ── News list moved to routes/news.js (aitj-z8q.10). Kept fallback only if
+//    news router is not mounted; primary owner is routes/news.js. ──
 
 // ── Community features ──
 
