@@ -1,5 +1,28 @@
 # Work Log
 
+## 2026-07-19 — Real email/Telegram notifications (aitj-z8q.15)
+
+**Branch**: `feat/notifications-z8q-15`  
+**Status**: Implementation complete — awaiting Codex acceptance (do not close bead)
+
+### What shipped
+- Migration `005_notifications`: `notification_deliveries`, `notification_preferences`, `email_unsubscribes`
+- `lib/notifications.js`: templates, console/smtp/ethereal/telegram providers, preferences, unsubscribe, bounce/complaint hooks, redaction
+- Job handlers: `notification.send`, `digest.weekly`
+- Admin: delivery list/get/retry + bounce/complaint webhooks
+- Public: unsubscribe (token), preferences GET/PATCH
+- Wired registration welcome + digest subscribe confirmation to durable jobs
+- Weekly digest scheduler enqueues `digest.weekly` (windowed idempotency)
+- Tests: idempotency, unsubscribe, redaction, templates, fan-out (`npm run test:notifications`)
+- Dependency: `nodemailer`
+
+### Residual
+- Production SMTP credentials still env-only (not configured in Coolify by this PR)
+- Verified-sender DNS (SPF/DKIM) is ops, not code
+- Bead left open for Codex gate
+
+---
+
 ## 2026-02-18 — UX Implementation: Top 5 Features via Orchestra
 
 **Status**: Completed (Implementation Phase)

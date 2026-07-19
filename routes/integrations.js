@@ -351,6 +351,21 @@ router.get("/api/antiabuse/anomaly/signals", requireAdminOrToken, async (req, re
 // ── Digest subscription ──
 
 const digestSubscribeLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false });
+const notifications = require("../lib/notifications");
+
+function notifRuntimeOptions() {
+  return {
+    usePostgres: ctx.usePostgres,
+    getPool: () => ctx.getPgPool(),
+    useMemory: !ctx.usePostgres,
+    sendTelegram: (chatId, text) => ctx.sendTelegramMessage(chatId, text),
+    jobsOptions: {
+      usePostgres: ctx.usePostgres,
+      getPool: () => ctx.getPgPool(),
+      useMemory: !ctx.usePostgres
+    }
+  };
+}
 
 router.post("/api/digest/subscribe", digestSubscribeLimiter, async (req, res) => {
   const email = ctx.normalizeEmail(req.body.email || "");
@@ -365,6 +380,34 @@ router.post("/api/digest/subscribe", digestSubscribeLimiter, async (req, res) =>
   };
   const result = await ctx.storageInsertSubscriber(entry);
   if (result.duplicate) { res.status(409).json({ message: "Already subscribed" }); return; }
+
+  // Preferences + durable confirmation email (never a fake "we'll send Monday" with no job)
+  const opts = notifRuntimeOptions();
+  let notificationJobId = null;
+  let unsubscribeToken = null;
+  try {
+    const pref = await notifications.ensurePreferences({ email: result.entry.email }, opts);
+    unsubscribeToken = pref?.unsubscribeToken || null;
+    const enqueued = await notifications.enqueueNotification(
+      {
+        channel: notifications.CHANNEL.EMAIL,
+        templateKey: notifications.TEMPLATE_KEYS.DIGEST_CONFIRM,
+        recipientEmail: result.entry.email,
+        idempotencyKey: `digest.confirm:${notifications.hashEmail(result.entry.email)}`,
+        templateVars: {
+          unsubscribeToken
+        }
+      },
+      opts
+    );
+    notificationJobId = enqueued.job?.id || null;
+  } catch (err) {
+    console.error(
+      "[digest.subscribe] enqueue confirmation failed:",
+      notifications.redactEmailsInText(err instanceof Error ? err.message : String(err))
+    );
+  }
+
   if (req.app?.locals?.publishActivity) {
     req.app.locals.publishActivity({
       type: "digest.subscribed",
@@ -373,11 +416,128 @@ router.post("/api/digest/subscribe", digestSubscribeLimiter, async (req, res) =>
       href: "#resources"
     });
   }
-  res.status(201).json({ id: result.entry.id, subscribedAt: result.entry.subscribedAt });
+  res.status(201).json({
+    id: result.entry.id,
+    subscribedAt: result.entry.subscribedAt,
+    confirmationQueued: Boolean(notificationJobId),
+    // Token returned so clients can deep-link preferences; not a secret beyond unsub
+    unsubscribeToken: unsubscribeToken || undefined
+  });
 });
 
 router.get("/api/digest/count", async (_req, res) => {
   res.json({ count: await ctx.storageCountSubscribers() });
+});
+
+// ── Unsubscribe (immediate) — token or email ──
+
+async function handleUnsubscribe(req, res) {
+  const token = String(req.query.token || req.body?.token || "").trim() || null;
+  const emailRaw = req.body?.email || req.query.email || "";
+  const email = emailRaw ? ctx.normalizeEmail(emailRaw) : null;
+  const scope = String(req.body?.scope || req.query.scope || "all").toLowerCase();
+  const allowedScopes = new Set(["all", "digest", "transactional", "follow_up", "support"]);
+  if (!allowedScopes.has(scope)) {
+    res.status(422).json({ message: "Invalid scope" });
+    return;
+  }
+  if (!token && !email) {
+    res.status(422).json({ message: "token or email required" });
+    return;
+  }
+  try {
+    const out = await notifications.unsubscribe(
+      {
+        token,
+        email,
+        scope,
+        reason: ctx.sanitizeText(req.body?.reason || "user_unsubscribe"),
+        source: "link"
+      },
+      notifRuntimeOptions()
+    );
+    if (!out.ok) {
+      res.status(404).json({ message: out.reason || "Unsubscribe failed" });
+      return;
+    }
+    // One-click GET from email clients often wants text/html
+    if (req.method === "GET" && (req.headers.accept || "").includes("text/html")) {
+      res
+        .status(200)
+        .type("html")
+        .send(
+          `<!doctype html><html><body style="font-family:system-ui;padding:2rem">
+           <h1>Unsubscribed</h1>
+           <p>You have been unsubscribed (${scope}). This takes effect immediately.</p>
+           </body></html>`
+        );
+      return;
+    }
+    res.json({ ok: true, scope: out.scope, immediate: true });
+  } catch (err) {
+    console.error(
+      "unsubscribe failed:",
+      notifications.redactEmailsInText(err instanceof Error ? err.message : String(err))
+    );
+    res.status(500).json({ message: "Unsubscribe failed" });
+  }
+}
+
+router.get("/api/notifications/unsubscribe", handleUnsubscribe);
+router.post("/api/notifications/unsubscribe", handleUnsubscribe);
+
+// Authenticated notification preferences
+router.get("/api/notifications/preferences", requireAuth, async (req, res) => {
+  try {
+    const pref = await notifications.ensurePreferences(
+      { userId: req.user.id, email: req.user.email },
+      notifRuntimeOptions()
+    );
+    res.json({
+      preferences: {
+        emailTransactional: pref.emailTransactional,
+        emailDigest: pref.emailDigest,
+        emailFollowUp: pref.emailFollowUp,
+        emailSupport: pref.emailSupport,
+        telegramEnabled: pref.telegramEnabled,
+        unsubscribeToken: pref.unsubscribeToken
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load preferences" });
+  }
+});
+
+router.patch("/api/notifications/preferences", requireAuth, async (req, res) => {
+  try {
+    const pref = await notifications.ensurePreferences(
+      { userId: req.user.id, email: req.user.email },
+      notifRuntimeOptions()
+    );
+    const updated = await notifications.updatePreferences(
+      pref.id,
+      {
+        emailTransactional: req.body?.emailTransactional,
+        emailDigest: req.body?.emailDigest,
+        emailFollowUp: req.body?.emailFollowUp,
+        emailSupport: req.body?.emailSupport,
+        telegramEnabled: req.body?.telegramEnabled
+      },
+      notifRuntimeOptions()
+    );
+    res.json({
+      preferences: {
+        emailTransactional: updated.emailTransactional,
+        emailDigest: updated.emailDigest,
+        emailFollowUp: updated.emailFollowUp,
+        emailSupport: updated.emailSupport,
+        telegramEnabled: updated.telegramEnabled,
+        unsubscribeToken: updated.unsubscribeToken
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update preferences" });
+  }
 });
 
 module.exports = router;

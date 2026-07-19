@@ -50,7 +50,7 @@ describe("loadMigrations — ordering & shape", () => {
     }
   });
 
-  it("orders 001..006: baseline, integrity, writes, jobs, expression, insider", () => {
+  it("orders 001..007 through notifications", () => {
     const migrations = loadMigrations();
     assert.equal(migrations[0].version, "001");
     assert.equal(migrations[0].name, "baseline_schema");
@@ -64,6 +64,8 @@ describe("loadMigrations — ordering & shape", () => {
     assert.equal(migrations[4].name, "expression_flows");
     assert.equal(migrations[5].version, "006");
     assert.equal(migrations[5].name, "insider_signals");
+    assert.equal(migrations[6].version, "007");
+    assert.equal(migrations[6].name, "notifications");
   });
 });
 

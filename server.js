@@ -35,6 +35,8 @@ const ENABLE_HSTS = String(process.env.ENABLE_HSTS || "false").toLowerCase() ===
 const REQUIRE_STRICT_SECRETS = String(process.env.REQUIRE_STRICT_SECRETS || (ctx.isProduction ? "true" : "false")).toLowerCase() === "true";
 const ENABLE_NEWS_INGEST = String(process.env.NEWS_INGEST_ENABLED || (ctx.usePostgres ? "true" : "false")).toLowerCase() === "true";
 const NEWS_INGEST_INTERVAL_HOURS = Math.min(Math.max(Number(process.env.NEWS_INGEST_INTERVAL_HOURS || 24), 1), 168);
+const ENABLE_WEEKLY_DIGEST = String(process.env.DIGEST_WEEKLY_ENABLED || (ctx.usePostgres ? "true" : "false")).toLowerCase() === "true";
+const DIGEST_WEEKLY_INTERVAL_HOURS = Math.min(Math.max(Number(process.env.DIGEST_WEEKLY_INTERVAL_HOURS || 168), 1), 336);
 // Default on with Postgres so scheduled news jobs actually execute in single-container
 // deploys; SKIP LOCKED keeps multi-replica safe. Prefer dedicated `npm run jobs:worker`
 // and set JOBS_WORKER=false on web replicas when scaling out.
@@ -172,6 +174,8 @@ app.use((req, res, next) => {
   if (req.headers.authorization && ctx.hasAdminToken(req)) { next(); return; }
   // Skip CSRF for Telegram webhook (uses its own secret validation)
   if (req.path.includes("/telegram/webhook")) { next(); return; }
+  // Skip CSRF for one-click email unsubscribe (token-authenticated)
+  if (req.path.includes("/notifications/unsubscribe")) { next(); return; }
   if (!ctx.validateCsrfToken(req)) {
     res.status(403).json({ message: "CSRF token missing or invalid. Include X-CSRF-Token header." });
     return;
@@ -451,6 +455,44 @@ function scheduleNewsIngest() {
   if (typeof timer.unref === "function") timer.unref();
 }
 
+/**
+ * Enqueue digest.weekly with a windowed idempotency key (default 7d window).
+ * Fan-out happens in the job handler via durable notification.send jobs.
+ */
+async function enqueueScheduledWeeklyDigest(reason) {
+  if (!ENABLE_WEEKLY_DIGEST || !ctx.usePostgres) return;
+  const intervalMs = DIGEST_WEEKLY_INTERVAL_HOURS * 60 * 60 * 1000;
+  const idempotencyKey = jobs.scheduleIdempotencyKey("digest.weekly", intervalMs);
+  try {
+    const { job, created } = await jobs.enqueue(
+      {
+        type: "digest.weekly",
+        payload: { reason, windowKey: idempotencyKey },
+        idempotencyKey,
+        maxAttempts: 3,
+        timeoutMs: 10 * 60 * 1000
+      },
+      jobsRuntimeOptions()
+    );
+    if (created) {
+      console.log(`Weekly digest job enqueued (${reason}): ${job.id} key=${idempotencyKey}`);
+    } else {
+      console.log(`Weekly digest job already queued for window (${reason}): ${job.id}`);
+    }
+  } catch (error) {
+    console.error(`Weekly digest enqueue ${reason} failed:`, error);
+  }
+}
+
+function scheduleWeeklyDigest() {
+  if (!ENABLE_WEEKLY_DIGEST || !ctx.usePostgres) return;
+  const intervalMs = DIGEST_WEEKLY_INTERVAL_HOURS * 60 * 60 * 1000;
+  // Delay first enqueue so boot settles; still durable + idempotent per window.
+  setTimeout(() => enqueueScheduledWeeklyDigest("startup"), 45000);
+  const timer = setInterval(() => enqueueScheduledWeeklyDigest("interval"), intervalMs);
+  if (typeof timer.unref === "function") timer.unref();
+}
+
 function startInProcessJobWorker() {
   if (!ENABLE_JOBS_WORKER) return null;
   const workerId =
@@ -515,6 +557,7 @@ async function start() {
   // Handlers always registered so admin enqueue / separate worker share types.
   registerBuiltinHandlers(ctx, jobs);
   scheduleNewsIngest();
+  scheduleWeeklyDigest();
   startInProcessJobWorker();
 
   app.listen(port, () => {
