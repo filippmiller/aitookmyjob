@@ -155,23 +155,7 @@ router.get("/api/submission/onion-info", (_req, res) => {
   res.json({ enabled: false, note: "Onion endpoint is not configured yet.", guidance: "Use anonymous inbox or secure channel until onion service is enabled." });
 });
 
-router.get("/api/cohorts", async (req, res) => {
-  const country = ctx.normalizeCountry(req.query.country || "global");
-  const profession = ctx.sanitizeText(req.query.profession || "").toLowerCase();
-  const rows = await ctx.storageGetCohorts();
-  res.json({ country, cohorts: rows.filter((c) => (c.country === "global" || c.country === country) && (!profession || String(c.profession || "").toLowerCase().includes(profession))) });
-});
-
-router.post("/api/cohorts", requireAuth, async (req, res) => {
-  const title = ctx.sanitizeText(req.body.title || "");
-  const profession = ctx.sanitizeText(req.body.profession || "");
-  const country = ctx.normalizeCountry(req.body.country || "global");
-  const capacity = Number(req.body.capacity || 0);
-  if (title.length < 8 || profession.length < 2 || capacity < 5) { res.status(422).json({ message: "Validation failed" }); return; }
-  const row = { id: `cohort-${ctx.topicId()}`, title, profession, country, capacity, enrolled: 0, startsAt: ctx.sanitizeText(req.body.startsAt || ""), status: "open" };
-  const saved = await ctx.storageInsertCohort(row);
-  res.status(201).json(saved);
-});
+// Cohorts moved to routes/cohorts.js (aitj-z8q.14) — mounted at /api/cohorts
 
 router.get("/api/polls/boundary", async (req, res) => {
   const visitorHash = getVisitorHash(req, res);
