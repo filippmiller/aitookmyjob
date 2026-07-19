@@ -1,9 +1,10 @@
 # Production DNS + Coolify — aitookmyjob (aitj-z8q.2)
 
-**Date:** 2026-07-19  
+**Date:** 2026-07-19 (updated after analytics wave + hotfix)  
 **Bead:** aitj-z8q.2  
 **Branch:** `ops/prod-dns-coolify-z8q-2`  
-**Author ops session:** Grok implementer (subagent)
+**Author ops session:** Grok implementer (subagent)  
+**Current prod git:** `f5da127` · **schema:** `015` · **Codex evidence:** [`codex-gate-evidence.md`](./codex-gate-evidence.md)
 
 ---
 
@@ -32,11 +33,10 @@
 | **Server** | Hetzner VPS `89.167.42.128` (Coolify host) |
 | **Git** | `filippmiller/aitookmyjob.git` branch `master` |
 | **Build pack** | Dockerfile (`ports_exposes=8080`) |
-| **FQDN (Coolify)** | `https://aitookmyjob.filippmiller.com` only |
-| **Container (post-restore)** | `wk848wc4oo88swk0g8oc8ksw-081539515025` |
-| **Image tag** | `wk848wc4oo88swk0g8oc8ksw:6134bc47b6161f03a6ce2b9fe066b41fec98759a` |
-| **Deploy commit** | `6134bc4` — *Stabilize Playwright test runtime* |
-| **Deploy UUID** | `pkqz544ws44z80tqifzftb7i` (finished 2026-07-19T08:15:57Z, `force_rebuild=false`) |
+| **FQDN (Coolify)** | `https://aitookmyjob.filippmiller.com` only (apex not yet in Coolify; API PATCH `fqdn` returns "field not allowed" — use Coolify UI) |
+| **Container (post-restore)** | rotates on each deploy; check `docker ps --filter name=wk848wc4` |
+| **Deploy commit (live)** | `f5da127` — analytics/privacy (#25) + forum backfill hotfix (#26) |
+| **Schema version** | `015` (`analytics_events`) |
 | **Storage** | PostgreSQL (`DATABASE_URL` → host `postgres`, db `aitookmyjob`) |
 
 ### Redeploy (no cacheless force)
