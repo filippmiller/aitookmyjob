@@ -50,7 +50,7 @@ describe("loadMigrations — ordering & shape", () => {
     }
   });
 
-  it("orders 001..010 through social_support", () => {
+  it("orders 001..010 through social_support and includes 012 cohorts_mentors", () => {
     const migrations = loadMigrations();
     assert.equal(migrations[0].version, "001");
     assert.equal(migrations[0].name, "baseline_schema");
@@ -72,6 +72,13 @@ describe("loadMigrations — ordering & shape", () => {
     assert.equal(migrations[8].name, "news_community");
     assert.equal(migrations[9].version, "010");
     assert.equal(migrations[9].name, "social_support");
+    const m012 = migrations.find((m) => m.version === "012");
+    assert.ok(m012, "expected migration 012");
+    assert.equal(m012.name, "cohorts_mentors");
+    // 011 reserved for intent-feeds; may be absent
+    const idx010 = migrations.findIndex((m) => m.version === "010");
+    const idx012 = migrations.findIndex((m) => m.version === "012");
+    assert.ok(idx010 < idx012);
   });
 });
 

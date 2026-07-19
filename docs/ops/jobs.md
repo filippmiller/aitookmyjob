@@ -90,6 +90,9 @@ web process; execution should be done by a worker.
 | `notification.send` | Deliver one `notification_deliveries` row (email/telegram) |
 | `digest.weekly` | Fan-out weekly digest → enqueues `notification.send` per subscriber |
 | `resource.link_check` | Probe resource URLs; set `link_status` / flag broken (aitj-z8q.12) |
+| `news.source_check` | Probe news URLs; update `source_status` (aitj-z8q.10) |
+| `cohort.reminder` | Event reminders + outcome follow-ups → notification fan-out (aitj-z8q.14) |
+| `buddy.match` | Optional auto buddy matching for a cohort (aitj-z8q.14) |
 
 Register more via `jobs.registerHandler(type, async (payload, meta) => …)` in
 `lib/job-handlers.js` (or app bootstrap).

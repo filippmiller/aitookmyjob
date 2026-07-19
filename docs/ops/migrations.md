@@ -44,6 +44,10 @@ Schema version is the latest applied migration id (e.g. `"002"`).
 | `006` | `insider_signals` | insider_signals, evidence, signal_links, access log (aitj-z8q.9) |
 | `007` | `notifications` | notification_deliveries, preferences, unsubscribes (aitj-z8q.15) |
 | `008` | `resources_catalog` | verification/cost/eligibility; opportunities; save/review/report (aitj-z8q.12) |
+| `009` | `news_community` | news discussions, submissions, source health (aitj-z8q.10) |
+| `010` | `social_support` | comments, follows, blocks, reactions, groups, reputation (aitj-z8q.11) |
+| `011` | *(reserved)* | intent feeds agent |
+| `012` | `cohorts_mentors` | cohort members, waitlist, buddy pairs, mentors, events, outcomes (aitj-z8q.14) |
 
 ## Commands
 
