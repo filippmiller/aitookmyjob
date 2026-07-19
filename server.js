@@ -30,6 +30,7 @@ const newsRoutes = require("./routes/news");
 const socialRoutes = require("./routes/social");
 const feedRoutes = require("./routes/feed");
 const cohortsRoutes = require("./routes/cohorts");
+const searchRoutes = require("./routes/search");
 const jobs = require("./lib/jobs");
 const { registerBuiltinHandlers } = require("./lib/job-handlers");
 const os = require("os");
@@ -295,6 +296,7 @@ app.use(newsRoutes);          // /api/news* community news (aitj-z8q.10)
 app.use("/api/social", socialRoutes); // comments, follows, blocks, saves, reactions, groups (aitj-z8q.11)
 app.use("/api", feedRoutes); // /api/me/intent, /api/feed (aitj-z8q.13)
 app.use("/api/cohorts", cohortsRoutes); // cohorts, buddies, mentors, events (aitj-z8q.14)
+app.use(searchRoutes);        // /api/search, /api/entities, /api/saved-searches (aitj-z8q.17)
 app.use(integrationsRoutes);  // mounted at root — /api/integrations/*, legacy surfaces
 
 // ── PWA assets ──
@@ -373,6 +375,8 @@ app.get("/forum", (req, res) => { res.sendFile(path.join(ctx.publicDir, "forum.h
 app.get("/research", (req, res) => { res.sendFile(path.join(ctx.publicDir, "research.html")); });
 app.get("/admin", (req, res) => { res.sendFile(path.join(ctx.publicDir, "admin.html")); });
 app.get("/admin/", (req, res) => { res.sendFile(path.join(ctx.publicDir, "admin.html")); });
+app.get("/search", (req, res) => { res.sendFile(path.join(ctx.publicDir, "entity.html")); });
+app.get("/entity/:type/:slug", (req, res) => { res.sendFile(path.join(ctx.publicDir, "entity.html")); });
 app.get("/support", (req, res) => { res.sendFile(path.join(ctx.publicDir, "index.html")); });
 app.get("/events", (req, res) => { res.sendFile(path.join(ctx.publicDir, "index.html")); });
 app.get("/dashboard", (req, res) => { res.sendFile(path.join(ctx.publicDir, "index.html")); });

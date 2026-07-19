@@ -49,6 +49,7 @@ Schema version is the latest applied migration id (e.g. `"002"`).
 | `011` | `intent_feeds` | user_intent_state + feed_events for personalized feeds (aitj-z8q.13) |
 | `012` | `cohorts_mentors` | cohort members, waitlist, buddy pairs, mentors, events, outcomes (aitj-z8q.14) |
 | `013` | `admin_ops` | appeals, crisis cases, takedown resolution (aitj-z8q.16)
+| `014` | `search_discovery` | search_documents FTS + saved_searches (aitj-z8q.17)
 
 ## Commands
 
