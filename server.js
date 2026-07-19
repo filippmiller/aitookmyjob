@@ -16,6 +16,7 @@ const storiesRoutes = require("./routes/stories");
 const forumRoutes = require("./routes/forum");
 const adminRoutes = require("./routes/admin");
 const integrationsRoutes = require("./routes/integrations");
+const insiderRoutes = require("./routes/insider");
 const jobs = require("./lib/jobs");
 const { registerBuiltinHandlers } = require("./lib/job-handlers");
 const os = require("os");
@@ -204,6 +205,7 @@ app.use("/api/auth", authRoutes);
 app.use(storiesRoutes);       // mounted at root — routes include /api/stories, /api/stats, /api/companies, /sitemap.xml
 app.use("/api/forum", forumRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/signals", insiderRoutes); // insider signals — public summary only; evidence never public
 app.use(integrationsRoutes);  // mounted at root — routes include /api/integrations/*, /api/resources, /api/news, etc.
 
 // ── PWA assets ──
