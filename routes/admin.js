@@ -4,6 +4,7 @@ const { requireAdminOrToken } = require("../middleware/auth");
 const ctx = require("../lib/context");
 const { ingestNews } = require("../lib/news-ingest");
 const jobs = require("../lib/jobs");
+const notifications = require("../lib/notifications");
 
 router.get("/overview", async (req, res) => {
   if (!(ctx.hasAdminToken(req) || ctx.hasModeratorRole(req.user))) { res.status(401).json({ message: "Unauthorized" }); return; }
@@ -263,6 +264,154 @@ router.post("/sanctions", requireAdminOrToken, async (req, res) => {
   await ctx.storageAudit({ action: "sanction.create", actorId: req.user?.id || "admin-token", targetType: "user", targetId: targetUser.id, metadata: sanctionEntry, ip: req.ip });
   await ctx.storageInsertTransparencyEvent({ id: ctx.auditId(), eventType: "sanction", status: parsed.data.type, details: { targetUserId: targetUser.id, reason: parsed.data.reason, durationDays: parsed.data.durationDays || null }, createdAt: sanctionEntry.createdAt });
   res.status(201).json({ id: sanctionEntry.id });
+});
+
+// ── Notification deliveries (aitj-z8q.15) ──
+
+function notifOptions() {
+  return {
+    usePostgres: ctx.usePostgres,
+    getPool: () => ctx.getPgPool(),
+    useMemory: !ctx.usePostgres,
+    sendTelegram: (chatId, text) => ctx.sendTelegramMessage(chatId, text),
+    jobsOptions: {
+      usePostgres: ctx.usePostgres,
+      getPool: () => ctx.getPgPool(),
+      useMemory: !ctx.usePostgres
+    }
+  };
+}
+
+router.get("/notifications/deliveries", requireAdminOrToken, async (req, res) => {
+  try {
+    const result = await notifications.listDeliveries(
+      {
+        status: req.query.status ? String(req.query.status) : undefined,
+        templateKey: req.query.templateKey || req.query.template_key || undefined,
+        channel: req.query.channel ? String(req.query.channel) : undefined,
+        limit: req.query.limit,
+        offset: req.query.offset
+      },
+      notifOptions()
+    );
+    res.json({
+      deliveries: result.deliveries.map(notifications.deliveryToPublic),
+      total: result.total,
+      emailProvider: notifications.resolveEmailProvider(),
+      smtpConfigured: notifications.smtpConfigured()
+    });
+  } catch (err) {
+    console.error("admin list notification deliveries failed:", notifications.redactEmailsInText(err.message || err));
+    res.status(500).json({ message: "Failed to list notification deliveries" });
+  }
+});
+
+router.get("/notifications/deliveries/:id", requireAdminOrToken, async (req, res) => {
+  try {
+    const delivery = await notifications.getDelivery(req.params.id, notifOptions());
+    if (!delivery) {
+      res.status(404).json({ message: "Delivery not found" });
+      return;
+    }
+    res.json({ delivery: notifications.deliveryToPublic(delivery) });
+  } catch (err) {
+    console.error("admin get notification delivery failed:", notifications.redactEmailsInText(err.message || err));
+    res.status(500).json({ message: "Failed to get notification delivery" });
+  }
+});
+
+router.post("/notifications/deliveries/:id/retry", requireAdminOrToken, async (req, res) => {
+  try {
+    const enqueue = req.body?.enqueue !== false;
+    const out = await notifications.retryDelivery(req.params.id, {
+      ...notifOptions(),
+      enqueue
+    });
+    if (!out.ok && out.reason === "not_found") {
+      res.status(404).json({ message: "Delivery not found" });
+      return;
+    }
+    if (!out.ok && out.reason === "already_delivered") {
+      res.status(409).json({
+        ok: false,
+        message: "Already delivered",
+        delivery: notifications.deliveryToPublic(out.delivery)
+      });
+      return;
+    }
+    await ctx.storageAudit({
+      action: "notification.retry",
+      actorId: req.user?.id || "admin-token",
+      targetType: "notification_delivery",
+      targetId: req.params.id,
+      metadata: {
+        enqueued: Boolean(out.enqueued),
+        status: out.delivery?.status || out.result?.delivery?.status || null
+      },
+      ip: req.ip
+    });
+    res.json({
+      ok: true,
+      enqueued: Boolean(out.enqueued),
+      delivery: notifications.deliveryToPublic(out.delivery || out.result?.delivery),
+      job: out.job || null
+    });
+  } catch (err) {
+    console.error("admin retry notification failed:", notifications.redactEmailsInText(err.message || err));
+    res.status(500).json({ message: "Failed to retry notification delivery" });
+  }
+});
+
+/** Bounce webhook hook — provider adapters POST here (admin auth). */
+router.post("/notifications/webhooks/bounce", requireAdminOrToken, async (req, res) => {
+  try {
+    const email = req.body?.email ? ctx.normalizeEmail(req.body.email) : null;
+    const messageId = req.body?.messageId || req.body?.message_id || null;
+    const reason = ctx.sanitizeText(req.body?.reason || "bounce");
+    const out = await notifications.handleBounce({ email, messageId, reason }, notifOptions());
+    await ctx.storageAudit({
+      action: "notification.bounce",
+      actorId: req.user?.id || "admin-token",
+      targetType: "notification_delivery",
+      targetId: messageId || "bounce",
+      metadata: {
+        matched: out.matched || 0,
+        emailHash: email ? notifications.hashEmail(email) : null,
+        reason
+      },
+      ip: req.ip
+    });
+    res.json(out);
+  } catch (err) {
+    console.error("bounce webhook failed:", notifications.redactEmailsInText(err.message || err));
+    res.status(500).json({ message: "Failed to process bounce" });
+  }
+});
+
+/** Complaint webhook hook — provider adapters POST here (admin auth). */
+router.post("/notifications/webhooks/complaint", requireAdminOrToken, async (req, res) => {
+  try {
+    const email = req.body?.email ? ctx.normalizeEmail(req.body.email) : null;
+    const messageId = req.body?.messageId || req.body?.message_id || null;
+    const reason = ctx.sanitizeText(req.body?.reason || "complaint");
+    const out = await notifications.handleComplaint({ email, messageId, reason }, notifOptions());
+    await ctx.storageAudit({
+      action: "notification.complaint",
+      actorId: req.user?.id || "admin-token",
+      targetType: "notification_delivery",
+      targetId: messageId || "complaint",
+      metadata: {
+        matched: out.matched || 0,
+        emailHash: email ? notifications.hashEmail(email) : null,
+        reason
+      },
+      ip: req.ip
+    });
+    res.json(out);
+  } catch (err) {
+    console.error("complaint webhook failed:", notifications.redactEmailsInText(err.message || err));
+    res.status(500).json({ message: "Failed to process complaint" });
+  }
 });
 
 module.exports = router;

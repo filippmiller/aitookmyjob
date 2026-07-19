@@ -38,6 +38,7 @@ Schema version is the latest applied migration id (e.g. `"002"`).
 | `002` | `integrity_constraints` | Domain-aligned CHECKs, backfills, unique indexes |
 | `003` | `remaining_write_entities` | resources, cohorts, company_boards, anonymous_inbox, takedowns, subscribers; forum_topics.updated_at (aitj-z8q.3) |
 | `004` | `jobs` | Durable background jobs + job_runs history (aitj-z8q.5); see `docs/ops/jobs.md` |
+| `005` | `notifications` | notification_deliveries, notification_preferences, email_unsubscribes (aitj-z8q.15) |
 
 ## Commands
 

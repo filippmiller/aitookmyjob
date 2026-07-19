@@ -3,6 +3,7 @@ const rateLimit = require("express-rate-limit");
 const router = express.Router();
 const { requireAuth } = require("../middleware/auth");
 const ctx = require("../lib/context");
+const notifications = require("../lib/notifications");
 
 const authLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 const phoneLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 12, standardHeaders: true, legacyHeaders: false });
@@ -29,7 +30,45 @@ router.post("/register", authLimiter, async (req, res) => {
   };
   await ctx.storageInsertUser(newUser);
   await ctx.storageUpsertIdentity({ userId: newUser.id, emailVerified: true, phone: newUser.phone || null, phoneVerified: false });
-  await ctx.storageAudit({ action: "auth.register", actorId: newUser.id, targetType: "user", targetId: newUser.id, metadata: { email }, ip: req.ip });
+  // Do not put raw email in audit metadata (PII / log redaction policy — aitj-z8q.15)
+  await ctx.storageAudit({
+    action: "auth.register",
+    actorId: newUser.id,
+    targetType: "user",
+    targetId: newUser.id,
+    metadata: { emailHash: notifications.hashEmail(email) },
+    ip: req.ip
+  });
+
+  // Queue welcome email via durable notification job (console/ethereal/smtp provider)
+  try {
+    await notifications.enqueueNotification(
+      {
+        channel: notifications.CHANNEL.EMAIL,
+        templateKey: notifications.TEMPLATE_KEYS.REGISTRATION_WELCOME,
+        recipientEmail: email,
+        recipientUserId: newUser.id,
+        idempotencyKey: `registration.welcome:${newUser.id}`,
+        templateVars: { displayName: email.split("@")[0] || "there" }
+      },
+      {
+        usePostgres: ctx.usePostgres,
+        getPool: () => ctx.getPgPool(),
+        useMemory: !ctx.usePostgres,
+        jobsOptions: {
+          usePostgres: ctx.usePostgres,
+          getPool: () => ctx.getPgPool(),
+          useMemory: !ctx.usePostgres
+        }
+      }
+    );
+  } catch (err) {
+    console.error(
+      "[auth.register] welcome notification enqueue failed:",
+      notifications.redactEmailsInText(err instanceof Error ? err.message : String(err))
+    );
+  }
+
   const token = ctx.makeSessionToken(newUser);
   ctx.setAuthCookie(res, token);
   res.status(201).json({ id: newUser.id, email: newUser.email, role: newUser.role });
