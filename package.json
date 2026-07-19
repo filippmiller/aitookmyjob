@@ -17,14 +17,16 @@
     "test:storage": "node --test tests/storage-routing.test.js",
     "test:jobs": "node --test tests/jobs.test.js",
     "test:observability": "node --test tests/observability.test.js",
-    "test:unit": "node --test tests/domain-contract.test.js tests/migrations.test.js tests/storage-routing.test.js tests/jobs.test.js tests/observability.test.js",
+    "test:expression": "node --test tests/expression.test.js",
+    "test:insider": "node --test tests/insider.test.js",
+    "test:notifications": "node --test tests/notifications.test.js",
+    "test:resources": "node --test tests/resources-catalog.test.js",
+    "test:unit": "node --test tests/domain-contract.test.js tests/migrations.test.js tests/storage-routing.test.js tests/jobs.test.js tests/observability.test.js tests/expression.test.js tests/insider.test.js tests/notifications.test.js tests/resources-catalog.test.js",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report"
   },
-  "engines": {
-    "node": ">=20"
-  },
+  "engines": { "node": ">=20" },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
@@ -36,6 +38,7 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
     "nanoid": "^5.1.6",
+    "nodemailer": "^7.0.13",
     "pg": "^8.18.0",
     "proper-lockfile": "^4.1.2",
     "zod": "^4.3.6"

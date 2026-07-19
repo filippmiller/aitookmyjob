@@ -87,9 +87,26 @@ web process; execution should be done by a worker.
 |------|--------|
 | `news.ingest` | GDELT + RSS collect → `storageUpsertNewsItems` |
 | `jobs.ping` | No-op health job (`{ pong: true }`) |
+| `notification.send` | Deliver one `notification_deliveries` row (email/telegram) |
+| `digest.weekly` | Fan-out weekly digest → enqueues `notification.send` per subscriber |
+| `resource.link_check` | Probe resource URLs; set `link_status` / flag broken (aitj-z8q.12) |
 
 Register more via `jobs.registerHandler(type, async (payload, meta) => …)` in
 `lib/job-handlers.js` (or app bootstrap).
+
+### Notifications (aitj-z8q.15)
+
+| Surface | Path |
+|---------|------|
+| Module | `lib/notifications.js` |
+| Migration | `005_notifications` |
+| Admin list/retry | `GET/POST /api/admin/notifications/deliveries*` |
+| Bounce/complaint hooks | `POST /api/admin/notifications/webhooks/{bounce,complaint}` |
+| Unsubscribe | `GET/POST /api/notifications/unsubscribe?token=` |
+| Preferences | `GET/PATCH /api/notifications/preferences` (auth) |
+
+Email providers: `console` (default, simulated), `smtp` (`SMTP_*` / `SMTP_URL`),
+`ethereal` (`EMAIL_PROVIDER=ethereal`). Logs never include raw email addresses.
 
 ## Admin API (auth: admin token or moderator role)
 

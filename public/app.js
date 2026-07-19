@@ -244,8 +244,23 @@ class AITookMyJobApp {
     if (storyForm) {
       storyForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        this.handleStorySubmit(storyForm);
+        this.handleStorySubmit(storyForm, { asDraft: false });
       });
+    }
+    const draftBtn = document.getElementById('storyDraftBtn');
+    if (draftBtn && storyForm) {
+      draftBtn.addEventListener('click', () => this.handleStorySubmit(storyForm, { asDraft: true }));
+    }
+    // Publication intent defaults (aitj-z8q.8)
+    const intentSelect = document.getElementById('storyPublicationIntent');
+    if (intentSelect) {
+      const applyIntentDefaults = () => this.applyPublicationIntentDefaults(intentSelect.value);
+      intentSelect.addEventListener('change', applyIntentDefaults);
+      const desiredSel = document.getElementById('storyDesiredResponse');
+      if (desiredSel) {
+        desiredSel.addEventListener('change', () => this.updateResponsePolicyHint(desiredSel.value));
+      }
+      applyIntentDefaults();
     }
 
     // Character counter for story textarea
@@ -620,22 +635,98 @@ class AITookMyJobApp {
     if (sessionSection) sessionSection.style.display = 'none';
   }
 
-  async handleStorySubmit(form) {
+  applyPublicationIntentDefaults(intent) {
+    const defaults = {
+      vent: { desiredResponse: 'empathy', anonymityMode: 'anonymous', advicePermission: 'closed', visibility: 'community', retentionPreference: '30d' },
+      story: { desiredResponse: 'witness', anonymityMode: 'alias', advicePermission: 'open', visibility: 'public', retentionPreference: 'indefinite' },
+      advice_request: { desiredResponse: 'advice', anonymityMode: 'alias', advicePermission: 'open', visibility: 'public', retentionPreference: 'indefinite' },
+      warn: { desiredResponse: 'share', anonymityMode: 'alias', advicePermission: 'closed', visibility: 'public', retentionPreference: 'indefinite' },
+      good_news: { desiredResponse: 'celebrate', anonymityMode: 'alias', advicePermission: 'open', visibility: 'public', retentionPreference: 'indefinite' },
+      news_share: { desiredResponse: 'discuss', anonymityMode: 'alias', advicePermission: 'open', visibility: 'public', retentionPreference: 'indefinite' }
+    };
+    const d = defaults[intent] || defaults.story;
+    const set = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.value = value;
+    };
+    set('storyDesiredResponse', d.desiredResponse);
+    set('storyAnonymityMode', d.anonymityMode);
+    set('storyAdvicePermission', d.advicePermission);
+    set('storyVisibility', d.visibility);
+    set('storyRetention', d.retentionPreference);
+    this.updateResponsePolicyHint(d.desiredResponse);
+
+    // Progressive field requirements: vent is lighter
+    const storyFields = ['storyProfession', 'storyCompany', 'storyDate', 'storyReason'];
+    const isVent = intent === 'vent';
+    storyFields.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (isVent) {
+        el.removeAttribute('required');
+        el.closest('.form-group')?.classList.add('is-optional-for-vent');
+      } else {
+        if (id !== 'storyCompany') el.setAttribute('required', 'required');
+        el.closest('.form-group')?.classList.remove('is-optional-for-vent');
+      }
+    });
+    const storyText = document.getElementById('storyText');
+    if (storyText) {
+      storyText.setAttribute('minlength', isVent ? '10' : '40');
+      storyText.placeholder = isVent
+        ? 'What do you need to get off your chest? (min 10 characters)'
+        : 'Tell your story. What happened? How did it affect you? (min 40 characters)';
+    }
+    const submitBtn = document.getElementById('storySubmitBtn');
+    if (submitBtn) {
+      submitBtn.textContent = isVent ? 'Submit vent' : intent === 'advice_request' ? 'Ask for advice' : 'Submit';
+    }
+  }
+
+  updateResponsePolicyHint(desiredResponse) {
+    const hint = document.getElementById('responsePolicyHint');
+    if (!hint) return;
+    const map = {
+      none: 'Response policy: no prompts — author asked for silence.',
+      empathy: 'Response policy: empathy only — no forced action content.',
+      witness: 'Response policy: support / witness only — no forced action.',
+      advice: 'Response policy: advice welcome (author-controlled).',
+      practical_help: 'Response policy: practical help welcome (author-controlled).',
+      share: 'Response policy: share / amplify welcome.',
+      celebrate: 'Response policy: celebrate with the author.',
+      discuss: 'Response policy: discussion welcome.'
+    };
+    hint.textContent = map[desiredResponse] || map.witness;
+  }
+
+  async handleStorySubmit(form, options = {}) {
     const errorEl = document.getElementById('storyFormError');
     if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
 
+    const asDraft = Boolean(options.asDraft);
+    const intentEl = form.publicationIntent || document.getElementById('storyPublicationIntent');
+    const publicationIntent = intentEl ? intentEl.value : 'story';
+
     const body = {
+      publicationIntent,
+      desiredResponse: (form.desiredResponse || document.getElementById('storyDesiredResponse'))?.value || 'witness',
+      anonymityMode: (form.anonymityMode || document.getElementById('storyAnonymityMode'))?.value || 'alias',
+      advicePermission: (form.advicePermission || document.getElementById('storyAdvicePermission'))?.value || 'open',
+      visibility: (form.visibility || document.getElementById('storyVisibility'))?.value || 'public',
+      retentionPreference: (form.retentionPreference || document.getElementById('storyRetention'))?.value || 'indefinite',
       name: form.name.value.trim(),
-      profession: form.profession.value.trim(),
+      profession: form.profession.value.trim() || (publicationIntent === 'vent' ? 'Worker' : ''),
       company: form.company.value.trim() || 'Undisclosed',
-      laidOffAt: form.laidOffAt.value.trim(),
-      reason: form.reason.value.trim(),
+      laidOffAt: form.laidOffAt.value.trim() || (publicationIntent === 'vent' ? new Date().toISOString().slice(0, 7) : ''),
+      reason: form.reason.value.trim() || (publicationIntent === 'vent' ? 'Personal vent' : ''),
       story: form.story.value.trim(),
+      body: form.story.value.trim(),
       country: form.country.value,
       language: this.state.lang,
       aiTool: form.aiTool.value.trim() || undefined,
       foundNewJob: form.foundNewJob.checked,
       ndaConfirmed: form.ndaConfirmed.checked,
+      asDraft,
       privacy: {
         name: form.privacyName.value,
         company: form.privacyCompany.value,
@@ -644,19 +735,44 @@ class AITookMyJobApp {
       }
     };
 
-    if (body.story.length < 40) {
-      if (errorEl) { errorEl.textContent = 'Story must be at least 40 characters.'; errorEl.style.display = 'block'; }
+    const minLen = publicationIntent === 'vent' ? 10 : 40;
+    if (!asDraft && body.story.length < minLen) {
+      if (errorEl) {
+        errorEl.textContent = publicationIntent === 'vent'
+          ? 'Vent must be at least 10 characters.'
+          : 'Story must be at least 40 characters.';
+        errorEl.style.display = 'block';
+      }
+      return;
+    }
+    if (asDraft && !this.state.authUser) {
+      if (errorEl) {
+        errorEl.textContent = 'Sign in to save a draft.';
+        errorEl.style.display = 'block';
+      }
+      this.toast('Sign in to save a draft', 'error');
       return;
     }
 
-    const btn = form.querySelector('button[type="submit"]');
-    this.setLoading(btn, true, 'Submitting...');
+    const btn = asDraft
+      ? document.getElementById('storyDraftBtn')
+      : form.querySelector('button[type="submit"]');
+    this.setLoading(btn, true, asDraft ? 'Saving…' : 'Submitting...');
 
-    const endpoint = this.state.authUser ? '/api/stories' : '/api/stories/anonymous';
+    // Expression API for drafts, vents, and non-default intents; legacy for classic story
+    let endpoint;
+    if (asDraft || publicationIntent === 'vent' || publicationIntent !== 'story') {
+      endpoint = '/api/expression';
+    } else if (this.state.authUser) {
+      endpoint = '/api/stories';
+    } else {
+      endpoint = '/api/stories/anonymous';
+    }
     const res = await this.postJSON(endpoint, body);
 
     if (res.ok) {
       form.reset();
+      this.applyPublicationIntentDefaults('story');
       // Update char counter
       const charCountEl = document.getElementById('storyCharCount');
       if (charCountEl) charCountEl.textContent = '0 / 3,000';
@@ -671,7 +787,7 @@ class AITookMyJobApp {
         const checkmark = document.getElementById('storySuccessCheckmark');
         if (checkmark) setTimeout(() => { checkmark.style.transform = 'scale(1)'; }, 50);
       } else {
-        this.toast('Story submitted for review. Thank you for sharing.', 'success');
+        this.toast(asDraft ? 'Draft saved.' : 'Submitted for review. Thank you for sharing.', 'success');
         const modal = document.getElementById('storyModal');
         if (modal) this.closeModal(modal);
       }
@@ -681,7 +797,7 @@ class AITookMyJobApp {
       this.toast(msg, 'error');
     }
 
-    this.setLoading(btn, false, 'Submit Story');
+    this.setLoading(btn, false, asDraft ? 'Save draft' : 'Submit');
   }
 
   updateStoryPrivacyPreview(form, container) {

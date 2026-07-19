@@ -4,6 +4,18 @@ const { requireAdminOrToken } = require("../middleware/auth");
 const ctx = require("../lib/context");
 const { ingestNews } = require("../lib/news-ingest");
 const jobs = require("../lib/jobs");
+const insider = require("../lib/insider");
+const notifications = require("../lib/notifications");
+const { adminRouter: resourcesAdminRouter } = require("./resources");
+const {
+  INSIDER_SIGNAL_STATUS,
+  EVIDENCE_STATUS,
+  VERIFICATION_LEVEL,
+  valuesOf
+} = require("../lib/domain-contract");
+
+// Verified catalog CRUD for admins/trusted curators (aitj-z8q.12)
+router.use(resourcesAdminRouter);
 
 router.get("/overview", async (req, res) => {
   if (!(ctx.hasAdminToken(req) || ctx.hasModeratorRole(req.user))) { res.status(401).json({ message: "Unauthorized" }); return; }
@@ -112,7 +124,63 @@ router.post("/moderation/:id/action", requireAdminOrToken, async (req, res) => {
       });
     }
   }
+  if (String(req.params.id).startsWith("vent:")) {
+    const ventKey = String(req.params.id).split(":")[1];
+    const vent = await ctx.storageGetVentById(ventKey);
+    await ctx.storageInsertTransparencyEvent({
+      id: ctx.auditId(),
+      eventType: "moderation",
+      status: parsed.data.action,
+      details: { entryId: req.params.id, reason: parsed.data.reason, publicationIntent: "vent" },
+      createdAt: new Date().toISOString()
+    });
+    if (parsed.data.action === "approve" && req.app?.locals?.publishActivity) {
+      req.app.locals.publishActivity({
+        type: "vent.published",
+        title: "Vent published",
+        detail: vent ? `${vent.country || "global"} · ${vent.desiredResponse || "empathy"}` : ventKey,
+        href: `/#vents`
+      });
+    }
+  }
+  if (String(req.params.id).startsWith("report:")) {
+    await ctx.storageInsertTransparencyEvent({
+      id: ctx.auditId(),
+      eventType: "moderation",
+      status: parsed.data.action,
+      details: { entryId: req.params.id, reason: parsed.data.reason, type: "report" },
+      createdAt: new Date().toISOString()
+    });
+  }
   res.json({ ok: true });
+});
+
+router.get("/expression/reports", requireAdminOrToken, async (req, res) => {
+  const status = req.query.status ? String(req.query.status) : undefined;
+  const reports = await ctx.storageGetExpressionReports({ status, limit: 200 });
+  res.json({ reports, total: reports.length });
+});
+
+router.get("/expression/vents", requireAdminOrToken, async (req, res) => {
+  const status = req.query.status ? String(req.query.status) : null;
+  let vents = await ctx.storageGetVents();
+  if (status) vents = vents.filter((v) => v.status === status);
+  res.json({
+    vents: vents.slice(0, 200).map((v) => ({
+      id: v.id,
+      status: v.status,
+      title: v.title,
+      body: v.body,
+      publicationIntent: v.publicationIntent,
+      desiredResponse: v.desiredResponse,
+      visibility: v.visibility,
+      country: v.country,
+      submittedBy: v.submittedBy,
+      createdAt: v.createdAt,
+      moderation: v.moderation
+    })),
+    total: vents.length
+  });
 });
 
 router.get("/moderation/:id/scores", requireAdminOrToken, async (req, res) => {
@@ -264,5 +332,610 @@ router.post("/sanctions", requireAdminOrToken, async (req, res) => {
   await ctx.storageInsertTransparencyEvent({ id: ctx.auditId(), eventType: "sanction", status: parsed.data.type, details: { targetUserId: targetUser.id, reason: parsed.data.reason, durationDays: parsed.data.durationDays || null }, createdAt: sanctionEntry.createdAt });
   res.status(201).json({ id: sanctionEntry.id });
 });
+
+// ── Insider signals admin review (aitj-z8q.9) ──
+
+function insiderOptions() {
+  return {
+    usePostgres: ctx.usePostgres,
+    getPool: () => ctx.getPgPool(),
+    useMemory: !ctx.usePostgres
+  };
+}
+
+function actorId(req) {
+  return req.user?.id || "admin-token";
+}
+
+router.get("/signals", requireAdminOrToken, async (req, res) => {
+  try {
+    const status = req.query.status ? ctx.sanitizeText(String(req.query.status)) : undefined;
+    const companySlug = req.query.company || req.query.companySlug
+      ? ctx.sanitizeText(String(req.query.company || req.query.companySlug))
+      : undefined;
+    const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 200);
+    const offset = Math.max(Number(req.query.offset || 0), 0);
+    const result = await insider.listSignals(
+      { status, companySlug, limit, offset },
+      insiderOptions()
+    );
+    res.json({
+      signals: result.signals.map((s) => insider.toStaffSignal(s)),
+      total: result.total,
+      limit,
+      offset
+    });
+  } catch (err) {
+    console.error("admin list signals failed:", err);
+    res.status(500).json({ message: "Failed to list signals" });
+  }
+});
+
+router.get("/signals/:id", requireAdminOrToken, async (req, res) => {
+  try {
+    const s = await insider.getSignal(req.params.id, insiderOptions());
+    if (!s) {
+      res.status(404).json({ message: "Signal not found" });
+      return;
+    }
+    const evidenceRows = await insider.listEvidenceForSignal(s.id, insiderOptions());
+    // Metadata only — no storage keys on list
+    const evidence = evidenceRows.map((e) => insider.toEvidenceStaffMeta(e));
+    const links = await insider.listLinkedSignals(s.id, insiderOptions());
+    // links contain peerSignalId only (no authors)
+    res.json({
+      signal: insider.toStaffSignal(s),
+      evidence,
+      links
+    });
+  } catch (err) {
+    console.error("admin get signal failed:", err);
+    res.status(500).json({ message: "Failed to get signal" });
+  }
+});
+
+router.post("/signals/:id/status", requireAdminOrToken, async (req, res) => {
+  const toStatus = ctx.sanitizeText(String(req.body?.status || ""));
+  if (!toStatus || !valuesOf(INSIDER_SIGNAL_STATUS).includes(toStatus)) {
+    res.status(422).json({ message: "Invalid status", allowed: valuesOf(INSIDER_SIGNAL_STATUS) });
+    return;
+  }
+  try {
+    const opts = {
+      ...insiderOptions(),
+      summaryPublic: req.body?.summaryPublic
+        ? ctx.sanitizeText(String(req.body.summaryPublic))
+        : undefined,
+      verificationLevel: req.body?.verificationLevel
+        ? ctx.sanitizeText(String(req.body.verificationLevel))
+        : undefined
+    };
+    const updated = await insider.transitionSignal(req.params.id, toStatus, opts);
+    await ctx.storageAudit({
+      action: "insider_signal.status",
+      actorId: actorId(req),
+      targetType: "insider_signal",
+      targetId: req.params.id,
+      metadata: { status: updated.status, verificationLevel: updated.verificationLevel },
+      ip: req.ip
+    });
+    res.json({ ok: true, signal: insider.toStaffSignal(updated) });
+  } catch (err) {
+    if (err.code === "NOT_FOUND") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    if (err.code === "ILLEGAL_TRANSITION" || err.code === "LEGAL_HOLD" || err.code === "INVALID_STATUS") {
+      res.status(409).json({ message: err.message, code: err.code });
+      return;
+    }
+    console.error("admin signal status failed:", err);
+    res.status(500).json({ message: "Failed to update signal status" });
+  }
+});
+
+router.post("/signals/:id/verification", requireAdminOrToken, async (req, res) => {
+  const level = ctx.sanitizeText(String(req.body?.verificationLevel || req.body?.level || ""));
+  if (!valuesOf(VERIFICATION_LEVEL).includes(level)) {
+    res.status(422).json({ message: "Invalid verificationLevel", allowed: valuesOf(VERIFICATION_LEVEL) });
+    return;
+  }
+  try {
+    const updated = await insider.setVerificationLevel(req.params.id, level, insiderOptions());
+    await ctx.storageAudit({
+      action: "insider_signal.verification",
+      actorId: actorId(req),
+      targetType: "insider_signal",
+      targetId: req.params.id,
+      metadata: { verificationLevel: level },
+      ip: req.ip
+    });
+    res.json({ ok: true, signal: insider.toStaffSignal(updated) });
+  } catch (err) {
+    if (err.code === "NOT_FOUND") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    console.error("admin signal verification failed:", err);
+    res.status(500).json({ message: "Failed to set verification level" });
+  }
+});
+
+router.post("/signals/:id/summary", requireAdminOrToken, async (req, res) => {
+  try {
+    const summaryPublic = ctx.sanitizeText(String(req.body?.summaryPublic || req.body?.summary || ""));
+    const updated = await insider.updateSignalFields(
+      req.params.id,
+      { summaryPublic },
+      { ...insiderOptions(), staff: true }
+    );
+    await ctx.storageAudit({
+      action: "insider_signal.summary",
+      actorId: actorId(req),
+      targetType: "insider_signal",
+      targetId: req.params.id,
+      metadata: { summaryLen: summaryPublic.length },
+      ip: req.ip
+    });
+    res.json({ ok: true, signal: insider.toStaffSignal(updated) });
+  } catch (err) {
+    if (err.code === "NOT_FOUND") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    console.error("admin signal summary failed:", err);
+    res.status(500).json({ message: "Failed to update summary" });
+  }
+});
+
+/** Link two independent reports without exposing authors. */
+router.post("/signals/:id/link", requireAdminOrToken, async (req, res) => {
+  const peerId = ctx.sanitizeText(String(req.body?.peerSignalId || req.body?.signalId || ""));
+  if (!peerId) {
+    res.status(422).json({ message: "peerSignalId is required" });
+    return;
+  }
+  try {
+    const result = await insider.linkSignals(
+      req.params.id,
+      peerId,
+      {
+        linkedBy: actorId(req),
+        reason: ctx.sanitizeText(String(req.body?.reason || ""))
+      },
+      insiderOptions()
+    );
+    // Response deliberately omits author ids of either report
+    await ctx.storageAudit({
+      action: "insider_signal.link",
+      actorId: actorId(req),
+      targetType: "signal_link",
+      targetId: result.link.id,
+      metadata: {
+        signalIdA: result.link.signalIdA,
+        signalIdB: result.link.signalIdB,
+        created: result.created
+      },
+      ip: req.ip
+    });
+    res.status(result.created ? 201 : 200).json({
+      ok: true,
+      created: result.created,
+      link: {
+        id: result.link.id,
+        signalIdA: result.link.signalIdA,
+        signalIdB: result.link.signalIdB,
+        reason: result.link.reason,
+        createdAt: result.link.createdAt
+      }
+    });
+  } catch (err) {
+    if (err.code === "NOT_FOUND") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    if (err.code === "INVALID_LINK") {
+      res.status(422).json({ message: err.message });
+      return;
+    }
+    console.error("admin link signals failed:", err);
+    res.status(500).json({ message: "Failed to link signals" });
+  }
+});
+
+router.post("/signals/:id/legal-hold", requireAdminOrToken, async (req, res) => {
+  try {
+    const updated = await insider.placeLegalHold(req.params.id, insiderOptions());
+    await ctx.storageAudit({
+      action: "insider_signal.legal_hold",
+      actorId: actorId(req),
+      targetType: "insider_signal",
+      targetId: req.params.id,
+      metadata: { status: updated.status, reason: ctx.sanitizeText(String(req.body?.reason || "")) },
+      ip: req.ip
+    });
+    res.json({ ok: true, signal: insider.toStaffSignal(updated) });
+  } catch (err) {
+    if (err.code === "NOT_FOUND") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    if (err.code === "ILLEGAL_TRANSITION" || err.code === "INVALID_STATUS") {
+      res.status(409).json({ message: err.message, code: err.code });
+      return;
+    }
+    console.error("admin legal hold failed:", err);
+    res.status(500).json({ message: "Failed to place legal hold" });
+  }
+});
+
+router.post("/signals/:id/release-hold", requireAdminOrToken, async (req, res) => {
+  const toStatus = ctx.sanitizeText(
+    String(req.body?.status || INSIDER_SIGNAL_STATUS.UNDER_REVIEW)
+  );
+  try {
+    const updated = await insider.releaseLegalHold(req.params.id, toStatus, {
+      ...insiderOptions(),
+      summaryPublic: req.body?.summaryPublic
+        ? ctx.sanitizeText(String(req.body.summaryPublic))
+        : undefined
+    });
+    await ctx.storageAudit({
+      action: "insider_signal.release_hold",
+      actorId: actorId(req),
+      targetType: "insider_signal",
+      targetId: req.params.id,
+      metadata: { status: updated.status },
+      ip: req.ip
+    });
+    res.json({ ok: true, signal: insider.toStaffSignal(updated) });
+  } catch (err) {
+    if (err.code === "NOT_FOUND") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    if (err.code === "ILLEGAL_TRANSITION" || err.code === "INVALID_STATUS") {
+      res.status(409).json({ message: err.message, code: err.code });
+      return;
+    }
+    console.error("admin release hold failed:", err);
+    res.status(500).json({ message: "Failed to release legal hold" });
+  }
+});
+
+router.post("/signals/:id/delete", requireAdminOrToken, async (req, res) => {
+  try {
+    const updated = await insider.softDeleteSignal(req.params.id, insiderOptions());
+    await ctx.storageAudit({
+      action: "insider_signal.delete",
+      actorId: actorId(req),
+      targetType: "insider_signal",
+      targetId: req.params.id,
+      metadata: { status: updated.status, purgeAfter: updated.purgeAfter },
+      ip: req.ip
+    });
+    res.json({ ok: true, signal: insider.toStaffSignal(updated) });
+  } catch (err) {
+    if (err.code === "NOT_FOUND") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    if (err.code === "LEGAL_HOLD" || err.code === "ILLEGAL_TRANSITION") {
+      res.status(409).json({ message: err.message, code: err.code });
+      return;
+    }
+    console.error("admin delete signal failed:", err);
+    res.status(500).json({ message: "Failed to delete signal" });
+  }
+});
+
+/** Privileged evidence access — always audited; never a public surface. */
+router.get("/evidence/:id", requireAdminOrToken, async (req, res) => {
+  try {
+    const includeStorageKey = String(req.query.download || "") === "1";
+    const meta = await insider.accessEvidence(
+      req.params.id,
+      {
+        actorId: actorId(req),
+        action: includeStorageKey ? "download" : "view",
+        reason: ctx.sanitizeText(String(req.query.reason || "admin_review")),
+        ip: req.ip,
+        includeStorageKey
+      },
+      insiderOptions()
+    );
+    res.json({ evidence: meta });
+  } catch (err) {
+    if (err.code === "NOT_FOUND") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    if (err.code === "PURGED") {
+      res.status(410).json({ message: err.message, code: "PURGED" });
+      return;
+    }
+    console.error("admin evidence access failed:", err);
+    res.status(500).json({ message: "Failed to access evidence" });
+  }
+});
+
+router.get("/evidence/:id/access-log", requireAdminOrToken, async (req, res) => {
+  try {
+    const log = await insider.listEvidenceAccessLog(
+      req.params.id,
+      { limit: Math.min(Math.max(Number(req.query.limit || 100), 1), 500) },
+      insiderOptions()
+    );
+    res.json({ evidenceId: req.params.id, accessLog: log });
+  } catch (err) {
+    console.error("admin evidence access log failed:", err);
+    res.status(500).json({ message: "Failed to list access log" });
+  }
+});
+
+router.post("/evidence/:id/status", requireAdminOrToken, async (req, res) => {
+  const toStatus = ctx.sanitizeText(String(req.body?.status || ""));
+  if (!valuesOf(EVIDENCE_STATUS).includes(toStatus)) {
+    res.status(422).json({ message: "Invalid evidence status", allowed: valuesOf(EVIDENCE_STATUS) });
+    return;
+  }
+  try {
+    const updated = await insider.transitionEvidence(req.params.id, toStatus, {
+      ...insiderOptions(),
+      actorId: actorId(req),
+      reason: ctx.sanitizeText(String(req.body?.reason || "")),
+      redactionNotes: req.body?.redactionNotes
+        ? ctx.sanitizeText(String(req.body.redactionNotes))
+        : undefined,
+      ip: req.ip
+    });
+    res.json({ ok: true, evidence: updated });
+  } catch (err) {
+    if (err.code === "NOT_FOUND") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    if (err.code === "ILLEGAL_TRANSITION" || err.code === "INVALID_STATUS") {
+      res.status(409).json({ message: err.message, code: err.code });
+      return;
+    }
+    console.error("admin evidence status failed:", err);
+    res.status(500).json({ message: "Failed to update evidence status" });
+  }
+});
+
+router.post("/evidence/:id/redact", requireAdminOrToken, async (req, res) => {
+  try {
+    const ev = await insider.getEvidence(req.params.id, insiderOptions());
+    if (!ev) {
+      res.status(404).json({ message: "Evidence not found" });
+      return;
+    }
+    // Transition toward redacted if not already
+    let updated = ev;
+    if (ev.status !== EVIDENCE_STATUS.REDACTED && ev.status !== EVIDENCE_STATUS.PURGED) {
+      // available|restricted → redacted
+      if (ev.status === EVIDENCE_STATUS.UPLOADED || ev.status === EVIDENCE_STATUS.SCANNING) {
+        // move through available first if needed — domain allows uploaded→scanning→available
+        // For staff redaction shortcut: if canTransition to redacted use it; else step
+        const d = require("../lib/domain-contract");
+        if (d.canTransition("evidence", ev.status, EVIDENCE_STATUS.REDACTED)) {
+          updated = await insider.transitionEvidence(req.params.id, EVIDENCE_STATUS.REDACTED, {
+            ...insiderOptions(),
+            actorId: actorId(req),
+            reason: "redact",
+            redactionNotes: ctx.sanitizeText(String(req.body?.notes || "")),
+            ip: req.ip
+          });
+        } else if (d.canTransition("evidence", ev.status, EVIDENCE_STATUS.AVAILABLE)) {
+          await insider.transitionEvidence(req.params.id, EVIDENCE_STATUS.AVAILABLE, {
+            ...insiderOptions(),
+            actorId: actorId(req),
+            reason: "prep_redact",
+            ip: req.ip
+          });
+          updated = await insider.transitionEvidence(req.params.id, EVIDENCE_STATUS.REDACTED, {
+            ...insiderOptions(),
+            actorId: actorId(req),
+            reason: "redact",
+            redactionNotes: ctx.sanitizeText(String(req.body?.notes || "")),
+            ip: req.ip
+          });
+        } else if (d.canTransition("evidence", ev.status, EVIDENCE_STATUS.SCANNING)) {
+          await insider.transitionEvidence(req.params.id, EVIDENCE_STATUS.SCANNING, {
+            ...insiderOptions(),
+            actorId: actorId(req),
+            reason: "prep_redact",
+            ip: req.ip
+          });
+          await insider.transitionEvidence(req.params.id, EVIDENCE_STATUS.AVAILABLE, {
+            ...insiderOptions(),
+            actorId: actorId(req),
+            reason: "prep_redact",
+            ip: req.ip
+          });
+          updated = await insider.transitionEvidence(req.params.id, EVIDENCE_STATUS.REDACTED, {
+            ...insiderOptions(),
+            actorId: actorId(req),
+            reason: "redact",
+            redactionNotes: ctx.sanitizeText(String(req.body?.notes || "")),
+            ip: req.ip
+          });
+        } else {
+          res.status(409).json({ message: `Cannot redact from status ${ev.status}` });
+          return;
+        }
+      } else {
+        updated = await insider.transitionEvidence(req.params.id, EVIDENCE_STATUS.REDACTED, {
+          ...insiderOptions(),
+          actorId: actorId(req),
+          reason: "redact",
+          redactionNotes: ctx.sanitizeText(String(req.body?.notes || "")),
+          ip: req.ip
+        });
+      }
+    } else {
+      updated = insider.toEvidenceStaffMeta(ev);
+    }
+    res.json({ ok: true, evidence: updated });
+  } catch (err) {
+    if (err.code === "ILLEGAL_TRANSITION") {
+      res.status(409).json({ message: err.message, code: err.code });
+      return;
+    }
+    console.error("admin evidence redact failed:", err);
+    res.status(500).json({ message: "Failed to redact evidence" });
+  }
+});
+
+
+// ── Notification deliveries (aitj-z8q.15) ──
+
+function notifOptions() {
+  return {
+    usePostgres: ctx.usePostgres,
+    getPool: () => ctx.getPgPool(),
+    useMemory: !ctx.usePostgres,
+    sendTelegram: (chatId, text) => ctx.sendTelegramMessage(chatId, text),
+    jobsOptions: {
+      usePostgres: ctx.usePostgres,
+      getPool: () => ctx.getPgPool(),
+      useMemory: !ctx.usePostgres
+    }
+  };
+}
+
+router.get("/notifications/deliveries", requireAdminOrToken, async (req, res) => {
+  try {
+    const result = await notifications.listDeliveries(
+      {
+        status: req.query.status ? String(req.query.status) : undefined,
+        templateKey: req.query.templateKey || req.query.template_key || undefined,
+        channel: req.query.channel ? String(req.query.channel) : undefined,
+        limit: req.query.limit,
+        offset: req.query.offset
+      },
+      notifOptions()
+    );
+    res.json({
+      deliveries: result.deliveries.map(notifications.deliveryToPublic),
+      total: result.total,
+      emailProvider: notifications.resolveEmailProvider(),
+      smtpConfigured: notifications.smtpConfigured()
+    });
+  } catch (err) {
+    console.error("admin list notification deliveries failed:", notifications.redactEmailsInText(err.message || err));
+    res.status(500).json({ message: "Failed to list notification deliveries" });
+  }
+});
+
+router.get("/notifications/deliveries/:id", requireAdminOrToken, async (req, res) => {
+  try {
+    const delivery = await notifications.getDelivery(req.params.id, notifOptions());
+    if (!delivery) {
+      res.status(404).json({ message: "Delivery not found" });
+      return;
+    }
+    res.json({ delivery: notifications.deliveryToPublic(delivery) });
+  } catch (err) {
+    console.error("admin get notification delivery failed:", notifications.redactEmailsInText(err.message || err));
+    res.status(500).json({ message: "Failed to get notification delivery" });
+  }
+});
+
+router.post("/notifications/deliveries/:id/retry", requireAdminOrToken, async (req, res) => {
+  try {
+    const enqueue = req.body?.enqueue !== false;
+    const out = await notifications.retryDelivery(req.params.id, {
+      ...notifOptions(),
+      enqueue
+    });
+    if (!out.ok && out.reason === "not_found") {
+      res.status(404).json({ message: "Delivery not found" });
+      return;
+    }
+    if (!out.ok && out.reason === "already_delivered") {
+      res.status(409).json({
+        ok: false,
+        message: "Already delivered",
+        delivery: notifications.deliveryToPublic(out.delivery)
+      });
+      return;
+    }
+    await ctx.storageAudit({
+      action: "notification.retry",
+      actorId: req.user?.id || "admin-token",
+      targetType: "notification_delivery",
+      targetId: req.params.id,
+      metadata: {
+        enqueued: Boolean(out.enqueued),
+        status: out.delivery?.status || out.result?.delivery?.status || null
+      },
+      ip: req.ip
+    });
+    res.json({
+      ok: true,
+      enqueued: Boolean(out.enqueued),
+      delivery: notifications.deliveryToPublic(out.delivery || out.result?.delivery),
+      job: out.job || null
+    });
+  } catch (err) {
+    console.error("admin retry notification failed:", notifications.redactEmailsInText(err.message || err));
+    res.status(500).json({ message: "Failed to retry notification delivery" });
+  }
+});
+
+/** Bounce webhook hook — provider adapters POST here (admin auth). */
+router.post("/notifications/webhooks/bounce", requireAdminOrToken, async (req, res) => {
+  try {
+    const email = req.body?.email ? ctx.normalizeEmail(req.body.email) : null;
+    const messageId = req.body?.messageId || req.body?.message_id || null;
+    const reason = ctx.sanitizeText(req.body?.reason || "bounce");
+    const out = await notifications.handleBounce({ email, messageId, reason }, notifOptions());
+    await ctx.storageAudit({
+      action: "notification.bounce",
+      actorId: req.user?.id || "admin-token",
+      targetType: "notification_delivery",
+      targetId: messageId || "bounce",
+      metadata: {
+        matched: out.matched || 0,
+        emailHash: email ? notifications.hashEmail(email) : null,
+        reason
+      },
+      ip: req.ip
+    });
+    res.json(out);
+  } catch (err) {
+    console.error("bounce webhook failed:", notifications.redactEmailsInText(err.message || err));
+    res.status(500).json({ message: "Failed to process bounce" });
+  }
+});
+
+/** Complaint webhook hook — provider adapters POST here (admin auth). */
+router.post("/notifications/webhooks/complaint", requireAdminOrToken, async (req, res) => {
+  try {
+    const email = req.body?.email ? ctx.normalizeEmail(req.body.email) : null;
+    const messageId = req.body?.messageId || req.body?.message_id || null;
+    const reason = ctx.sanitizeText(req.body?.reason || "complaint");
+    const out = await notifications.handleComplaint({ email, messageId, reason }, notifOptions());
+    await ctx.storageAudit({
+      action: "notification.complaint",
+      actorId: req.user?.id || "admin-token",
+      targetType: "notification_delivery",
+      targetId: messageId || "complaint",
+      metadata: {
+        matched: out.matched || 0,
+        emailHash: email ? notifications.hashEmail(email) : null,
+        reason
+      },
+      ip: req.ip
+    });
+    res.json(out);
+  } catch (err) {
+    console.error("complaint webhook failed:", notifications.redactEmailsInText(err.message || err));
+    res.status(500).json({ message: "Failed to process complaint" });
+  }
+});
+
 
 module.exports = router;

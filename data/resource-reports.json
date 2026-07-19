@@ -1,0 +1,35 @@
+[
+  {
+    "id": "epwqo35g6r5bhq",
+    "userId": "user-r",
+    "resourceId": "res-1",
+    "reason": "broken_link",
+    "details": "Timeout when opening",
+    "status": "open",
+    "createdAt": "2026-07-19T09:07:30.210Z",
+    "resolvedAt": null,
+    "resolvedBy": null
+  },
+  {
+    "id": "07t3o0zabufpio",
+    "userId": "user-r",
+    "resourceId": "res-1",
+    "reason": "broken_link",
+    "details": "Timeout when opening",
+    "status": "open",
+    "createdAt": "2026-07-19T09:07:41.641Z",
+    "resolvedAt": null,
+    "resolvedBy": null
+  },
+  {
+    "id": "or86ta7n4a2bro",
+    "userId": "user-r",
+    "resourceId": "res-careeronestop",
+    "reason": "broken_link",
+    "details": "Timeout when opening",
+    "status": "open",
+    "createdAt": "2026-07-19T09:07:57.246Z",
+    "resolvedAt": null,
+    "resolvedBy": null
+  }
+]
