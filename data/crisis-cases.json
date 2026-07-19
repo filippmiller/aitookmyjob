@@ -1,0 +1,44 @@
+[
+  {
+    "id": "crs_p7rwxplrhgrtws",
+    "sourceType": "story",
+    "sourceId": "http-test-story",
+    "country": "us",
+    "excerpt": "test crisis excerpt",
+    "riskScore": 1,
+    "status": "resolved",
+    "slaDueAt": "2026-07-19T13:50:38.810Z",
+    "slaState": "resolved",
+    "notes": "",
+    "assignedTo": null,
+    "resourcesOffered": [
+      "US: 988 Suicide & Crisis Lifeline",
+      "Global: findahelpline.com"
+    ],
+    "resolvedBy": "admin-token",
+    "resolvedAt": "2026-07-19T09:50:38.833Z",
+    "createdAt": "2026-07-19T09:50:38.810Z",
+    "updatedAt": "2026-07-19T09:50:38.833Z"
+  },
+  {
+    "id": "crs_ibdy5dk3wcy65h",
+    "sourceType": "story",
+    "sourceId": "http-test-story",
+    "country": "us",
+    "excerpt": "test crisis excerpt",
+    "riskScore": 1,
+    "status": "resolved",
+    "slaDueAt": "2026-07-19T13:51:24.376Z",
+    "slaState": "resolved",
+    "notes": "",
+    "assignedTo": null,
+    "resourcesOffered": [
+      "US: 988 Suicide & Crisis Lifeline",
+      "Global: findahelpline.com"
+    ],
+    "resolvedBy": "admin-token",
+    "resolvedAt": "2026-07-19T09:51:24.415Z",
+    "createdAt": "2026-07-19T09:51:24.376Z",
+    "updatedAt": "2026-07-19T09:51:24.415Z"
+  }
+]

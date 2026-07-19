@@ -1,16 +1,36 @@
 const express = require("express");
 const router = express.Router();
-const { requireAdminOrToken } = require("../middleware/auth");
+const {
+  requireAdminOrToken,
+  requireAdminRole,
+  requireSuperadmin,
+  requireMinRole,
+  requireConfirm,
+  requireAuth,
+  canAssignRole,
+  hasAdminRole,
+  effectiveRole
+} = require("../middleware/auth");
 const ctx = require("../lib/context");
 const jobs = require("../lib/jobs");
 const insider = require("../lib/insider");
 const notifications = require("../lib/notifications");
+const adminOps = require("../lib/admin-ops");
+const social = require("../lib/social");
+const metrics = require("../lib/metrics");
+const readiness = require("../lib/readiness");
+const { getRelease } = require("../lib/release");
 const { adminRouter: resourcesAdminRouter } = require("./resources");
 const { adminRouter: newsAdminRouter } = require("./news");
 const {
   INSIDER_SIGNAL_STATUS,
   EVIDENCE_STATUS,
   VERIFICATION_LEVEL,
+  APPEAL_STATUS,
+  CRISIS_CASE_STATUS,
+  SLA_STATE,
+  TAKEDOWN_STATUS,
+  SANCTION_TYPE,
   valuesOf
 } = require("../lib/domain-contract");
 
@@ -19,6 +39,26 @@ router.use(resourcesAdminRouter);
 // Community news moderate/correct/reject + submissions (aitj-z8q.10)
 router.use(newsAdminRouter);
 
+function opsOptions() {
+  return {
+    usePostgres: ctx.usePostgres,
+    getPool: () => ctx.getPgPool(),
+    useMemory: !ctx.usePostgres,
+    dataDir: ctx.dataDir,
+    scoreModeration: ctx.scoreModeration,
+    getCrisisResources: ctx.getCrisisResources
+  };
+}
+
+function socialOptions(req) {
+  return {
+    usePostgres: ctx.usePostgres,
+    getPool: () => ctx.getPgPool(),
+    useMemory: !ctx.usePostgres,
+    ip: req?.ip
+  };
+}
+
 router.get("/overview", async (req, res) => {
   if (!(ctx.hasAdminToken(req) || ctx.hasModeratorRole(req.user))) { res.status(401).json({ message: "Unauthorized" }); return; }
   const stories = await ctx.storageGetStories();
@@ -26,10 +66,21 @@ router.get("/overview", async (req, res) => {
   const pending = stories.filter((s) => s.status === "pending");
   const queue = await ctx.storageGetModerationQueue();
   const users = await ctx.storageGetUsers();
+  const [appealsOpen, crisisOpen, takedownsPending] = await Promise.all([
+    adminOps.listAppeals({ status: "submitted", limit: 1 }, opsOptions()),
+    adminOps.listCrisisCases({ status: "open", limit: 1 }, opsOptions()),
+    adminOps.listTakedownsAdmin({ status: "pending", limit: 1 }, opsOptions())
+  ]);
   res.json({
     moderation: { pendingStories: pending.length, publishedStories: published.length, queueItems: queue.length },
     users: { registeredEstimate: users.length || (published.length * 3 + pending.length) },
-    system: { uptime: process.uptime(), timestamp: new Date().toISOString() }
+    ops: {
+      appealsOpen: appealsOpen.total,
+      crisisOpen: crisisOpen.total,
+      takedownsPending: takedownsPending.total
+    },
+    system: { uptime: process.uptime(), timestamp: new Date().toISOString() },
+    actorRole: effectiveRole(req)
   });
 });
 
@@ -274,7 +325,7 @@ router.post("/jobs", requireAdminOrToken, async (req, res) => {
   }
 });
 
-router.post("/sanctions", requireAdminOrToken, async (req, res) => {
+router.post("/sanctions", requireAdminOrToken, requireMinRole("admin"), async (req, res) => {
   const parsed = ctx.sanctionSchema.safeParse({
     targetUserId: ctx.sanitizeText(req.body.targetUserId),
     type: ctx.sanitizeText(req.body.type),
@@ -282,6 +333,13 @@ router.post("/sanctions", requireAdminOrToken, async (req, res) => {
     durationDays: typeof req.body.durationDays === "number" ? req.body.durationDays : Number(req.body.durationDays || 0) || undefined
   });
   if (!parsed.success) { res.status(422).json({ message: "Validation failed" }); return; }
+  // Ban / suspend are destructive — require confirm: true
+  if (parsed.data.type === "ban" || parsed.data.type === "suspend") {
+    if (req.body?.confirm !== true) {
+      res.status(422).json({ message: "Destructive action requires confirm: true", code: "CONFIRM_REQUIRED" });
+      return;
+    }
+  }
   const targetUser = await ctx.storageGetUserById(parsed.data.targetUserId);
   if (!targetUser) { res.status(404).json({ message: "Target user not found" }); return; }
   const now = Date.now();
@@ -301,7 +359,7 @@ router.post("/sanctions", requireAdminOrToken, async (req, res) => {
     createdBy: req.user?.id || "admin-token", createdAt: new Date().toISOString()
   };
   await ctx.storageInsertSanction(sanctionEntry);
-  await ctx.storageAudit({ action: "sanction.create", actorId: req.user?.id || "admin-token", targetType: "user", targetId: targetUser.id, metadata: sanctionEntry, ip: req.ip });
+  await ctx.storageAudit({ action: "sanction.create", actorId: req.user?.id || "admin-token", targetType: "user", targetId: targetUser.id, metadata: { ...sanctionEntry, confirmed: req.body?.confirm === true }, ip: req.ip });
   await ctx.storageInsertTransparencyEvent({ id: ctx.auditId(), eventType: "sanction", status: parsed.data.type, details: { targetUserId: targetUser.id, reason: parsed.data.reason, durationDays: parsed.data.durationDays || null }, createdAt: sanctionEntry.createdAt });
   res.status(201).json({ id: sanctionEntry.id });
 });
@@ -576,7 +634,7 @@ router.post("/signals/:id/release-hold", requireAdminOrToken, async (req, res) =
   }
 });
 
-router.post("/signals/:id/delete", requireAdminOrToken, async (req, res) => {
+router.post("/signals/:id/delete", requireAdminOrToken, requireConfirm, async (req, res) => {
   try {
     const updated = await insider.softDeleteSignal(req.params.id, insiderOptions());
     await ctx.storageAudit({
@@ -584,7 +642,7 @@ router.post("/signals/:id/delete", requireAdminOrToken, async (req, res) => {
       actorId: actorId(req),
       targetType: "insider_signal",
       targetId: req.params.id,
-      metadata: { status: updated.status, purgeAfter: updated.purgeAfter },
+      metadata: { status: updated.status, purgeAfter: updated.purgeAfter, confirmed: true },
       ip: req.ip
     });
     res.json({ ok: true, signal: insider.toStaffSignal(updated) });
@@ -910,5 +968,777 @@ router.post("/notifications/webhooks/complaint", requireAdminOrToken, async (req
   }
 });
 
+// ── Unified ops console (aitj-z8q.16) ───────────────────────────────────────
+
+/** Aggregate queue: content moderation + reports + crisis + appeals + takedowns + signals. */
+router.get("/queue/unified", requireAdminOrToken, async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 100);
+    const [moderation, socialReports, resourceReports, crisis, appeals, takedowns, signals] =
+      await Promise.all([
+        ctx.storageGetModerationQueue(),
+        social.listReports({ status: "open", limit: 50 }, socialOptions(req)).catch(() => []),
+        ctx.storageGetResourceReports({ status: "open", limit: 50 }),
+        adminOps.listCrisisCases({ status: "open", limit: 50 }, opsOptions()),
+        adminOps.listAppeals({ status: "submitted", limit: 50 }, opsOptions()),
+        adminOps.listTakedownsAdmin({ status: "pending", limit: 50 }, opsOptions()),
+        insider
+          .listSignals({ status: INSIDER_SIGNAL_STATUS.SUBMITTED, limit: 50, offset: 0 }, insiderOptions())
+          .catch(() => ({ signals: [], total: 0 }))
+      ]);
+
+    const items = [];
+    for (const q of moderation) {
+      items.push({
+        id: q.id,
+        kind: "moderation",
+        type: q.type,
+        title: q.title,
+        summary: (q.story || "").slice(0, 240),
+        status: "pending",
+        createdAt: q.createdAt,
+        meta: q.moderation || q.metadata || {},
+        href: `/api/admin/moderation/queue`
+      });
+    }
+    for (const r of socialReports) {
+      items.push({
+        id: `social_report:${r.id}`,
+        kind: "social_report",
+        type: r.targetType,
+        title: `Social report · ${r.targetType}:${r.targetId}`,
+        summary: r.reason,
+        status: r.status,
+        createdAt: r.createdAt,
+        meta: { details: r.details },
+        href: `/api/social/admin/reports`
+      });
+    }
+    for (const r of resourceReports) {
+      items.push({
+        id: `resource_report:${r.id}`,
+        kind: "resource_report",
+        type: "resource",
+        title: `Resource report · ${r.resourceId || r.id}`,
+        summary: r.reason || "",
+        status: r.status,
+        createdAt: r.createdAt,
+        meta: {},
+        href: `/api/admin/resources/reports`
+      });
+    }
+    for (const c of crisis.cases) {
+      items.push({
+        id: `crisis:${c.id}`,
+        kind: "crisis",
+        type: c.sourceType,
+        title: `Crisis · ${c.sourceType}:${c.sourceId}`,
+        summary: c.excerpt,
+        status: c.status,
+        slaState: c.slaState,
+        slaDueAt: c.slaDueAt,
+        createdAt: c.createdAt,
+        meta: { riskScore: c.riskScore },
+        href: `/api/admin/crisis/${c.id}`
+      });
+    }
+    for (const a of appeals.appeals) {
+      items.push({
+        id: `appeal:${a.id}`,
+        kind: "appeal",
+        type: a.targetType,
+        title: `Appeal · ${a.targetType}:${a.targetId}`,
+        summary: a.reason,
+        status: a.status,
+        slaState: a.slaState,
+        slaDueAt: a.slaDueAt,
+        createdAt: a.createdAt,
+        meta: {},
+        href: `/api/admin/appeals/${a.id}`
+      });
+    }
+    for (const t of takedowns.takedowns) {
+      items.push({
+        id: `takedown:${t.id}`,
+        kind: "takedown",
+        type: "legal",
+        title: `Takedown · ${t.targetUrl}`,
+        summary: t.reason,
+        status: t.status,
+        createdAt: t.createdAt,
+        meta: { legalBasis: t.legalBasis },
+        href: `/api/admin/takedowns`
+      });
+    }
+    for (const s of signals.signals || []) {
+      items.push({
+        id: `signal:${s.id}`,
+        kind: "insider_signal",
+        type: "signal",
+        title: `Insider signal · ${s.companySlug || s.id}`,
+        summary: (s.summaryPublic || s.status || "").slice(0, 240),
+        status: s.status,
+        createdAt: s.createdAt,
+        meta: { verificationLevel: s.verificationLevel },
+        href: `/api/admin/signals/${s.id}`
+      });
+    }
+
+    items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    res.json({
+      items: items.slice(0, limit),
+      total: items.length,
+      counts: {
+        moderation: moderation.length,
+        socialReports: socialReports.length,
+        resourceReports: resourceReports.length,
+        crisis: crisis.total,
+        appeals: appeals.total,
+        takedowns: takedowns.total,
+        signals: signals.total || (signals.signals || []).length
+      }
+    });
+  } catch (err) {
+    console.error("unified queue failed:", err);
+    res.status(500).json({ message: "Failed to build unified queue" });
+  }
+});
+
+// ── Appeals ──────────────────────────────────────────────────────────────────
+
+router.get("/appeals", requireAdminOrToken, async (req, res) => {
+  try {
+    const result = await adminOps.listAppeals(
+      {
+        status: req.query.status ? String(req.query.status) : undefined,
+        slaState: req.query.slaState || req.query.sla_state || undefined,
+        limit: req.query.limit,
+        offset: req.query.offset
+      },
+      opsOptions()
+    );
+    res.json({
+      appeals: result.appeals,
+      total: result.total,
+      statuses: valuesOf(APPEAL_STATUS),
+      slaStates: valuesOf(SLA_STATE)
+    });
+  } catch (err) {
+    console.error("list appeals failed:", err);
+    res.status(500).json({ message: "Failed to list appeals" });
+  }
+});
+
+router.get("/appeals/:id", requireAdminOrToken, async (req, res) => {
+  const appeal = await adminOps.getAppeal(req.params.id, opsOptions());
+  if (!appeal) {
+    res.status(404).json({ message: "Appeal not found" });
+    return;
+  }
+  res.json({ appeal });
+});
+
+router.post("/appeals/:id/status", requireAdminOrToken, async (req, res) => {
+  const toStatus = ctx.sanitizeText(String(req.body?.status || ""));
+  if (!valuesOf(APPEAL_STATUS).includes(toStatus)) {
+    res.status(422).json({ message: "Invalid status", allowed: valuesOf(APPEAL_STATUS) });
+    return;
+  }
+  // Overturn / uphold are destructive resolutions
+  if (toStatus === APPEAL_STATUS.OVERTURNED || toStatus === APPEAL_STATUS.UPHELD) {
+    if (req.body?.confirm !== true) {
+      res.status(422).json({ message: "Destructive action requires confirm: true", code: "CONFIRM_REQUIRED" });
+      return;
+    }
+  }
+  try {
+    const updated = await adminOps.transitionAppeal(
+      req.params.id,
+      toStatus,
+      {
+        actorId: actorId(req),
+        note: ctx.sanitizeText(String(req.body?.note || req.body?.resolutionNote || "")),
+        assignedTo: req.body?.assignedTo
+          ? ctx.sanitizeText(String(req.body.assignedTo))
+          : undefined
+      },
+      opsOptions()
+    );
+    await ctx.storageAudit({
+      action: "appeal.status",
+      actorId: actorId(req),
+      targetType: "appeal",
+      targetId: req.params.id,
+      metadata: { status: updated.status, slaState: updated.slaState, confirmed: req.body?.confirm === true },
+      ip: req.ip
+    });
+    res.json({ ok: true, appeal: updated });
+  } catch (err) {
+    if (err.code === "NOT_FOUND") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    if (err.code === "ILLEGAL_TRANSITION" || err.code === "INVALID_STATUS") {
+      res.status(409).json({ message: err.message, code: err.code });
+      return;
+    }
+    console.error("appeal status failed:", err);
+    res.status(500).json({ message: "Failed to update appeal" });
+  }
+});
+
+// ── Crisis ───────────────────────────────────────────────────────────────────
+
+router.get("/crisis", requireAdminOrToken, async (req, res) => {
+  try {
+    const result = await adminOps.listCrisisCases(
+      {
+        status: req.query.status ? String(req.query.status) : undefined,
+        slaState: req.query.slaState || req.query.sla_state || undefined,
+        limit: req.query.limit,
+        offset: req.query.offset
+      },
+      opsOptions()
+    );
+    res.json({
+      cases: result.cases,
+      total: result.total,
+      statuses: valuesOf(CRISIS_CASE_STATUS),
+      slaStates: valuesOf(SLA_STATE)
+    });
+  } catch (err) {
+    console.error("list crisis failed:", err);
+    res.status(500).json({ message: "Failed to list crisis cases" });
+  }
+});
+
+router.get("/crisis/:id", requireAdminOrToken, async (req, res) => {
+  const c = await adminOps.getCrisisCase(req.params.id, opsOptions());
+  if (!c) {
+    res.status(404).json({ message: "Crisis case not found" });
+    return;
+  }
+  res.json({ case: c, resources: ctx.getCrisisResources(c.country) });
+});
+
+router.post("/crisis", requireAdminOrToken, async (req, res) => {
+  try {
+    const sourceType = ctx.sanitizeText(String(req.body?.sourceType || req.body?.source_type || "content"));
+    const sourceId = ctx.sanitizeText(String(req.body?.sourceId || req.body?.source_id || ""));
+    if (!sourceId) {
+      res.status(422).json({ message: "sourceId is required" });
+      return;
+    }
+    const created = await adminOps.createCrisisCase(
+      {
+        sourceType,
+        sourceId,
+        country: ctx.normalizeCountry(req.body?.country || "global"),
+        excerpt: ctx.sanitizeText(String(req.body?.excerpt || "")),
+        riskScore: Number(req.body?.riskScore || 1),
+        resourcesOffered: ctx.getCrisisResources(ctx.normalizeCountry(req.body?.country || "global"))
+      },
+      opsOptions()
+    );
+    await ctx.storageAudit({
+      action: "crisis.create",
+      actorId: actorId(req),
+      targetType: "crisis_case",
+      targetId: created.id,
+      metadata: { sourceType, sourceId },
+      ip: req.ip
+    });
+    res.status(201).json({ ok: true, case: created });
+  } catch (err) {
+    console.error("create crisis failed:", err);
+    res.status(500).json({ message: "Failed to create crisis case" });
+  }
+});
+
+router.post("/crisis/:id/status", requireAdminOrToken, async (req, res) => {
+  const toStatus = ctx.sanitizeText(String(req.body?.status || ""));
+  if (!valuesOf(CRISIS_CASE_STATUS).includes(toStatus)) {
+    res.status(422).json({ message: "Invalid status", allowed: valuesOf(CRISIS_CASE_STATUS) });
+    return;
+  }
+  if (toStatus === CRISIS_CASE_STATUS.RESOLVED || toStatus === CRISIS_CASE_STATUS.FALSE_POSITIVE) {
+    if (req.body?.confirm !== true) {
+      res.status(422).json({ message: "Destructive action requires confirm: true", code: "CONFIRM_REQUIRED" });
+      return;
+    }
+  }
+  try {
+    const updated = await adminOps.transitionCrisisCase(
+      req.params.id,
+      toStatus,
+      {
+        actorId: actorId(req),
+        notes: ctx.sanitizeText(String(req.body?.notes || req.body?.note || "")),
+        assignedTo: req.body?.assignedTo
+          ? ctx.sanitizeText(String(req.body.assignedTo))
+          : undefined
+      },
+      opsOptions()
+    );
+    await ctx.storageAudit({
+      action: "crisis.status",
+      actorId: actorId(req),
+      targetType: "crisis_case",
+      targetId: req.params.id,
+      metadata: { status: updated.status, slaState: updated.slaState, confirmed: req.body?.confirm === true },
+      ip: req.ip
+    });
+    res.json({ ok: true, case: updated });
+  } catch (err) {
+    if (err.code === "NOT_FOUND") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    if (err.code === "ILLEGAL_TRANSITION" || err.code === "INVALID_STATUS") {
+      res.status(409).json({ message: err.message, code: err.code });
+      return;
+    }
+    console.error("crisis status failed:", err);
+    res.status(500).json({ message: "Failed to update crisis case" });
+  }
+});
+
+/** Scan recent pending content for crisis keywords and open cases. */
+router.post("/crisis/scan", requireAdminOrToken, async (req, res) => {
+  try {
+    const stories = (await ctx.storageGetStories()).filter((s) => s.status === "pending").slice(0, 50);
+    const vents = (await ctx.storageGetVents()).filter((v) => v.status === "pending").slice(0, 50);
+    const opened = [];
+    for (const s of stories) {
+      const score = s.moderation || ctx.scoreModeration({ story: s.story, reason: s.reason });
+      const out = await adminOps.ensureCrisisFromModeration(
+        {
+          sourceType: "story",
+          sourceId: s.id,
+          text: s.story,
+          country: s.country,
+          score
+        },
+        opsOptions()
+      );
+      if (out?.created) opened.push(out.case);
+    }
+    for (const v of vents) {
+      const score = v.moderation || ctx.scoreModeration({ story: v.body, reason: "" });
+      const out = await adminOps.ensureCrisisFromModeration(
+        {
+          sourceType: "vent",
+          sourceId: v.id,
+          text: v.body,
+          country: v.country,
+          score
+        },
+        opsOptions()
+      );
+      if (out?.created) opened.push(out.case);
+    }
+    await ctx.storageAudit({
+      action: "crisis.scan",
+      actorId: actorId(req),
+      targetType: "crisis_case",
+      targetId: "batch",
+      metadata: { opened: opened.length },
+      ip: req.ip
+    });
+    res.json({ ok: true, opened: opened.length, cases: opened });
+  } catch (err) {
+    console.error("crisis scan failed:", err);
+    res.status(500).json({ message: "Failed to scan for crisis content" });
+  }
+});
+
+// ── Sanctions list ───────────────────────────────────────────────────────────
+
+router.get("/sanctions", requireAdminOrToken, async (req, res) => {
+  try {
+    const result = await adminOps.listSanctions(
+      {
+        targetUserId: req.query.userId || req.query.targetUserId || undefined,
+        limit: req.query.limit,
+        offset: req.query.offset
+      },
+      opsOptions()
+    );
+    res.json({
+      sanctions: result.sanctions,
+      total: result.total,
+      types: valuesOf(SANCTION_TYPE)
+    });
+  } catch (err) {
+    console.error("list sanctions failed:", err);
+    res.status(500).json({ message: "Failed to list sanctions" });
+  }
+});
+
+// ── Takedowns ────────────────────────────────────────────────────────────────
+
+router.get("/takedowns", requireAdminOrToken, async (req, res) => {
+  try {
+    const result = await adminOps.listTakedownsAdmin(
+      {
+        status: req.query.status ? String(req.query.status) : undefined,
+        limit: req.query.limit,
+        offset: req.query.offset
+      },
+      opsOptions()
+    );
+    res.json({
+      takedowns: result.takedowns,
+      total: result.total,
+      statuses: valuesOf(TAKEDOWN_STATUS)
+    });
+  } catch (err) {
+    console.error("list takedowns failed:", err);
+    res.status(500).json({ message: "Failed to list takedowns" });
+  }
+});
+
+router.post("/takedowns/:id/resolve", requireAdminOrToken, requireMinRole("admin"), async (req, res) => {
+  const status = ctx.sanitizeText(String(req.body?.status || ""));
+  if (!valuesOf(TAKEDOWN_STATUS).includes(status)) {
+    res.status(422).json({ message: "Invalid status", allowed: valuesOf(TAKEDOWN_STATUS) });
+    return;
+  }
+  if (status === TAKEDOWN_STATUS.ACCEPTED || status === TAKEDOWN_STATUS.COMPLETED) {
+    if (req.body?.confirm !== true) {
+      res.status(422).json({ message: "Destructive action requires confirm: true", code: "CONFIRM_REQUIRED" });
+      return;
+    }
+  }
+  try {
+    const updated = await adminOps.resolveTakedown(
+      req.params.id,
+      {
+        status,
+        note: ctx.sanitizeText(String(req.body?.note || req.body?.resolutionNote || "")),
+        actorId: actorId(req)
+      },
+      opsOptions()
+    );
+    await ctx.storageAudit({
+      action: "takedown.resolve",
+      actorId: actorId(req),
+      targetType: "takedown",
+      targetId: req.params.id,
+      metadata: { status: updated.status, confirmed: req.body?.confirm === true },
+      ip: req.ip
+    });
+    res.json({ ok: true, takedown: updated });
+  } catch (err) {
+    if (err.code === "NOT_FOUND") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    if (err.code === "ILLEGAL_TRANSITION" || err.code === "INVALID_STATUS") {
+      res.status(409).json({ message: err.message, code: err.code });
+      return;
+    }
+    console.error("takedown resolve failed:", err);
+    res.status(500).json({ message: "Failed to resolve takedown" });
+  }
+});
+
+// ── Reports (aggregated) ─────────────────────────────────────────────────────
+
+router.get("/reports", requireAdminOrToken, async (req, res) => {
+  try {
+    const status = req.query.status ? String(req.query.status) : "open";
+    const [expression, socialReports, resourceReports] = await Promise.all([
+      ctx.storageGetExpressionReports({ status: status === "open" ? "open" : status, limit: 100 }),
+      social.listReports({ status: status === "open" ? "open" : status, limit: 100 }, socialOptions(req)).catch(() => []),
+      ctx.storageGetResourceReports({ status: status === "open" ? "open" : undefined, limit: 100 })
+    ]);
+    res.json({
+      expression,
+      social: socialReports,
+      resources: resourceReports,
+      totals: {
+        expression: expression.length,
+        social: socialReports.length,
+        resources: resourceReports.length
+      }
+    });
+  } catch (err) {
+    console.error("list reports failed:", err);
+    res.status(500).json({ message: "Failed to list reports" });
+  }
+});
+
+router.post("/reports/expression/:id/resolve", requireAdminOrToken, async (req, res) => {
+  const status = ctx.sanitizeText(String(req.body?.status || "resolved"));
+  if (!["resolved", "dismissed", "open"].includes(status)) {
+    res.status(422).json({ message: "status must be resolved|dismissed|open" });
+    return;
+  }
+  const updated = await ctx.storageUpdateExpressionReport(req.params.id, {
+    status,
+    resolution: ctx.sanitizeText(String(req.body?.note || req.body?.resolution || ""))
+  });
+  if (!updated) {
+    res.status(404).json({ message: "Report not found" });
+    return;
+  }
+  await ctx.storageAudit({
+    action: "expression.report.resolve",
+    actorId: actorId(req),
+    targetType: "expression_report",
+    targetId: req.params.id,
+    metadata: { status },
+    ip: req.ip
+  });
+  res.json({ ok: true, report: updated });
+});
+
+router.post("/reports/social/:id/resolve", requireAdminOrToken, async (req, res) => {
+  const status = ctx.sanitizeText(String(req.body?.status || "resolved"));
+  const result = await social.resolveReport(
+    {
+      id: req.params.id,
+      resolverId: actorId(req),
+      status,
+      note: ctx.sanitizeText(String(req.body?.note || ""))
+    },
+    socialOptions(req)
+  );
+  if (!result.ok) {
+    res.status(result.reason === "not_found" ? 404 : 422).json({ message: result.reason || "Failed" });
+    return;
+  }
+  res.json({ ok: true });
+});
+
+// ── Users / roles ────────────────────────────────────────────────────────────
+
+router.get("/users", requireAdminOrToken, requireMinRole("admin"), async (req, res) => {
+  try {
+    const users = await ctx.storageGetUsers();
+    const q = String(req.query.q || "").toLowerCase().trim();
+    const role = req.query.role ? String(req.query.role) : null;
+    let rows = users.map((u) => adminOps.publicUser(u));
+    if (q) {
+      rows = rows.filter(
+        (u) =>
+          String(u.email || "").toLowerCase().includes(q) ||
+          String(u.id || "").toLowerCase().includes(q)
+      );
+    }
+    if (role) rows = rows.filter((u) => u.role === role);
+    rows.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    const limit = Math.min(Math.max(Number(req.query.limit || 100), 1), 500);
+    res.json({
+      users: rows.slice(0, limit),
+      total: rows.length,
+      roles: ctx.roles
+    });
+  } catch (err) {
+    console.error("list users failed:", err);
+    res.status(500).json({ message: "Failed to list users" });
+  }
+});
+
+router.post(
+  "/users/:id/role",
+  requireAdminOrToken,
+  requireMinRole("admin"),
+  requireConfirm,
+  async (req, res) => {
+    const role = ctx.sanitizeText(String(req.body?.role || ""));
+    if (!adminOps.STAFF_ROLES.has(role)) {
+      res.status(422).json({ message: "Invalid role", allowed: [...adminOps.STAFF_ROLES] });
+      return;
+    }
+    if (!canAssignRole(req, role)) {
+      res.status(403).json({
+        message: "Not allowed to assign this role",
+        code: "RBAC_DENIED"
+      });
+      return;
+    }
+    try {
+      const updated = await adminOps.updateUserRole(req.params.id, role, opsOptions());
+      await ctx.storageAudit({
+        action: "user.role",
+        actorId: actorId(req),
+        targetType: "user",
+        targetId: req.params.id,
+        metadata: { role, confirmed: true },
+        ip: req.ip
+      });
+      res.json({ ok: true, user: updated });
+    } catch (err) {
+      if (err.code === "NOT_FOUND") {
+        res.status(404).json({ message: err.message });
+        return;
+      }
+      if (err.code === "INVALID_ROLE") {
+        res.status(422).json({ message: err.message });
+        return;
+      }
+      console.error("user role failed:", err);
+      res.status(500).json({ message: "Failed to update role" });
+    }
+  }
+);
+
+router.post(
+  "/users/:id/delete",
+  requireAdminOrToken,
+  requireSuperadmin,
+  requireConfirm,
+  async (req, res) => {
+    const user = await ctx.storageGetUserById(req.params.id);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+    await ctx.storageDeleteUser(req.params.id);
+    await ctx.storageAudit({
+      action: "user.delete",
+      actorId: actorId(req),
+      targetType: "user",
+      targetId: req.params.id,
+      metadata: { email: user.email, confirmed: true },
+      ip: req.ip
+    });
+    res.json({ ok: true });
+  }
+);
+
+// ── Companies ────────────────────────────────────────────────────────────────
+
+router.get("/companies", requireAdminOrToken, async (req, res) => {
+  try {
+    const stories = await ctx.storageGetStories();
+    const boards = await ctx.storageGetCompanyBoards();
+    const published = stories.filter((s) => s.status === "published");
+    const top = ctx.getTopCompanies(published, "global");
+    res.json({
+      topCompanies: top,
+      boards,
+      totalStories: published.length
+    });
+  } catch (err) {
+    console.error("list companies failed:", err);
+    res.status(500).json({ message: "Failed to list companies" });
+  }
+});
+
+// ── Audit log ────────────────────────────────────────────────────────────────
+
+router.get("/audit", requireAdminOrToken, requireMinRole("admin"), async (req, res) => {
+  try {
+    const hours = Math.min(Math.max(Number(req.query.hours || 24), 1), 720);
+    const to = new Date();
+    const from = new Date(to.getTime() - hours * 3600 * 1000);
+    const events = await ctx.storageGetAuditRange(from.toISOString(), to.toISOString());
+    const limit = Math.min(Math.max(Number(req.query.limit || 100), 1), 500);
+    res.json({
+      events: events.slice(-limit).reverse(),
+      total: events.length,
+      from: from.toISOString(),
+      to: to.toISOString()
+    });
+  } catch (err) {
+    console.error("audit list failed:", err);
+    res.status(500).json({ message: "Failed to list audit events" });
+  }
+});
+
+// ── System health ────────────────────────────────────────────────────────────
+
+router.get("/health", requireAdminOrToken, async (req, res) => {
+  try {
+    const ready = await readiness.evaluateReadiness({
+      usePostgres: ctx.usePostgres,
+      getPool: () => ctx.getPgPool(),
+      getMigrationStatus: async (pool) => {
+        try {
+          const migrate = require("../lib/migrate");
+          return migrate.getMigrationStatus(pool);
+        } catch {
+          return { ok: true, schemaVersion: ctx.getSchemaVersion(), pendingCount: 0 };
+        }
+      },
+      checkJobsEnabled: String(process.env.READY_CHECK_JOBS || "false").toLowerCase() === "true",
+      domainContractVersion: ctx.DOMAIN_CONTRACT_VERSION
+    });
+    let jobStats = null;
+    try {
+      const listed = await jobs.listJobs({ limit: 1, offset: 0 }, jobsOptions());
+      jobStats = { total: listed.total, handlers: jobs.listHandlers() };
+    } catch {
+      jobStats = { total: null };
+    }
+    const snap = typeof metrics.snapshot === "function" ? metrics.snapshot() : {};
+    res.json({
+      ready,
+      release: getRelease(),
+      storage: ctx.usePostgres ? "postgres" : "file-json",
+      schemaVersion: ctx.getSchemaVersion(),
+      domainContractVersion: ctx.DOMAIN_CONTRACT_VERSION,
+      uptimeSec: process.uptime(),
+      jobs: jobStats,
+      metrics: snap,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error("admin health failed:", err);
+    res.status(500).json({ message: "Failed to evaluate health" });
+  }
+});
+
+// ── Public appeals (authenticated) — mounted separately ──────────────────────
+
+const appealsPublicRouter = express.Router();
+
+appealsPublicRouter.post("/", requireAuth, async (req, res) => {
+  const targetType = ctx.sanitizeText(String(req.body?.targetType || req.body?.target_type || ""));
+  const targetId = ctx.sanitizeText(String(req.body?.targetId || req.body?.target_id || ""));
+  const reason = ctx.sanitizeText(String(req.body?.reason || ""));
+  if (!targetType || !targetId || reason.length < 5) {
+    res.status(422).json({ message: "targetType, targetId, and reason (≥5 chars) required" });
+    return;
+  }
+  try {
+    const appeal = await adminOps.createAppeal(
+      {
+        appellantUserId: req.user.id,
+        targetType,
+        targetId,
+        reason
+      },
+      opsOptions()
+    );
+    await ctx.storageAudit({
+      action: "appeal.submit",
+      actorId: req.user.id,
+      targetType: "appeal",
+      targetId: appeal.id,
+      metadata: { targetType, targetId },
+      ip: req.ip
+    });
+    res.status(201).json({
+      id: appeal.id,
+      status: appeal.status,
+      slaDueAt: appeal.slaDueAt,
+      slaState: appeal.slaState
+    });
+  } catch (err) {
+    console.error("submit appeal failed:", err);
+    res.status(500).json({ message: "Failed to submit appeal" });
+  }
+});
+
+appealsPublicRouter.get("/mine", requireAuth, async (req, res) => {
+  const result = await adminOps.listAppeals({ limit: 100 }, opsOptions());
+  const mine = result.appeals.filter((a) => a.appellantUserId === req.user.id);
+  res.json({ appeals: mine, total: mine.length });
+});
 
 module.exports = router;
+module.exports.appealsPublicRouter = appealsPublicRouter;

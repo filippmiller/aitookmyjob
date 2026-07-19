@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ops Console — AI Took My Job</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/admin.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css">
+</head>
+<body class="admin-body">
+  <header class="admin-header">
+    <div class="admin-header-inner">
+      <a href="/" class="nav-brand">
+        <div class="nav-brand-mark"></div>
+        <span class="nav-brand-name">Ops Console</span>
+      </a>
+      <div class="admin-auth">
+        <label class="admin-token-label">
+          Admin token
+          <input type="password" id="adminToken" placeholder="Bearer token" autocomplete="off" />
+        </label>
+        <button type="button" class="btn btn-primary btn-sm" id="saveToken">Connect</button>
+        <span id="authStatus" class="admin-status muted">Not connected</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <nav class="admin-tabs" id="adminTabs" role="tablist" aria-label="Admin sections">
+      <button type="button" class="admin-tab active" data-tab="overview">Overview</button>
+      <button type="button" class="admin-tab" data-tab="moderation">Moderation</button>
+      <button type="button" class="admin-tab" data-tab="evidence">Evidence</button>
+      <button type="button" class="admin-tab" data-tab="crisis">Crisis</button>
+      <button type="button" class="admin-tab" data-tab="reports">Reports</button>
+      <button type="button" class="admin-tab" data-tab="sanctions">Sanctions</button>
+      <button type="button" class="admin-tab" data-tab="appeals">Appeals</button>
+      <button type="button" class="admin-tab" data-tab="takedowns">Takedowns</button>
+      <button type="button" class="admin-tab" data-tab="users">Users</button>
+      <button type="button" class="admin-tab" data-tab="companies">Companies</button>
+      <button type="button" class="admin-tab" data-tab="resources">Resources</button>
+      <button type="button" class="admin-tab" data-tab="news">News</button>
+      <button type="button" class="admin-tab" data-tab="jobs">Jobs</button>
+      <button type="button" class="admin-tab" data-tab="health">Health</button>
+    </nav>
+
+    <main class="admin-main">
+      <div id="adminError" class="admin-banner error hidden" role="alert"></div>
+      <div id="adminOk" class="admin-banner ok hidden" role="status"></div>
+
+      <section class="admin-panel active" data-panel="overview">
+        <h1>Operations overview</h1>
+        <p class="muted">Unified moderation, evidence, crisis, reports, sanctions, appeals, takedowns, users, companies, resources, news, jobs, health.</p>
+        <div class="stat-grid" id="overviewStats"></div>
+        <h2>Unified queue</h2>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-unified">Refresh</button>
+        </div>
+        <div class="table-wrap"><table class="admin-table" id="unifiedTable"><thead><tr>
+          <th>Kind</th><th>Title</th><th>Status / SLA</th><th>When</th>
+        </tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section class="admin-panel" data-panel="moderation">
+        <h1>Moderation queue</h1>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-moderation">Refresh</button>
+        </div>
+        <div id="moderationList" class="card-list"></div>
+      </section>
+
+      <section class="admin-panel" data-panel="evidence">
+        <h1>Evidence &amp; insider signals</h1>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-signals">Refresh signals</button>
+        </div>
+        <div class="table-wrap"><table class="admin-table" id="signalsTable"><thead><tr>
+          <th>ID</th><th>Status</th><th>Company</th><th>Verification</th><th>Actions</th>
+        </tr></thead><tbody></tbody></table></div>
+        <h2>Evidence access</h2>
+        <form id="evidenceForm" class="inline-form">
+          <input name="id" placeholder="Evidence ID" required />
+          <input name="reason" placeholder="Reason" value="admin_review" />
+          <button type="submit" class="btn btn-primary btn-sm">View meta</button>
+        </form>
+        <pre id="evidenceOut" class="code-block"></pre>
+      </section>
+
+      <section class="admin-panel" data-panel="crisis">
+        <h1>Crisis escalation</h1>
+        <p class="muted">SLA states: <code>on_track</code>, <code>at_risk</code>, <code>breached</code>, <code>resolved</code>. Default SLA window: 4h.</p>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-crisis">Refresh</button>
+          <button type="button" class="btn btn-primary btn-sm" data-action="scan-crisis">Scan pending content</button>
+        </div>
+        <div class="table-wrap"><table class="admin-table" id="crisisTable"><thead><tr>
+          <th>ID</th><th>Source</th><th>Status</th><th>SLA</th><th>Due</th><th>Actions</th>
+        </tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section class="admin-panel" data-panel="reports">
+        <h1>Reports</h1>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-reports">Refresh</button>
+        </div>
+        <div class="split-3">
+          <div>
+            <h3>Expression</h3>
+            <div id="exprReports" class="card-list"></div>
+          </div>
+          <div>
+            <h3>Social</h3>
+            <div id="socialReports" class="card-list"></div>
+          </div>
+          <div>
+            <h3>Resources</h3>
+            <div id="resourceReports" class="card-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-panel" data-panel="sanctions">
+        <h1>Sanctions</h1>
+        <form id="sanctionForm" class="stack-form">
+          <label>User ID <input name="targetUserId" required /></label>
+          <label>Type
+            <select name="type">
+              <option value="warn">warn</option>
+              <option value="mute">mute</option>
+              <option value="suspend">suspend</option>
+              <option value="ban">ban</option>
+            </select>
+          </label>
+          <label>Reason <input name="reason" required minlength="2" /></label>
+          <label>Duration days <input name="durationDays" type="number" min="0" /></label>
+          <label class="check"><input type="checkbox" name="confirm" /> Confirm ban/suspend (required for those types)</label>
+          <button type="submit" class="btn btn-primary btn-sm">Create sanction</button>
+        </form>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-sanctions">Refresh list</button>
+        </div>
+        <div class="table-wrap"><table class="admin-table" id="sanctionsTable"><thead><tr>
+          <th>ID</th><th>User</th><th>Type</th><th>Reason</th><th>When</th>
+        </tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section class="admin-panel" data-panel="appeals">
+        <h1>Appeals</h1>
+        <p class="muted">SLA states explicit. Uphold / overturn require confirmation.</p>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-appeals">Refresh</button>
+        </div>
+        <div class="table-wrap"><table class="admin-table" id="appealsTable"><thead><tr>
+          <th>ID</th><th>Target</th><th>Status</th><th>SLA</th><th>Due</th><th>Actions</th>
+        </tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section class="admin-panel" data-panel="takedowns">
+        <h1>Takedowns</h1>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-takedowns">Refresh</button>
+        </div>
+        <div class="table-wrap"><table class="admin-table" id="takedownsTable"><thead><tr>
+          <th>ID</th><th>URL</th><th>Status</th><th>Basis</th><th>Actions</th>
+        </tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section class="admin-panel" data-panel="users">
+        <h1>Users &amp; roles</h1>
+        <div class="toolbar">
+          <input id="userSearch" placeholder="Search email or id" />
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-users">Search</button>
+        </div>
+        <div class="table-wrap"><table class="admin-table" id="usersTable"><thead><tr>
+          <th>ID</th><th>Email</th><th>Role</th><th>Muted / Banned</th><th>Actions</th>
+        </tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section class="admin-panel" data-panel="companies">
+        <h1>Companies</h1>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-companies">Refresh</button>
+        </div>
+        <div class="table-wrap"><table class="admin-table" id="companiesTable"><thead><tr>
+          <th>Company</th><th>Stories</th><th>Layoffs</th><th>Rehired</th>
+        </tr></thead><tbody></tbody></table></div>
+        <h2>Company boards</h2>
+        <div id="boardsList" class="card-list"></div>
+      </section>
+
+      <section class="admin-panel" data-panel="resources">
+        <h1>Resources catalog</h1>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-resources">Refresh</button>
+          <button type="button" class="btn btn-primary btn-sm" data-action="link-check">Enqueue link check</button>
+        </div>
+        <div class="table-wrap"><table class="admin-table" id="resourcesTable"><thead><tr>
+          <th>Title</th><th>Status</th><th>Verification</th><th>URL</th>
+        </tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section class="admin-panel" data-panel="news">
+        <h1>News sources</h1>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-news">Refresh</button>
+          <button type="button" class="btn btn-primary btn-sm" data-action="ingest-news">Trigger ingest</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-action="source-check">Source check</button>
+        </div>
+        <h3>Submissions</h3>
+        <div id="newsSubmissions" class="card-list"></div>
+        <h3>Source health</h3>
+        <pre id="sourceHealth" class="code-block"></pre>
+      </section>
+
+      <section class="admin-panel" data-panel="jobs">
+        <h1>Background jobs</h1>
+        <div class="toolbar">
+          <select id="jobStatusFilter">
+            <option value="">all</option>
+            <option>pending</option>
+            <option>running</option>
+            <option>succeeded</option>
+            <option>failed</option>
+            <option>dead</option>
+          </select>
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-jobs">Refresh</button>
+        </div>
+        <div class="table-wrap"><table class="admin-table" id="jobsTable"><thead><tr>
+          <th>ID</th><th>Type</th><th>Status</th><th>Attempts</th><th>Actions</th>
+        </tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section class="admin-panel" data-panel="health">
+        <h1>System health</h1>
+        <div class="toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="reload-health">Refresh</button>
+        </div>
+        <pre id="healthOut" class="code-block"></pre>
+        <h2>Recent audit</h2>
+        <div class="table-wrap"><table class="admin-table" id="auditTable"><thead><tr>
+          <th>When</th><th>Action</th><th>Actor</th><th>Target</th>
+        </tr></thead><tbody></tbody></table></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="confirmDialog">
+    <form method="dialog" class="stack-form">
+      <h3 id="confirmTitle">Confirm destructive action</h3>
+      <p id="confirmBody" class="muted"></p>
+      <menu>
+        <button value="cancel" class="btn btn-secondary btn-sm">Cancel</button>
+        <button value="ok" class="btn btn-danger btn-sm">Confirm</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="/admin.js" defer></script>
+</body>
+</html>

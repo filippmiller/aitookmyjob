@@ -48,6 +48,7 @@ Schema version is the latest applied migration id (e.g. `"002"`).
 | `010` | `social_support` | comments, follows, blocks, reactions, groups, reputation (aitj-z8q.11) |
 | `011` | `intent_feeds` | user_intent_state + feed_events for personalized feeds (aitj-z8q.13) |
 | `012` | `cohorts_mentors` | cohort members, waitlist, buddy pairs, mentors, events, outcomes (aitj-z8q.14) |
+| `013` | `admin_ops` | appeals, crisis cases, takedown resolution (aitj-z8q.16)
 
 ## Commands
 

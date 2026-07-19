@@ -50,7 +50,7 @@ describe("loadMigrations — ordering & shape", () => {
     }
   });
 
-  it("orders 001..012 through cohorts_mentors", () => {
+  it("orders 001..013 through admin_ops", () => {
     const migrations = loadMigrations();
     assert.equal(migrations[0].version, "001");
     assert.equal(migrations[0].name, "baseline_schema");
@@ -76,6 +76,8 @@ describe("loadMigrations — ordering & shape", () => {
     assert.equal(migrations[10].name, "intent_feeds");
     assert.equal(migrations[11].version, "012");
     assert.equal(migrations[11].name, "cohorts_mentors");
+    assert.equal(migrations[12].version, "013");
+    assert.equal(migrations[12].name, "admin_ops");
   });
 });
 

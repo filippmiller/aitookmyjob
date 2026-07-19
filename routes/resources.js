@@ -445,6 +445,17 @@ adminRouter.post("/resources/:id/verify", async (req, res) => {
 });
 
 adminRouter.delete("/resources/:id", async (req, res) => {
+  // Destructive: require confirm:true (body) or ?confirm=true
+  const confirmed =
+    req.body?.confirm === true ||
+    String(req.query.confirm || "").toLowerCase() === "true";
+  if (!confirmed) {
+    res.status(422).json({
+      message: "Destructive action requires confirm: true",
+      code: "CONFIRM_REQUIRED"
+    });
+    return;
+  }
   const hard = String(req.query.hard || "false").toLowerCase() === "true";
   const removed = await ctx.storageDeleteResource(req.params.id, { hard });
   if (!removed) {
@@ -456,7 +467,7 @@ adminRouter.delete("/resources/:id", async (req, res) => {
     actorId: req.user?.id || "admin-token",
     targetType: "resource",
     targetId: req.params.id,
-    metadata: { hard },
+    metadata: { hard, confirmed: true },
     ip: req.ip
   });
   res.json({ ok: true });
@@ -531,6 +542,16 @@ adminRouter.patch("/opportunities/:id", async (req, res) => {
 });
 
 adminRouter.delete("/opportunities/:id", async (req, res) => {
+  const confirmed =
+    req.body?.confirm === true ||
+    String(req.query.confirm || "").toLowerCase() === "true";
+  if (!confirmed) {
+    res.status(422).json({
+      message: "Destructive action requires confirm: true",
+      code: "CONFIRM_REQUIRED"
+    });
+    return;
+  }
   const hard = String(req.query.hard || "false").toLowerCase() === "true";
   const removed = await ctx.storageDeleteOpportunity(req.params.id, { hard });
   if (!removed) {
@@ -542,7 +563,7 @@ adminRouter.delete("/opportunities/:id", async (req, res) => {
     actorId: req.user?.id || "admin-token",
     targetType: "opportunity",
     targetId: req.params.id,
-    metadata: { hard },
+    metadata: { hard, confirmed: true },
     ip: req.ip
   });
   res.json({ ok: true });
