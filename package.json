@@ -7,7 +7,11 @@
     "start": "node server.js",
     "dev": "node server.js",
     "news:ingest": "node scripts/ingest-news.js",
+    "db:migrate": "node scripts/db-migrate.js",
+    "db:status": "node scripts/db-status.js",
     "test:domain": "node --test tests/domain-contract.test.js",
+    "test:migrations": "node --test tests/migrations.test.js",
+    "test:unit": "node --test tests/domain-contract.test.js tests/migrations.test.js",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report"
