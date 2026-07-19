@@ -1,2 +1,32 @@
-[]
-
+[
+  {
+    "id": "ws09ai1r4ujiim",
+    "targetType": "vent",
+    "targetId": "3hfb2am934vt",
+    "reason": "spam test",
+    "details": "",
+    "reporterId": "user_other",
+    "status": "open",
+    "createdAt": "2026-07-19T09:07:29.734Z"
+  },
+  {
+    "id": "q91xf1xx0x6cci",
+    "targetType": "vent",
+    "targetId": "vjvvic181r8x",
+    "reason": "spam test",
+    "details": "",
+    "reporterId": "user_other",
+    "status": "open",
+    "createdAt": "2026-07-19T09:07:41.278Z"
+  },
+  {
+    "id": "553gtfeo4qlrvl",
+    "targetType": "vent",
+    "targetId": "aehmfx78yl9h",
+    "reason": "spam test",
+    "details": "",
+    "reporterId": "user_other",
+    "status": "open",
+    "createdAt": "2026-07-19T09:07:56.867Z"
+  }
+]

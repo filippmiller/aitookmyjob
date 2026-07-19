@@ -24,6 +24,7 @@ const forumRoutes = require("./routes/forum");
 const adminRoutes = require("./routes/admin");
 const integrationsRoutes = require("./routes/integrations");
 const insiderRoutes = require("./routes/insider");
+const resourcesRoutes = require("./routes/resources");
 const jobs = require("./lib/jobs");
 const { registerBuiltinHandlers } = require("./lib/job-handlers");
 const os = require("os");
@@ -282,8 +283,9 @@ app.use(storiesRoutes);       // mounted at root — routes include /api/stories
 app.use(expressionRoutes);    // /api/expression/*, /api/vents/* (aitj-z8q.8)
 app.use("/api/forum", forumRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/signals", insiderRoutes); // insider signals — public summary only; evidence never public
-app.use(integrationsRoutes);  // mounted at root — routes include /api/integrations/*, /api/resources, /api/news, etc.
+app.use("/api/signals", insiderRoutes); // insider signals — public summary only
+app.use(resourcesRoutes);     // /api/resources, /api/opportunities (aitj-z8q.12)
+app.use(integrationsRoutes);  // mounted at root — /api/integrations/*, /api/news, etc.
 
 // ── PWA assets ──
 

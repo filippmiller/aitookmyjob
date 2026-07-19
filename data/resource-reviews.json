@@ -1,0 +1,32 @@
+[
+  {
+    "id": "oeqnhrj4nna8px",
+    "userId": "user-review-1784452050190",
+    "resourceId": "res-1",
+    "rating": 4,
+    "body": "Helpful resource for my transition.",
+    "status": "published",
+    "createdAt": "2026-07-19T09:07:30.193Z",
+    "updatedAt": "2026-07-19T09:07:30.193Z"
+  },
+  {
+    "id": "1kp8bjh01di8ci",
+    "userId": "user-review-1784452061626",
+    "resourceId": "res-1",
+    "rating": 4,
+    "body": "Helpful resource for my transition.",
+    "status": "published",
+    "createdAt": "2026-07-19T09:07:41.630Z",
+    "updatedAt": "2026-07-19T09:07:41.630Z"
+  },
+  {
+    "id": "4yca7omc0mnkn8",
+    "userId": "user-review-1784452077235",
+    "resourceId": "res-careeronestop",
+    "rating": 4,
+    "body": "Helpful resource for my transition.",
+    "status": "published",
+    "createdAt": "2026-07-19T09:07:57.236Z",
+    "updatedAt": "2026-07-19T09:07:57.236Z"
+  }
+]

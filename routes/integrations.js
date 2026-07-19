@@ -116,27 +116,7 @@ router.post("/api/integrations/telegram/webhook", async (req, res) => {
   res.status(200).json({ ok: true });
 });
 
-// ── Resources & News ──
-
-router.get("/api/resources", async (req, res) => {
-  const country = ctx.normalizeCountry(req.query.country || "global");
-  const rows = await ctx.storageGetResources();
-  res.json({ country, resources: rows.filter((x) => x.region === "global" || x.region === country) });
-});
-
-router.get("/api/resources/match", async (req, res) => {
-  const country = ctx.normalizeCountry(req.query.country || "global");
-  const profession = ctx.sanitizeText(req.query.profession || "").toLowerCase();
-  const months = Number(req.query.months || 0);
-  const rows = await ctx.storageGetResources();
-  const matched = rows.filter((r) => {
-    const regionOk = r.region === "global" || r.region === country;
-    const professionOk = !profession || `${r.title} ${r.summary} ${r.type}`.toLowerCase().includes(profession);
-    const urgencyBoost = months >= 6 ? (r.type === "jobs" || r.type === "reskilling") : true;
-    return regionOk && professionOk && urgencyBoost;
-  });
-  res.json({ country, profession, months, resources: matched });
-});
+// ── News (resources live in routes/resources.js — aitj-z8q.12) ──
 
 router.get("/api/news", async (req, res) => {
   const country = ctx.normalizeCountry(req.query.country || "global");

@@ -89,6 +89,7 @@ web process; execution should be done by a worker.
 | `jobs.ping` | No-op health job (`{ pong: true }`) |
 | `notification.send` | Deliver one `notification_deliveries` row (email/telegram) |
 | `digest.weekly` | Fan-out weekly digest → enqueues `notification.send` per subscriber |
+| `resource.link_check` | Probe resource URLs; set `link_status` / flag broken (aitj-z8q.12) |
 
 Register more via `jobs.registerHandler(type, async (payload, meta) => …)` in
 `lib/job-handlers.js` (or app bootstrap).

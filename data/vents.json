@@ -1,2 +1,89 @@
-[]
-
+[
+  {
+    "id": "3hfb2am934vt",
+    "title": null,
+    "body": "I just needed to vent about the layoff without anyone telling me to upskill.",
+    "status": "deleted",
+    "publicationIntent": "vent",
+    "desiredResponse": "empathy",
+    "advicePermission": "closed",
+    "anonymityMode": "anonymous",
+    "visibility": "community",
+    "retentionPreference": "30d",
+    "country": "us",
+    "language": "en",
+    "displayName": "Anon",
+    "company": null,
+    "privacy": {},
+    "moderation": {
+      "riskBand": "low"
+    },
+    "metrics": {
+      "views": 0,
+      "support": 0
+    },
+    "details": {},
+    "submittedBy": "user_test",
+    "createdAt": "2026-07-19T09:07:29.718Z",
+    "updatedAt": "2026-07-19T09:07:29.741Z",
+    "kind": "vent"
+  },
+  {
+    "id": "vjvvic181r8x",
+    "title": null,
+    "body": "I just needed to vent about the layoff without anyone telling me to upskill.",
+    "status": "deleted",
+    "publicationIntent": "vent",
+    "desiredResponse": "empathy",
+    "advicePermission": "closed",
+    "anonymityMode": "anonymous",
+    "visibility": "community",
+    "retentionPreference": "30d",
+    "country": "us",
+    "language": "en",
+    "displayName": "Anon",
+    "company": null,
+    "privacy": {},
+    "moderation": {
+      "riskBand": "low"
+    },
+    "metrics": {
+      "views": 0,
+      "support": 0
+    },
+    "details": {},
+    "submittedBy": "user_test",
+    "createdAt": "2026-07-19T09:07:41.263Z",
+    "updatedAt": "2026-07-19T09:07:41.286Z",
+    "kind": "vent"
+  },
+  {
+    "id": "aehmfx78yl9h",
+    "title": null,
+    "body": "I just needed to vent about the layoff without anyone telling me to upskill.",
+    "status": "deleted",
+    "publicationIntent": "vent",
+    "desiredResponse": "empathy",
+    "advicePermission": "closed",
+    "anonymityMode": "anonymous",
+    "visibility": "community",
+    "retentionPreference": "30d",
+    "country": "us",
+    "language": "en",
+    "displayName": "Anon",
+    "company": null,
+    "privacy": {},
+    "moderation": {
+      "riskBand": "low"
+    },
+    "metrics": {
+      "views": 0,
+      "support": 0
+    },
+    "details": {},
+    "submittedBy": "user_test",
+    "createdAt": "2026-07-19T09:07:56.852Z",
+    "updatedAt": "2026-07-19T09:07:56.875Z",
+    "kind": "vent"
+  }
+]

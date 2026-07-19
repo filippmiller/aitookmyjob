@@ -6,12 +6,16 @@ const { ingestNews } = require("../lib/news-ingest");
 const jobs = require("../lib/jobs");
 const insider = require("../lib/insider");
 const notifications = require("../lib/notifications");
+const { adminRouter: resourcesAdminRouter } = require("./resources");
 const {
   INSIDER_SIGNAL_STATUS,
   EVIDENCE_STATUS,
   VERIFICATION_LEVEL,
   valuesOf
 } = require("../lib/domain-contract");
+
+// Verified catalog CRUD for admins/trusted curators (aitj-z8q.12)
+router.use(resourcesAdminRouter);
 
 router.get("/overview", async (req, res) => {
   if (!(ctx.hasAdminToken(req) || ctx.hasModeratorRole(req.user))) { res.status(401).json({ message: "Unauthorized" }); return; }
