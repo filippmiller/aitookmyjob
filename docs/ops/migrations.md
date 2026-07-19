@@ -24,9 +24,11 @@ Each migration runs in a single `BEGIN` … `COMMIT`. Failure → `ROLLBACK`; **
 | `npm run db:status` | Applied / pending versions, checksums |
 | `npm run db:migrate` | Apply pending; prints `schemaVersion` |
 | `npm run db:migrate -- --dry-run` | Plan only |
-| `GET /health` | `schemaVersion`, `storage` |
-| `GET /ready` | 200 only if DB up **and** no pending migrations; else 503 |
-| `GET /api/meta` | `schemaVersion`, `domainContractVersion`, `storage` |
+| `GET /live` | Process liveness (no DB) — see `docs/ops/observability.md` |
+| `GET /health` | `schemaVersion`, `storage`, `release` |
+| `GET /ready` | 200 only if DB up **and** no pending migrations; else 503; optional jobs check |
+| `GET /metrics` | In-process counters + release metadata |
+| `GET /api/meta` | `schemaVersion`, `domainContractVersion`, `storage`, `release` |
 
 Schema version is the latest applied migration id (e.g. `"002"`).
 
