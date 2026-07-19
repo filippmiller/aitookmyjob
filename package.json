@@ -34,9 +34,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report"
   },
-  "engines": {
-    "node": ">=20"
-  },
+  "engines": { "node": ">=20" },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
