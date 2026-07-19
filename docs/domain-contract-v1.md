@@ -335,7 +335,8 @@ Routes **own** entity writes. Cross-entity reads are allowed; cross-entity write
 | `/api/stories/*`, `/api/stats`, `/api/companies/*`, counters, sitemap | `routes/stories.js` | Story, Outcome (story), company board topics (derived), story metrics |
 | `/api/forum/*` | `routes/forum.js` | DiscussionTopic, DiscussionReply |
 | `/api/admin/*` | `routes/admin.js` | ModerationCase actions, Sanctions, admin news ingest trigger |
-| `/api/resources`, `/api/news`, cohorts, petitions, digest, privacy tools, takedown, anonymous inbox, telegram | `routes/integrations.js` | Resource, NewsItem, Cohort, Petition, Notification(subscribe), TakedownRequest, AnonymousInbox |
+| `/api/news`, cohorts, petitions, digest, privacy tools, takedown, anonymous inbox, telegram | `routes/integrations.js` | NewsItem, Cohort, Petition, Notification(subscribe), TakedownRequest, AnonymousInbox |
+| `/api/resources`, `/api/opportunities`, admin catalog | `routes/resources.js` | Resource, Opportunity (aitj-z8q.12) |
 | `/api/meta`, `/api/locale`, `/health`, `/api/activity`, `/api/events` | `server.js` | Meta only (no durable domain writes) |
 | Storage / schema | `lib/context.js`, `lib/storage.js`, future migrations | Persistence; must store contract statuses |
 
@@ -347,7 +348,7 @@ Routes **own** entity writes. Cross-entity reads are allowed; cross-entity write
 | InsiderSignal | `/api/signals` or `/api/insider-signals` | |
 | Evidence | `/api/evidence` (upload/access under auth) | Never public list |
 | Appeal | `/api/appeals` + admin resolve | |
-| Opportunity | `/api/opportunities` | May start under resources |
+| Opportunity | `/api/opportunities` | Implemented with `OPPORTUNITY_STATUS` (aitj-z8q.12) |
 | Notification | `/api/notifications` | User inbox |
 | Outcome | nested `POST /api/stories/:id/outcome` | Prefer over free `foundNewJob` boolean long-term |
 

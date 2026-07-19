@@ -38,6 +38,7 @@ Schema version is the latest applied migration id (e.g. `"002"`).
 | `002` | `integrity_constraints` | Domain-aligned CHECKs, backfills, unique indexes |
 | `003` | `remaining_write_entities` | resources, cohorts, company_boards, anonymous_inbox, takedowns, subscribers; forum_topics.updated_at (aitj-z8q.3) |
 | `004` | `jobs` | Durable background jobs + job_runs history (aitj-z8q.5); see `docs/ops/jobs.md` |
+| `005` | `resources_catalog` | Resource verification/cost/eligibility/source/link-check fields; opportunities table; save/review/report (aitj-z8q.12) |
 
 ## Commands
 
@@ -77,7 +78,7 @@ Never paste full connection strings into tickets or chat.
 
 1. Set `DATABASE_URL` on an empty database.
 2. `npm start` (or `npm run db:migrate` then start).
-3. Migrations `001`–`004` create schema; `initStorage` seeds petitions/news/stories/topics/resources/cohorts/boards if empty and one-shot backfills from bundled `data/*.json` when tables are empty (never writes under `data/` when `DATABASE_URL` is set).
+3. Migrations `001`–`005` create schema; `initStorage` seeds petitions/news/stories/topics/resources/opportunities/cohorts/boards if empty and one-shot backfills from bundled `data/*.json` when tables are empty (never writes under `data/` when `DATABASE_URL` is set).
 
 ### Upgrade from pre-migration schema
 

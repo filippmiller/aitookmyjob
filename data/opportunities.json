@@ -1,0 +1,42 @@
+[
+  {
+    "id": "opp-usajobs",
+    "type": "job",
+    "title": "USAJOBS — U.S. federal government careers",
+    "provider": "U.S. Office of Personnel Management",
+    "region": "us",
+    "language": "en",
+    "url": "https://www.usajobs.gov/",
+    "summary": "Official board for U.S. federal civilian job openings across agencies and locations.",
+    "cost": "free",
+    "eligibility": "U.S. citizens (and some non-citizens where posted); check each listing.",
+    "source": "https://www.usajobs.gov/",
+    "status": "open",
+    "verificationState": "verified",
+    "lastVerifiedAt": "2026-07-01T00:00:00.000Z",
+    "linkStatus": "unknown",
+    "profession": "multiple",
+    "closesAt": null,
+    "createdBy": "system"
+  },
+  {
+    "id": "opp-eures",
+    "type": "job",
+    "title": "EURES — European job mobility portal",
+    "provider": "European Commission",
+    "region": "global",
+    "language": "en",
+    "url": "https://eures.europa.eu/",
+    "summary": "Cross-border job vacancies, living & working guides, and mobility support across Europe.",
+    "cost": "free",
+    "eligibility": "Job seekers interested in working in EU/EEA countries (and partners).",
+    "source": "https://eures.europa.eu/",
+    "status": "open",
+    "verificationState": "verified",
+    "lastVerifiedAt": "2026-07-01T00:00:00.000Z",
+    "linkStatus": "unknown",
+    "profession": "multiple",
+    "closesAt": null,
+    "createdBy": "system"
+  }
+]

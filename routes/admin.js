@@ -4,6 +4,10 @@ const { requireAdminOrToken } = require("../middleware/auth");
 const ctx = require("../lib/context");
 const { ingestNews } = require("../lib/news-ingest");
 const jobs = require("../lib/jobs");
+const { adminRouter: resourcesAdminRouter } = require("./resources");
+
+// Verified catalog CRUD for admins/trusted curators (aitj-z8q.12)
+router.use(resourcesAdminRouter);
 
 router.get("/overview", async (req, res) => {
   if (!(ctx.hasAdminToken(req) || ctx.hasModeratorRole(req.user))) { res.status(401).json({ message: "Unauthorized" }); return; }

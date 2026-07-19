@@ -87,6 +87,7 @@ web process; execution should be done by a worker.
 |------|--------|
 | `news.ingest` | GDELT + RSS collect → `storageUpsertNewsItems` |
 | `jobs.ping` | No-op health job (`{ pong: true }`) |
+| `resource.link_check` | Probe resource URLs; set `link_status` / flag broken (aitj-z8q.12) |
 
 Register more via `jobs.registerHandler(type, async (payload, meta) => …)` in
 `lib/job-handlers.js` (or app bootstrap).
