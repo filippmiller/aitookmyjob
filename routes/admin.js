@@ -3,6 +3,7 @@ const router = express.Router();
 const { requireAdminOrToken } = require("../middleware/auth");
 const ctx = require("../lib/context");
 const { ingestNews } = require("../lib/news-ingest");
+const jobs = require("../lib/jobs");
 
 router.get("/overview", async (req, res) => {
   if (!(ctx.hasAdminToken(req) || ctx.hasModeratorRole(req.user))) { res.status(401).json({ message: "Unauthorized" }); return; }
@@ -120,6 +121,116 @@ router.get("/moderation/:id/scores", requireAdminOrToken, async (req, res) => {
   const story = (await ctx.storageGetStories()).find((s) => s.id === id);
   if (!story) { res.status(404).json({ message: "Story not found" }); return; }
   res.json({ id: `story:${story.id}`, status: story.status, moderation: story.moderation || {} });
+});
+
+// ── Durable jobs (aitj-z8q.5) ──
+
+function jobsOptions() {
+  return {
+    usePostgres: ctx.usePostgres,
+    getPool: () => ctx.getPgPool(),
+    useMemory: !ctx.usePostgres
+  };
+}
+
+router.get("/jobs", requireAdminOrToken, async (req, res) => {
+  const status = req.query.status ? String(req.query.status) : undefined;
+  const type = req.query.type ? String(req.query.type) : undefined;
+  const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 200);
+  const offset = Math.max(Number(req.query.offset || 0), 0);
+  try {
+    const result = await jobs.listJobs({ status, type, limit, offset }, jobsOptions());
+    res.json({
+      jobs: result.jobs,
+      total: result.total,
+      limit,
+      offset,
+      handlers: jobs.listHandlers(),
+      storage: ctx.usePostgres ? "postgres" : "memory"
+    });
+  } catch (err) {
+    console.error("admin list jobs failed:", err);
+    res.status(500).json({ message: "Failed to list jobs" });
+  }
+});
+
+router.get("/jobs/:id", requireAdminOrToken, async (req, res) => {
+  try {
+    const job = await jobs.getJob(req.params.id, jobsOptions());
+    if (!job) {
+      res.status(404).json({ message: "Job not found" });
+      return;
+    }
+    const runs = await jobs.getJobRuns(req.params.id, jobsOptions());
+    res.json({ job, runs });
+  } catch (err) {
+    console.error("admin get job failed:", err);
+    res.status(500).json({ message: "Failed to get job" });
+  }
+});
+
+router.post("/jobs/:id/retry", requireAdminOrToken, async (req, res) => {
+  try {
+    const existing = await jobs.getJob(req.params.id, jobsOptions());
+    if (!existing) {
+      res.status(404).json({ message: "Job not found" });
+      return;
+    }
+    const out = await jobs.retry(req.params.id, jobsOptions());
+    if (!out) {
+      res.status(404).json({ message: "Job not found" });
+      return;
+    }
+    await ctx.storageAudit({
+      action: "jobs.retry",
+      actorId: req.user?.id || "admin-token",
+      targetType: "job",
+      targetId: req.params.id,
+      metadata: { retried: out.retried, reason: out.reason || null, status: out.job?.status },
+      ip: req.ip
+    });
+    if (!out.retried) {
+      res.status(409).json({ ok: false, message: out.reason || "Job cannot be retried", job: out.job });
+      return;
+    }
+    res.json({ ok: true, job: out.job });
+  } catch (err) {
+    console.error("admin retry job failed:", err);
+    res.status(500).json({ message: "Failed to retry job" });
+  }
+});
+
+router.post("/jobs", requireAdminOrToken, async (req, res) => {
+  const type = ctx.sanitizeText(req.body?.type || "");
+  if (!type) {
+    res.status(422).json({ message: "type is required" });
+    return;
+  }
+  try {
+    const { job, created } = await jobs.enqueue(
+      {
+        type,
+        payload: req.body?.payload && typeof req.body.payload === "object" ? req.body.payload : {},
+        idempotencyKey: req.body?.idempotencyKey || req.body?.idempotency_key || null,
+        runAt: req.body?.runAt || req.body?.run_at || null,
+        maxAttempts: req.body?.maxAttempts || req.body?.max_attempts,
+        timeoutMs: req.body?.timeoutMs || req.body?.timeout_ms
+      },
+      jobsOptions()
+    );
+    await ctx.storageAudit({
+      action: "jobs.enqueue",
+      actorId: req.user?.id || "admin-token",
+      targetType: "job",
+      targetId: job.id,
+      metadata: { type, created, idempotencyKey: job.idempotencyKey },
+      ip: req.ip
+    });
+    res.status(created ? 201 : 200).json({ ok: true, created, job });
+  } catch (err) {
+    console.error("admin enqueue job failed:", err);
+    res.status(500).json({ message: "Failed to enqueue job" });
+  }
 });
 
 router.post("/sanctions", requireAdminOrToken, async (req, res) => {

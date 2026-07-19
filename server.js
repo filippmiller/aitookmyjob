@@ -16,7 +16,9 @@ const storiesRoutes = require("./routes/stories");
 const forumRoutes = require("./routes/forum");
 const adminRoutes = require("./routes/admin");
 const integrationsRoutes = require("./routes/integrations");
-const { ingestNews } = require("./lib/news-ingest");
+const jobs = require("./lib/jobs");
+const { registerBuiltinHandlers } = require("./lib/job-handlers");
+const os = require("os");
 
 const app = express();
 const port = Number(process.env.PORT || 8080);
@@ -25,6 +27,10 @@ const ENABLE_HSTS = String(process.env.ENABLE_HSTS || "false").toLowerCase() ===
 const REQUIRE_STRICT_SECRETS = String(process.env.REQUIRE_STRICT_SECRETS || (ctx.isProduction ? "true" : "false")).toLowerCase() === "true";
 const ENABLE_NEWS_INGEST = String(process.env.NEWS_INGEST_ENABLED || (ctx.usePostgres ? "true" : "false")).toLowerCase() === "true";
 const NEWS_INGEST_INTERVAL_HOURS = Math.min(Math.max(Number(process.env.NEWS_INGEST_INTERVAL_HOURS || 24), 1), 168);
+// Default on with Postgres so scheduled news jobs actually execute in single-container
+// deploys; SKIP LOCKED keeps multi-replica safe. Prefer dedicated `npm run jobs:worker`
+// and set JOBS_WORKER=false on web replicas when scaling out.
+const ENABLE_JOBS_WORKER = String(process.env.JOBS_WORKER || (ctx.usePostgres ? "true" : "false")).toLowerCase() === "true";
 
 const activityClients = new Set();
 app.locals.activityEvents = [];
@@ -293,34 +299,74 @@ app.use((err, _req, res, _next) => {
 
 // ── Start ──
 
-let newsIngestRunning = false;
-async function runScheduledNewsIngest(reason) {
-  if (!ENABLE_NEWS_INGEST || !ctx.usePostgres || newsIngestRunning) return;
-  newsIngestRunning = true;
+function jobsRuntimeOptions() {
+  return {
+    usePostgres: ctx.usePostgres,
+    getPool: () => ctx.getPgPool(),
+    useMemory: !ctx.usePostgres
+  };
+}
+
+/**
+ * Enqueue news.ingest with a windowed idempotency key so multi-instance web
+ * processes do not create duplicate scheduled work. Execution is left to a
+ * durable worker (JOBS_WORKER=1 or scripts/job-worker.js) — setInterval alone
+ * is not the production executor.
+ */
+async function enqueueScheduledNewsIngest(reason) {
+  if (!ENABLE_NEWS_INGEST || !ctx.usePostgres) return;
+  const intervalMs = NEWS_INGEST_INTERVAL_HOURS * 60 * 60 * 1000;
+  const idempotencyKey = jobs.scheduleIdempotencyKey("news.ingest", intervalMs);
   try {
-    const result = await ingestNews(ctx);
-    await ctx.storageAudit({
-      action: "news.ingest.scheduled",
-      actorId: "system",
-      targetType: "news_items",
-      targetId: reason,
-      metadata: result,
-      ip: ""
-    });
-    console.log(`News ingest ${reason}: ${result.inserted} inserted, ${result.updated} updated, ${result.errors.length} source errors`);
+    const { job, created } = await jobs.enqueue(
+      {
+        type: "news.ingest",
+        payload: {
+          reason,
+          daysBack: Number(process.env.NEWS_INGEST_DAYS_BACK || 14),
+          maxRecords: Number(process.env.NEWS_INGEST_MAX_RECORDS || 25)
+        },
+        idempotencyKey,
+        maxAttempts: 3,
+        timeoutMs: 5 * 60 * 1000
+      },
+      jobsRuntimeOptions()
+    );
+    if (created) {
+      console.log(`News ingest job enqueued (${reason}): ${job.id} key=${idempotencyKey}`);
+    } else {
+      console.log(`News ingest job already queued for window (${reason}): ${job.id}`);
+    }
   } catch (error) {
-    console.error(`News ingest ${reason} failed:`, error);
-  } finally {
-    newsIngestRunning = false;
+    console.error(`News ingest enqueue ${reason} failed:`, error);
   }
 }
 
 function scheduleNewsIngest() {
   if (!ENABLE_NEWS_INGEST || !ctx.usePostgres) return;
   const intervalMs = NEWS_INGEST_INTERVAL_HOURS * 60 * 60 * 1000;
-  setTimeout(() => runScheduledNewsIngest("startup"), 15000);
-  const timer = setInterval(() => runScheduledNewsIngest("interval"), intervalMs);
+  // Lightweight scheduler: only enqueues durable jobs (not bare side effects).
+  setTimeout(() => enqueueScheduledNewsIngest("startup"), 15000);
+  const timer = setInterval(() => enqueueScheduledNewsIngest("interval"), intervalMs);
   if (typeof timer.unref === "function") timer.unref();
+}
+
+function startInProcessJobWorker() {
+  if (!ENABLE_JOBS_WORKER) return null;
+  const workerId =
+    process.env.JOBS_WORKER_ID ||
+    `web_${os.hostname()}_${process.pid}`;
+  const concurrency = Math.max(1, Math.min(20, Number(process.env.JOBS_CONCURRENCY || 1)));
+  const pollMs = Math.max(500, Number(process.env.JOBS_POLL_MS || 2000));
+  const leaseMs = Math.max(5000, Number(process.env.JOBS_LEASE_MS || jobs.DEFAULT_LEASE_MS));
+  console.log(
+    `[jobs] in-process worker starting id=${workerId} concurrency=${concurrency} pollMs=${pollMs}`
+  );
+  return jobs.startWorkerLoop(
+    workerId,
+    { concurrency, pollMs, leaseMs, unref: true, logger: console },
+    jobsRuntimeOptions()
+  );
 }
 
 async function start() {
@@ -343,7 +389,12 @@ async function start() {
     await ctx.initStorage();
     console.log("Storage mode: file-json");
   }
+
+  // Handlers always registered so admin enqueue / separate worker share types.
+  registerBuiltinHandlers(ctx, jobs);
   scheduleNewsIngest();
+  startInProcessJobWorker();
+
   app.listen(port, () => {
     console.log(`aitookmyjob running on :${port}`);
   });
