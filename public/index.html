@@ -597,6 +597,17 @@
         <div class="story-feed-header">
           <h2 class="story-feed-title" data-i18n="sectionStories">Recent Stories</h2>
           <div class="story-feed-filters">
+            <label class="form-group" style="margin:0;min-width:11rem;">
+              <span class="form-label" for="userIntentSelect" style="font-size:var(--text-xs);margin-bottom:2px;">What do you need?</span>
+              <select class="select" id="userIntentSelect" aria-describedby="userIntentHelp">
+                <option value="only_reading">Only reading</option>
+                <option value="need_to_vent">Need to vent</option>
+                <option value="seeking_similar">Seeking similar people</option>
+                <option value="gathering_information">Gathering information</option>
+                <option value="ready_to_act">Ready to act</option>
+                <option value="ready_to_help">Ready to help</option>
+              </select>
+            </label>
             <input type="text" id="storySearch" class="input story-filter-input" data-i18n-placeholder="searchPlaceholder" placeholder="Search stories...">
             <select class="select" id="storyRegionFilter">
               <option value="">All Regions</option>
@@ -615,6 +626,10 @@
             </select>
           </div>
         </div>
+        <p id="userIntentHelp" style="font-size:var(--text-xs);color:var(--text-muted);margin:0 0 var(--sp-3);">
+          Your intent shapes recommendations. Support stays first-class — we never force career advice when you need to vent.
+        </p>
+        <div id="personalizedFeedBanner" class="story-filter-summary" style="display:none;" aria-live="polite"></div>
         <div class="story-filter-summary" id="storyFilterSummary" aria-live="polite"></div>
         <div id="storiesContainer">
           <div class="skeleton-placeholder" aria-hidden="true" style="display:grid;gap:var(--sp-4);grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">

@@ -50,7 +50,7 @@ describe("loadMigrations — ordering & shape", () => {
     }
   });
 
-  it("orders 001..010 through social_support", () => {
+  it("orders 001..014 through search_discovery", () => {
     const migrations = loadMigrations();
     assert.equal(migrations[0].version, "001");
     assert.equal(migrations[0].name, "baseline_schema");
@@ -72,6 +72,14 @@ describe("loadMigrations — ordering & shape", () => {
     assert.equal(migrations[8].name, "news_community");
     assert.equal(migrations[9].version, "010");
     assert.equal(migrations[9].name, "social_support");
+    assert.equal(migrations[10].version, "011");
+    assert.equal(migrations[10].name, "intent_feeds");
+    assert.equal(migrations[11].version, "012");
+    assert.equal(migrations[11].name, "cohorts_mentors");
+    assert.equal(migrations[12].version, "013");
+    assert.equal(migrations[12].name, "admin_ops");
+    assert.equal(migrations[13].version, "014");
+    assert.equal(migrations[13].name, "search_discovery");
   });
 });
 

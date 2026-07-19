@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discover — AI Took My Job</title>
+  <meta name="description" content="Search stories, news, companies, professions, and regions.">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/sidebar.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@0,9..144,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css">
+  <style>
+    .discover-wrap { max-width: 920px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    .discover-hero { margin-bottom: 1.5rem; }
+    .discover-hero h1 { font-family: Fraunces, serif; font-size: 1.75rem; margin: 0 0 .35rem; }
+    .discover-hero p { color: var(--text-muted, #9aa3b2); margin: 0 0 1rem; }
+    .discover-form { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: 1rem; }
+    .discover-form input[type="search"],
+    .discover-form select {
+      background: var(--surface-2, #1a1f2b);
+      border: 1px solid var(--border, #2a3344);
+      color: inherit;
+      border-radius: 8px;
+      padding: .65rem .85rem;
+      font: inherit;
+      min-width: 140px;
+    }
+    .discover-form input[type="search"] { flex: 1 1 220px; }
+    .discover-form button {
+      background: var(--accent, #6c8cff);
+      color: #0b0e14;
+      border: 0;
+      border-radius: 8px;
+      padding: .65rem 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .discover-meta { color: var(--text-muted, #9aa3b2); font-size: .9rem; margin-bottom: 1rem; }
+    .discover-empty {
+      border: 1px dashed var(--border, #2a3344);
+      border-radius: 12px;
+      padding: 2rem 1.25rem;
+      text-align: center;
+      color: var(--text-muted, #9aa3b2);
+    }
+    .discover-list { display: grid; gap: .75rem; }
+    .discover-card {
+      border: 1px solid var(--border, #2a3344);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      background: var(--surface, #121722);
+    }
+    .discover-card a { color: inherit; text-decoration: none; }
+    .discover-card a:hover { color: var(--accent, #6c8cff); }
+    .discover-type {
+      display: inline-block;
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      padding: .15rem .45rem;
+      border-radius: 999px;
+      background: rgba(108,140,255,.15);
+      color: var(--accent, #6c8cff);
+      margin-bottom: .4rem;
+    }
+    .discover-snippet { color: var(--text-muted, #9aa3b2); font-size: .92rem; margin: .35rem 0 0; }
+    .entity-totals { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0 1.25rem; }
+    .entity-stat {
+      background: var(--surface-2, #1a1f2b);
+      border-radius: 10px;
+      padding: .65rem .9rem;
+      min-width: 6rem;
+    }
+    .entity-stat strong { display: block; font-size: 1.2rem; }
+    .entity-stat span { font-size: .8rem; color: var(--text-muted, #9aa3b2); }
+    .discover-tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+    .discover-tabs button {
+      background: transparent;
+      border: 1px solid var(--border, #2a3344);
+      color: inherit;
+      border-radius: 999px;
+      padding: .35rem .8rem;
+      cursor: pointer;
+      font: inherit;
+    }
+    .discover-tabs button.active {
+      background: rgba(108,140,255,.18);
+      border-color: var(--accent, #6c8cff);
+    }
+    .site-nav { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">
+        <div class="nav-brand-mark"></div>
+        <span class="nav-brand-name">AI Took My Job</span>
+      </a>
+      <div class="nav-links">
+        <a href="/search" class="nav-link active">Search</a>
+        <a href="/#stories" class="nav-link">Stories</a>
+        <a href="/#news" class="nav-link">News</a>
+        <a href="/resources" class="nav-link">Resources</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="discover-wrap">
+    <header class="discover-hero">
+      <h1 id="pageTitle">Search &amp; discovery</h1>
+      <p id="pageSubtitle">Find published stories, news, companies, professions, groups, and resources. No fabricated results.</p>
+    </header>
+
+    <form class="discover-form" id="discoverForm">
+      <input type="search" id="qInput" name="q" placeholder="Search stories, companies, professions…" autocomplete="off">
+      <select id="typeSelect" name="types" aria-label="Type filter">
+        <option value="">All types</option>
+        <option value="story">Stories</option>
+        <option value="vent">Vents</option>
+        <option value="news">News</option>
+        <option value="insider_summary">Insider summaries</option>
+        <option value="company">Companies</option>
+        <option value="profession">Professions</option>
+        <option value="group">Groups</option>
+        <option value="resource">Resources</option>
+        <option value="region">Regions</option>
+      </select>
+      <select id="countrySelect" name="country" aria-label="Country">
+        <option value="global">Global</option>
+        <option value="us">US</option>
+        <option value="de">DE</option>
+        <option value="fr">FR</option>
+        <option value="gb">UK</option>
+        <option value="ru">RU</option>
+      </select>
+      <button type="submit">Search</button>
+    </form>
+
+    <div id="entityHeader" hidden>
+      <div class="entity-totals" id="entityTotals"></div>
+      <div class="discover-tabs" id="entityTabs"></div>
+    </div>
+
+    <p class="discover-meta" id="metaLine"></p>
+    <div id="results" class="discover-list" aria-live="polite"></div>
+  </main>
+
+  <script>
+    (function () {
+      const params = new URLSearchParams(location.search);
+      const path = location.pathname.replace(/\/+$/, "");
+      const entityMatch = path.match(/^\/entity\/(company|profession|region)\/([^/]+)$/i);
+
+      const qInput = document.getElementById("qInput");
+      const typeSelect = document.getElementById("typeSelect");
+      const countrySelect = document.getElementById("countrySelect");
+      const form = document.getElementById("discoverForm");
+      const resultsEl = document.getElementById("results");
+      const metaLine = document.getElementById("metaLine");
+      const pageTitle = document.getElementById("pageTitle");
+      const pageSubtitle = document.getElementById("pageSubtitle");
+      const entityHeader = document.getElementById("entityHeader");
+      const entityTotals = document.getElementById("entityTotals");
+      const entityTabs = document.getElementById("entityTabs");
+
+      let entityTab = "all";
+
+      qInput.value = params.get("q") || params.get("query") || "";
+      if (params.get("types")) typeSelect.value = params.get("types");
+      if (params.get("country")) countrySelect.value = params.get("country");
+
+      function esc(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function card(item) {
+        const href = item.href || "#";
+        const type = item.type || "result";
+        return (
+          '<article class="discover-card">' +
+          '<span class="discover-type">' + esc(type) + "</span>" +
+          '<h3><a href="' + esc(href) + '">' + esc(item.title || "Untitled") + "</a></h3>" +
+          (item.snippet ? '<p class="discover-snippet">' + esc(item.snippet) + "</p>" : "") +
+          "</article>"
+        );
+      }
+
+      function renderEmpty(message) {
+        resultsEl.innerHTML =
+          '<div class="discover-empty"><p>' +
+          esc(message || "No results.") +
+          "</p></div>";
+      }
+
+      function renderList(items) {
+        if (!items || !items.length) {
+          renderEmpty("No published content matches these filters.");
+          return;
+        }
+        resultsEl.innerHTML = items.map(card).join("");
+      }
+
+      async function runSearch() {
+        entityHeader.hidden = true;
+        pageTitle.textContent = "Search & discovery";
+        const q = qInput.value.trim();
+        const types = typeSelect.value;
+        const country = countrySelect.value || "global";
+        const sp = new URLSearchParams();
+        if (q) sp.set("q", q);
+        if (types) sp.set("types", types);
+        if (country && country !== "global") sp.set("country", country);
+        history.replaceState(null, "", "/search" + (sp.toString() ? "?" + sp : ""));
+
+        if (!q) {
+          metaLine.textContent = "";
+          renderEmpty("Enter a search query to find stories, news, companies, and more.");
+          return;
+        }
+
+        metaLine.textContent = "Searching…";
+        const res = await fetch("/api/search?" + sp.toString());
+        const data = await res.json();
+        if (data.emptyQuery || !data.results || data.results.length === 0) {
+          metaLine.textContent = data.message || "No results found.";
+          renderEmpty(data.message || "No results found.");
+          return;
+        }
+        metaLine.textContent = data.total + " result" + (data.total === 1 ? "" : "s");
+        renderList(data.results);
+      }
+
+      async function runEntity(type, slug) {
+        pageTitle.textContent = "Entity: " + type + " / " + decodeURIComponent(slug);
+        pageSubtitle.textContent = "Filtered published content only. Empty when nothing is indexed.";
+        entityHeader.hidden = false;
+        const country = countrySelect.value || "global";
+        const q = qInput.value.trim();
+        const sp = new URLSearchParams();
+        if (country && country !== "global") sp.set("country", country);
+        if (q) sp.set("q", q);
+        const res = await fetch("/api/entities/" + encodeURIComponent(type) + "/" + encodeURIComponent(slug) + "?" + sp);
+        const data = await res.json();
+        if (data.entity && data.entity.name) {
+          pageTitle.textContent = data.entity.name;
+        }
+        const t = data.totals || {};
+        entityTotals.innerHTML = [
+          ["Stories", t.stories],
+          ["News", t.news],
+          ["Insider", t.insiderSummaries],
+          ["Groups", t.groups],
+          ["Resources", t.resources]
+        ]
+          .map(function (pair) {
+            return (
+              '<div class="entity-stat"><strong>' +
+              (pair[1] || 0) +
+              "</strong><span>" +
+              pair[0] +
+              "</span></div>"
+            );
+          })
+          .join("");
+
+        const buckets = [
+          { id: "all", label: "All" },
+          { id: "stories", label: "Stories" },
+          { id: "news", label: "News" },
+          { id: "insiderSummaries", label: "Insider" },
+          { id: "groups", label: "Groups" },
+          { id: "resources", label: "Resources" }
+        ];
+        entityTabs.innerHTML = buckets
+          .map(function (b) {
+            return (
+              '<button type="button" data-tab="' +
+              b.id +
+              '" class="' +
+              (entityTab === b.id ? "active" : "") +
+              '">' +
+              b.label +
+              "</button>"
+            );
+          })
+          .join("");
+        entityTabs.querySelectorAll("button").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            entityTab = btn.getAttribute("data-tab");
+            paintEntity(data);
+            entityTabs.querySelectorAll("button").forEach(function (b) {
+              b.classList.toggle("active", b.getAttribute("data-tab") === entityTab);
+            });
+          });
+        });
+
+        if (data.empty) {
+          metaLine.textContent = data.message || "No published content for this entity yet.";
+          renderEmpty(data.message || "No published content for this entity yet.");
+          return;
+        }
+        paintEntity(data);
+      }
+
+      function paintEntity(data) {
+        let items = [];
+        if (entityTab === "all") {
+          items = []
+            .concat(data.stories || [])
+            .concat(data.news || [])
+            .concat(data.insiderSummaries || [])
+            .concat(data.groups || [])
+            .concat(data.resources || []);
+        } else {
+          items = data[entityTab] || [];
+        }
+        const total =
+          (data.totals &&
+            (data.totals.stories || 0) +
+              (data.totals.news || 0) +
+              (data.totals.insiderSummaries || 0) +
+              (data.totals.groups || 0) +
+              (data.totals.resources || 0)) ||
+          items.length;
+        metaLine.textContent = total + " item" + (total === 1 ? "" : "s");
+        renderList(items);
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (entityMatch) {
+          runEntity(entityMatch[1].toLowerCase(), entityMatch[2]);
+        } else {
+          runSearch();
+        }
+      });
+
+      if (entityMatch) {
+        runEntity(entityMatch[1].toLowerCase(), entityMatch[2]);
+      } else if (qInput.value.trim()) {
+        runSearch();
+      } else {
+        renderEmpty("Enter a search query to find stories, news, companies, and more.");
+      }
+    })();
+  </script>
+</body>
+</html>

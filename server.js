@@ -22,11 +22,15 @@ const storiesRoutes = require("./routes/stories");
 const expressionRoutes = require("./routes/expression");
 const forumRoutes = require("./routes/forum");
 const adminRoutes = require("./routes/admin");
+const appealsPublicRouter = adminRoutes.appealsPublicRouter;
 const integrationsRoutes = require("./routes/integrations");
 const insiderRoutes = require("./routes/insider");
 const resourcesRoutes = require("./routes/resources");
 const newsRoutes = require("./routes/news");
 const socialRoutes = require("./routes/social");
+const feedRoutes = require("./routes/feed");
+const cohortsRoutes = require("./routes/cohorts");
+const searchRoutes = require("./routes/search");
 const jobs = require("./lib/jobs");
 const { registerBuiltinHandlers } = require("./lib/job-handlers");
 const os = require("os");
@@ -100,7 +104,7 @@ app.use(
       if (!origin || rawOrigins.length === 0 || rawOrigins.includes(origin)) { callback(null, true); return; }
       callback(new Error("Origin not allowed"));
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Request-Id"],
     maxAge: 86400
   })
@@ -285,10 +289,14 @@ app.use(storiesRoutes);       // mounted at root — routes include /api/stories
 app.use(expressionRoutes);    // /api/expression/*, /api/vents/* (aitj-z8q.8)
 app.use("/api/forum", forumRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/appeals", appealsPublicRouter); // authenticated appeal submit (aitj-z8q.16)
 app.use("/api/signals", insiderRoutes); // insider signals — public summary only
 app.use(resourcesRoutes);     // /api/resources, /api/opportunities (aitj-z8q.12)
 app.use(newsRoutes);          // /api/news* community news (aitj-z8q.10)
 app.use("/api/social", socialRoutes); // comments, follows, blocks, saves, reactions, groups (aitj-z8q.11)
+app.use("/api", feedRoutes); // /api/me/intent, /api/feed (aitj-z8q.13)
+app.use("/api/cohorts", cohortsRoutes); // cohorts, buddies, mentors, events (aitj-z8q.14)
+app.use(searchRoutes);        // /api/search, /api/entities, /api/saved-searches (aitj-z8q.17)
 app.use(integrationsRoutes);  // mounted at root — /api/integrations/*, legacy surfaces
 
 // ── PWA assets ──
@@ -365,6 +373,10 @@ app.get(/^\/([a-z]{2,10})\/([a-z]{2})(?:\/.*)?$/i, (req, res) => {
 
 app.get("/forum", (req, res) => { res.sendFile(path.join(ctx.publicDir, "forum.html")); });
 app.get("/research", (req, res) => { res.sendFile(path.join(ctx.publicDir, "research.html")); });
+app.get("/admin", (req, res) => { res.sendFile(path.join(ctx.publicDir, "admin.html")); });
+app.get("/admin/", (req, res) => { res.sendFile(path.join(ctx.publicDir, "admin.html")); });
+app.get("/search", (req, res) => { res.sendFile(path.join(ctx.publicDir, "entity.html")); });
+app.get("/entity/:type/:slug", (req, res) => { res.sendFile(path.join(ctx.publicDir, "entity.html")); });
 app.get("/support", (req, res) => { res.sendFile(path.join(ctx.publicDir, "index.html")); });
 app.get("/events", (req, res) => { res.sendFile(path.join(ctx.publicDir, "index.html")); });
 app.get("/dashboard", (req, res) => { res.sendFile(path.join(ctx.publicDir, "index.html")); });

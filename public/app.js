@@ -25,7 +25,10 @@ class AITookMyJobApp {
       storiesPage: 0,
       storiesPerPage: 6,
       storiesTotal: 0,
-      allStoriesLoaded: false
+      allStoriesLoaded: false,
+      userIntent: 'only_reading',
+      intentAnonymous: true,
+      personalizedFeed: null
     };
 
     this.theme = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -427,6 +430,11 @@ class AITookMyJobApp {
     [storyRegionFilter, storyProfessionFilter, storyOutcomeFilter].forEach(filter => {
       if (filter) filter.addEventListener('change', () => this.reloadStoriesForFilters());
     });
+
+    const userIntentSelect = document.getElementById('userIntentSelect');
+    if (userIntentSelect) {
+      userIntentSelect.addEventListener('change', (e) => this.handleUserIntentChange(e.target.value));
+    }
 
     // Keyboard accessibility: Escape closes modals
     document.addEventListener('keydown', (e) => {
@@ -910,7 +918,101 @@ class AITookMyJobApp {
     const me = meData.status === 'fulfilled' ? meData.value : null;
     this.state.authUser = me && me.id ? me : null;
 
+    await this.loadUserIntentAndFeed();
     await this.loadTranslations(this.state.lang);
+  }
+
+  async loadUserIntentAndFeed() {
+    const country = this.state.country;
+    const intentData = await this.fetchJSON('/api/me/intent', null);
+    if (intentData && intentData.intent) {
+      this.state.userIntent = intentData.intent.primaryIntent || 'only_reading';
+      this.state.intentAnonymous = Boolean(intentData.intent.anonymous);
+      const sel = document.getElementById('userIntentSelect');
+      if (sel) sel.value = this.state.userIntent;
+    }
+
+    const feed = await this.fetchJSON(
+      `/api/feed?country=${encodeURIComponent(country)}&intent=${encodeURIComponent(this.state.userIntent)}&limit=12`,
+      null
+    );
+    if (feed && feed.ok) {
+      this.state.personalizedFeed = feed;
+    }
+  }
+
+  async handleUserIntentChange(intent) {
+    const next = intent || 'only_reading';
+    this.state.userIntent = next;
+    const help = document.getElementById('userIntentHelp');
+
+    if (this.state.authUser) {
+      const res = await this.patchJSON('/api/me/intent', { primaryIntent: next });
+      if (!res.ok && help) {
+        help.textContent = res.error || 'Could not save intent — still applying for this session.';
+      } else if (help) {
+        help.textContent = 'Intent saved. Support stays first-class; action recommendations only when relevant.';
+      }
+    } else if (help) {
+      help.textContent = 'Browsing with this intent (sign in to save). Support stays first-class — no forced career advice.';
+    }
+
+    const feed = await this.fetchJSON(
+      `/api/feed?country=${encodeURIComponent(this.state.country)}&intent=${encodeURIComponent(next)}&limit=12`,
+      null
+    );
+    if (feed && feed.ok) {
+      this.state.personalizedFeed = feed;
+      this.renderPersonalizedFeedBanner();
+    }
+  }
+
+  async patchJSON(url, body) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 10000);
+      const res = await fetch(url, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': this.getCsrfToken() },
+        body: JSON.stringify(body),
+        signal: ctrl.signal
+      });
+      clearTimeout(timer);
+      const ct = res.headers.get('content-type') || '';
+      const data = ct.includes('json') ? await res.json() : await res.text();
+      return { ok: res.ok, status: res.status, data, error: res.ok ? '' : (data?.message || data || `Error ${res.status}`) };
+    } catch (e) {
+      return { ok: false, status: 0, data: null, error: e.name === 'AbortError' ? 'Request timeout' : 'Network error' };
+    }
+  }
+
+  renderPersonalizedFeedBanner() {
+    const el = document.getElementById('personalizedFeedBanner');
+    if (!el) return;
+    const feed = this.state.personalizedFeed;
+    if (!feed || !feed.items || !feed.items.length) {
+      el.style.display = 'none';
+      return;
+    }
+    const intentLabel = feed.intent?.meta?.label || this.state.userIntent;
+    const top = feed.items.slice(0, 3);
+    const steps = (feed.nextSteps || []).slice(0, 2);
+    el.style.display = 'block';
+    el.innerHTML = `
+      <strong>For you · ${this.esc(intentLabel)}</strong>
+      <span style="color:var(--text-muted);"> — recommendations explain why they appear.</span>
+      <ul style="margin:var(--sp-2) 0 0;padding-left:1.2rem;font-size:var(--text-sm);">
+        ${top.map((item) => `
+          <li>
+            <span class="tag" style="margin-right:0.35rem;">${this.esc(item.type)}</span>
+            ${this.esc((item.title || item.summary || item.id || '').toString().slice(0, 80))}
+            <span style="color:var(--text-muted);"> — ${this.esc((item.why && item.why.summary) || '')}</span>
+          </li>
+        `).join('')}
+      </ul>
+      ${steps.length ? `<p style="margin:var(--sp-2) 0 0;font-size:var(--text-xs);color:var(--text-muted);">Next: ${steps.map((s) => this.esc(s.title)).join(' · ')}</p>` : ''}
+    `;
   }
 
   // ── Rendering ──
@@ -920,6 +1022,7 @@ class AITookMyJobApp {
     this.renderFeaturedStory();
     this.renderBoundaryPolls();
     this.renderStories();
+    this.renderPersonalizedFeedBanner();
     this.renderNewsCarousel();
     this.renderNews();
     this.renderResources();
