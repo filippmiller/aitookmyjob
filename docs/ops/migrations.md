@@ -180,7 +180,7 @@ If `down` is missing, the runner refuses rollback and you must forward-fix.
 | `001.down` | **Drops all tables** — full data loss |
 | `002` backfills | Only rows with **invalid** enum/status values are rewritten to safe defaults; valid rows untouched |
 | Failed migration mid-flight | **No** partial schema from that version (transaction rollback) |
-| Concurrent deploys | Two processes may race; both use transactions + PK on `schema_migrations.version` — one wins, the other may error on duplicate version insert after concurrent apply. Prefer single replica rolling deploy or pre-run `db:migrate` |
+| Concurrent deploys | Serialized: the runner takes a session-level PostgreSQL advisory lock (`pg_advisory_lock`, key `MIGRATION_LOCK_ID` in `lib/migrate.js`) on the migration client before reading the pending set and holds it for the whole run; the second runner waits, then applies nothing. Lock is always released (also on failure) before the client returns to the pool (aitj-z8q.30) |
 
 ## Related
 
