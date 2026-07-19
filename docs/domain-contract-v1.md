@@ -457,7 +457,17 @@ Re-exported from `lib/schemas.js` for discoverability next to Zod input schemas.
 
 ---
 
-## 13. Codex acceptance checklist
+## 13. TL product decisions (2026-07-19)
+
+Resolved for product-v1 so feature beads are not blocked on open questions:
+
+1. **Outcome model** — Keep dual boolean (`foundNewJob`) ↔ `OUTCOME_STATUS` mapping until `aitj-z8q.8` lands full Outcome entity writes. New code must write enum; readers may still accept boolean.
+2. **Vent vs Story storage** — Separate entities and API boundaries (`/api/vents` vs `/api/stories`). Shared expression traits (intent, privacy, retention) are metadata, not a single polymorphic table requirement.
+3. **Account delete of published content** — Prefer **anonymize** published stories that feed aggregates; soft-delete then purge only when author retention preference / legal path requires it (see D-USER-CASCADE).
+4. **Public vents** — Default visibility for vents is **`community`**. Public vents allowed only when author explicitly sets `visibility: public`; search (`aitj-z8q.17`) must respect this.
+5. **Runtime enforcement** — Contract helpers are available now; write-path `assertValidStatus` / `assertCanTransition` land in feature PRs (not a separate hard-block bead).
+
+## 14. Codex acceptance checklist
 
 - [x] Versioned architecture document (`docs/domain-contract-v1.md`)
 - [x] Entity list with ownership, privacy, retention
@@ -467,4 +477,5 @@ Re-exported from `lib/schemas.js` for discoverability next to Zod input schemas.
 - [x] Publication intents + desired-response controls
 - [x] Relationship diagrams (mermaid)
 - [x] Machine-readable module + tests
+- [x] TL product decisions recorded (§13)
 - [ ] Codex formal approval (gate `aitj-z8q.20`)

@@ -20,9 +20,11 @@ test-results/
 
 docs/
 docs
-# Keep versioned domain architecture contracts trackable
+# Track product architecture + ops runbooks (everything else under docs stays ignored)
 !docs/
 !docs/domain-contract*.md
+!docs/ops/
+!docs/ops/**
 
 # Session logs / scratch
 .claude/sessions/
