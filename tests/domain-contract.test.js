@@ -72,6 +72,11 @@ describe("canTransition — story lifecycle", () => {
     assert.equal(d.canTransition("story", "published", "published"), true);
   });
 
+  it("rejects same-state no-op for invalid statuses", () => {
+    assert.equal(d.canTransition("story", "live", "live"), false);
+    assert.equal(d.canTransition("story", "approved", "approved"), false);
+  });
+
   it("assertCanTransition throws on illegal edge", () => {
     assert.throws(
       () => d.assertCanTransition("story", "published", "pending"),
