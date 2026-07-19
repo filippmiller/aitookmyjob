@@ -83,42 +83,27 @@ router.get("/topics/:id", async (req, res) => {
 router.put("/topics/:id", requireAuth, async (req, res) => {
   const tid = ctx.sanitizeText(req.params.id);
   const topics = await ctx.storageGetForumTopics(null);
-  const topicIndex = topics.findIndex(t => t.id === tid);
-  if (topicIndex === -1) { res.status(404).json({ message: "Topic not found" }); return; }
-  if (topics[topicIndex].createdBy !== req.user.id && !ctx.hasModeratorRole(req.user)) { res.status(403).json({ message: "Not authorized to edit this topic" }); return; }
+  const existing = topics.find((t) => t.id === tid);
+  if (!existing) { res.status(404).json({ message: "Topic not found" }); return; }
+  if (existing.createdBy !== req.user.id && !ctx.hasModeratorRole(req.user)) { res.status(403).json({ message: "Not authorized to edit this topic" }); return; }
   const updates = {
-    title: ctx.sanitizeText(req.body.title) || topics[topicIndex].title,
-    body: ctx.sanitizeText(req.body.body) || topics[topicIndex].body,
-    categoryId: ctx.sanitizeText(req.body.categoryId) || topics[topicIndex].categoryId,
-    updatedAt: new Date().toISOString()
+    title: ctx.sanitizeText(req.body.title) || existing.title,
+    body: ctx.sanitizeText(req.body.body) || existing.body,
+    categoryId: ctx.sanitizeText(req.body.categoryId) || existing.categoryId
   };
-  topics[topicIndex] = { ...topics[topicIndex], ...updates };
-  if (ctx.usePostgres) {
-    const pool = ctx.getPgPool();
-    await pool.query("UPDATE forum_topics SET title = $1, body = $2, category_id = $3, updated_at = $4 WHERE id = $5", [updates.title, updates.body, updates.categoryId, updates.updatedAt, tid]);
-  } else {
-    ctx.writeJsonArray(ctx.forumTopicsPath, topics);
-  }
+  const next = await ctx.storageUpdateForumTopic(tid, updates);
+  if (!next) { res.status(404).json({ message: "Topic not found" }); return; }
   await ctx.storageAudit({ action: "forum.topic.update", actorId: req.user.id, targetType: "forum_topic", targetId: tid, metadata: { updates }, ip: req.ip });
-  res.json({ ...topics[topicIndex] });
+  res.json({ ...existing, ...next, ...updates });
 });
 
 router.delete("/topics/:id", requireAuth, async (req, res) => {
   const tid = ctx.sanitizeText(req.params.id);
   const topics = await ctx.storageGetForumTopics(null);
-  const topicIndex = topics.findIndex(t => t.id === tid);
-  if (topicIndex === -1) { res.status(404).json({ message: "Topic not found" }); return; }
-  if (topics[topicIndex].createdBy !== req.user.id && !ctx.hasModeratorRole(req.user)) { res.status(403).json({ message: "Not authorized to delete this topic" }); return; }
-  topics.splice(topicIndex, 1);
-  if (ctx.usePostgres) {
-    const pool = ctx.getPgPool();
-    await pool.query("DELETE FROM forum_topics WHERE id = $1", [tid]);
-    await pool.query("DELETE FROM forum_posts WHERE topic_id = $1", [tid]);
-  } else {
-    ctx.writeJsonArray(ctx.forumTopicsPath, topics);
-    const replies = ctx.readJsonArray(ctx.forumRepliesPath);
-    ctx.writeJsonArray(ctx.forumRepliesPath, replies.filter(r => r.topicId !== tid));
-  }
+  const existing = topics.find((t) => t.id === tid);
+  if (!existing) { res.status(404).json({ message: "Topic not found" }); return; }
+  if (existing.createdBy !== req.user.id && !ctx.hasModeratorRole(req.user)) { res.status(403).json({ message: "Not authorized to delete this topic" }); return; }
+  await ctx.storageDeleteForumTopic(tid);
   await ctx.storageAudit({ action: "forum.topic.delete", actorId: req.user.id, targetType: "forum_topic", targetId: tid, ip: req.ip });
   res.json({ message: "Topic deleted successfully" });
 });

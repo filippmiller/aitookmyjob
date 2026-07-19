@@ -317,8 +317,7 @@ router.get("/api/companies/:slug/timeline", async (req, res) => {
 
 router.get("/api/companies/:slug/board/topics", async (req, res) => {
   const slug = ctx.sanitizeText(req.params.slug);
-  const source = ctx.readCompanyBoards();
-  const rows = source.length ? source : ctx.defaultCompanyBoards;
+  const rows = await ctx.storageGetCompanyBoards();
   res.json({ companySlug: slug, topics: rows.filter((x) => x.companySlug === slug).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) });
 });
 
@@ -328,10 +327,8 @@ router.post("/api/companies/:slug/board/topics", requireAuth, async (req, res) =
   const body = ctx.sanitizeText(req.body.body);
   if (title.length < 8 || body.length < 20) { res.status(422).json({ message: "Validation failed" }); return; }
   const entry = { id: ctx.topicId(), companySlug: slug, title, body, createdBy: req.user.id, createdAt: new Date().toISOString() };
-  const rows = ctx.readCompanyBoards();
-  rows.push(entry);
-  ctx.writeJsonArray(ctx.companyBoardsPath, rows.slice(-5000));
-  res.status(201).json(entry);
+  const saved = await ctx.storageInsertCompanyBoard(entry);
+  res.status(201).json(saved);
 });
 
 // Statistics & counters

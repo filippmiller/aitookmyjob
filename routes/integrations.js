@@ -118,19 +118,17 @@ router.post("/api/integrations/telegram/webhook", async (req, res) => {
 
 // ── Resources & News ──
 
-router.get("/api/resources", (req, res) => {
+router.get("/api/resources", async (req, res) => {
   const country = ctx.normalizeCountry(req.query.country || "global");
-  const source = ctx.readResources();
-  const rows = source.length ? source : ctx.defaultResources;
+  const rows = await ctx.storageGetResources();
   res.json({ country, resources: rows.filter((x) => x.region === "global" || x.region === country) });
 });
 
-router.get("/api/resources/match", (req, res) => {
+router.get("/api/resources/match", async (req, res) => {
   const country = ctx.normalizeCountry(req.query.country || "global");
   const profession = ctx.sanitizeText(req.query.profession || "").toLowerCase();
   const months = Number(req.query.months || 0);
-  const source = ctx.readResources();
-  const rows = source.length ? source : ctx.defaultResources;
+  const rows = await ctx.storageGetResources();
   const matched = rows.filter((r) => {
     const regionOk = r.region === "global" || r.region === country;
     const professionOk = !profession || `${r.title} ${r.summary} ${r.type}`.toLowerCase().includes(profession);
@@ -175,9 +173,7 @@ router.post("/api/anonymous/inbox", async (req, res) => {
   if (message.length < 20) { res.status(422).json({ message: "Message too short" }); return; }
   const trackingCode = `INB-${ctx.linkCodeId()}`;
   const row = { id: ctx.auditId(), trackingCode, message, channel, status: "received", createdAt: new Date().toISOString() };
-  const entries = ctx.readAnonymousInbox();
-  entries.push(row);
-  ctx.writeJsonArray(ctx.anonymousInboxPath, entries.slice(-5000));
+  await ctx.storageInsertAnonymousInbox(row);
   res.status(201).json({ trackingCode, status: row.status });
 });
 
@@ -185,11 +181,10 @@ router.get("/api/submission/onion-info", (_req, res) => {
   res.json({ enabled: false, note: "Onion endpoint is not configured yet.", guidance: "Use anonymous inbox or secure channel until onion service is enabled." });
 });
 
-router.get("/api/cohorts", (req, res) => {
+router.get("/api/cohorts", async (req, res) => {
   const country = ctx.normalizeCountry(req.query.country || "global");
   const profession = ctx.sanitizeText(req.query.profession || "").toLowerCase();
-  const source = ctx.readCohorts();
-  const rows = source.length ? source : ctx.defaultCohorts;
+  const rows = await ctx.storageGetCohorts();
   res.json({ country, cohorts: rows.filter((c) => (c.country === "global" || c.country === country) && (!profession || String(c.profession || "").toLowerCase().includes(profession))) });
 });
 
@@ -200,10 +195,8 @@ router.post("/api/cohorts", requireAuth, async (req, res) => {
   const capacity = Number(req.body.capacity || 0);
   if (title.length < 8 || profession.length < 2 || capacity < 5) { res.status(422).json({ message: "Validation failed" }); return; }
   const row = { id: `cohort-${ctx.topicId()}`, title, profession, country, capacity, enrolled: 0, startsAt: ctx.sanitizeText(req.body.startsAt || ""), status: "open" };
-  const entries = ctx.readCohorts();
-  entries.push(row);
-  ctx.writeJsonArray(ctx.cohortsPath, entries.slice(-1000));
-  res.status(201).json(row);
+  const saved = await ctx.storageInsertCohort(row);
+  res.status(201).json(saved);
 });
 
 router.get("/api/polls/boundary", async (req, res) => {
@@ -261,7 +254,7 @@ router.get("/api/transparency/center", async (req, res) => {
   const periodDays = Number(req.query.days || 30);
   const from = new Date(Date.now() - periodDays * 24 * 3600 * 1000).toISOString();
   const events = await ctx.storageGetAuditRange(from, new Date().toISOString());
-  const takedowns = ctx.readJsonArray(ctx.takedownsPath);
+  const takedowns = await ctx.storageGetTakedowns();
   const counters = ctx.buildCounters(await ctx.storageGetStories());
   res.json({
     generatedAt: new Date().toISOString(), counters,
@@ -276,9 +269,7 @@ router.post("/api/legal/takedown", async (req, res) => {
   const payload = { email: ctx.normalizeEmail(req.body.email), reason: ctx.sanitizeText(req.body.reason), targetUrl: ctx.sanitizeText(req.body.targetUrl), legalBasis: ctx.sanitizeText(req.body.legalBasis) };
   if (!payload.email || !payload.reason || !payload.targetUrl) { res.status(422).json({ message: "Validation failed" }); return; }
   const entry = { id: ctx.auditId(), email: payload.email, reason: payload.reason, targetUrl: payload.targetUrl, legalBasis: payload.legalBasis || "unspecified", createdAt: new Date().toISOString(), status: "pending" };
-  const rows = ctx.readJsonArray(ctx.takedownsPath);
-  rows.push(entry);
-  ctx.writeJsonArray(ctx.takedownsPath, rows.slice(-5000));
+  await ctx.storageInsertTakedown(entry);
   await ctx.storageAudit({ action: "legal.takedown.request", actorId: null, targetType: "takedown", targetId: entry.id, metadata: { targetUrl: entry.targetUrl }, ip: req.ip });
   res.status(201).json({ id: entry.id, status: entry.status });
 });
@@ -361,28 +352,32 @@ router.get("/api/antiabuse/anomaly/signals", requireAdminOrToken, async (req, re
 
 const digestSubscribeLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false });
 
-router.post("/api/digest/subscribe", digestSubscribeLimiter, (req, res) => {
+router.post("/api/digest/subscribe", digestSubscribeLimiter, async (req, res) => {
   const email = ctx.normalizeEmail(req.body.email || "");
   const parsed = ctx.digestEmailSchema.safeParse({ email });
   if (!parsed.success) { res.status(422).json({ message: "Invalid email address" }); return; }
-  const subscribers = ctx.readJsonArray(ctx.subscribersPath);
-  if (subscribers.some((s) => s.email === parsed.data.email)) { res.status(409).json({ message: "Already subscribed" }); return; }
-  const entry = { id: `sub-${ctx.topicId()}`, email: parsed.data.email, subscribedAt: new Date().toISOString(), country: ctx.normalizeCountry(String(req.body.country || ctx.defaultCountry)), language: ctx.normalizeLanguage(String(req.body.language || ctx.defaultLang)) };
-  subscribers.push(entry);
-  ctx.writeJsonArray(ctx.subscribersPath, subscribers.slice(-50000));
+  const entry = {
+    id: `sub-${ctx.topicId()}`,
+    email: parsed.data.email,
+    subscribedAt: new Date().toISOString(),
+    country: ctx.normalizeCountry(String(req.body.country || ctx.defaultCountry)),
+    language: ctx.normalizeLanguage(String(req.body.language || ctx.defaultLang))
+  };
+  const result = await ctx.storageInsertSubscriber(entry);
+  if (result.duplicate) { res.status(409).json({ message: "Already subscribed" }); return; }
   if (req.app?.locals?.publishActivity) {
     req.app.locals.publishActivity({
       type: "digest.subscribed",
       title: "New weekly digest subscriber",
-      detail: `${entry.country} · ${entry.language}`,
+      detail: `${result.entry.country} · ${result.entry.language}`,
       href: "#resources"
     });
   }
-  res.status(201).json({ id: entry.id, subscribedAt: entry.subscribedAt });
+  res.status(201).json({ id: result.entry.id, subscribedAt: result.entry.subscribedAt });
 });
 
-router.get("/api/digest/count", (_req, res) => {
-  res.json({ count: ctx.readJsonArray(ctx.subscribersPath).length });
+router.get("/api/digest/count", async (_req, res) => {
+  res.json({ count: await ctx.storageCountSubscribers() });
 });
 
 module.exports = router;
