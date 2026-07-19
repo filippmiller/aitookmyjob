@@ -1,0 +1,160 @@
+# Durable background jobs — operations guide
+
+Bead: **aitj-z8q.5**  
+Module: `lib/jobs.js`  
+Worker: `scripts/job-worker.js`  
+Migration: `004_jobs` (`jobs`, `job_runs`)
+
+## Why
+
+In-process `setInterval` alone is not a production scheduler: multi-instance
+deploys duplicate work, restarts lose timers, and failures have no retry/history.
+This infrastructure provides:
+
+| Capability | Mechanism |
+|------------|-----------|
+| Stable IDs | `job_*` / `run_*` nanoid keys |
+| Idempotency | Unique partial index on `idempotency_key` |
+| Exclusive claim | `FOR UPDATE SKIP LOCKED` + worker lease |
+| Retries + backoff | Exponential (`30s * 2^(attempt-1)`, cap 1h) |
+| Timeout | Per-job `timeout_ms` (default 5m) |
+| Concurrency | Worker `JOBS_CONCURRENCY` + claim limit |
+| Run history | `job_runs` row per attempt |
+| Dead letter | `status = dead` after `max_attempts` |
+| Admin inspect/retry | `/api/admin/jobs*` |
+
+## Storage modes
+
+| Mode | When | Behaviour |
+|------|------|-----------|
+| **PostgreSQL** | `DATABASE_URL` set | Durable queue; multi-worker safe |
+| **Memory** | No `DATABASE_URL` | In-process only; lost on restart; not multi-process safe |
+
+Memory mode is for local dev without Postgres. Do not use it in production.
+
+## Job lifecycle
+
+```
+pending ──claim──► running ──success──► succeeded
+                      │
+                      ├──fail (attempts < max)──► pending (run_at += backoff)
+                      │
+                      └──fail (attempts ≥ max)──► dead
+```
+
+Admin `POST …/retry` moves `failed` / `dead` / `succeeded` → `pending` (bumps
+`max_attempts` if exhausted so the job can run again).
+
+Stale `running` leases (worker crash) are reclaimed when
+`locked_at < now - lease_ms` on the next claim.
+
+## Running a worker
+
+**Preferred production path:** separate process (or one replica with worker role).
+
+```bash
+# Standalone worker (after migrate / with DATABASE_URL)
+npm run jobs:worker
+
+# Or:
+DATABASE_URL=… JOBS_CONCURRENCY=1 JOBS_POLL_MS=2000 node scripts/job-worker.js
+```
+
+**Optional in-process poller** (same Node process as HTTP server):
+
+```bash
+JOBS_WORKER=1 npm start
+```
+
+Default: `JOBS_WORKER` is off. News scheduling still **enqueues** jobs from the
+web process; execution should be done by a worker.
+
+### Env knobs
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `JOBS_WORKER` | `true` if PG else `false` | Start in-process poller in `server.js` (set `false` on web when using dedicated worker) |
+| `JOBS_WORKER_ID` | auto hostname+pid | Lease owner id |
+| `JOBS_POLL_MS` | `2000` | Poll interval |
+| `JOBS_CONCURRENCY` | `1` | Max jobs claimed per tick |
+| `JOBS_LEASE_MS` | `600000` (10m) | Stale lock reclaim threshold |
+| `NEWS_INGEST_ENABLED` | `true` if PG | Enqueue scheduled news.ingest jobs |
+| `NEWS_INGEST_INTERVAL_HOURS` | `24` | Window for schedule idempotency |
+
+## Built-in job types
+
+| Type | Effect |
+|------|--------|
+| `news.ingest` | GDELT + RSS collect → `storageUpsertNewsItems` |
+| `jobs.ping` | No-op health job (`{ pong: true }`) |
+
+Register more via `jobs.registerHandler(type, async (payload, meta) => …)` in
+`lib/job-handlers.js` (or app bootstrap).
+
+## Admin API (auth: admin token or moderator role)
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/api/admin/jobs?status=&type=&limit=&offset=` | List / filter |
+| `GET` | `/api/admin/jobs/:id` | Job + run history |
+| `POST` | `/api/admin/jobs/:id/retry` | Requeue failed/dead/succeeded |
+| `POST` | `/api/admin/jobs` | Enqueue (`{ type, payload, idempotencyKey?, … }`) |
+
+Example:
+
+```bash
+curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "$BASE_URL/api/admin/jobs?status=dead"
+
+curl -s -X POST -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"jobs.ping","payload":{"echo":"hi"}}' \
+  "$BASE_URL/api/admin/jobs"
+
+curl -s -X POST -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "$BASE_URL/api/admin/jobs/job_xxx/retry"
+```
+
+## News ingest wiring
+
+`server.js` no longer runs ingest inline on the interval. It **enqueues**
+`news.ingest` with a windowed idempotency key:
+
+```
+news.ingest:window:<floor(now / intervalMs)>
+```
+
+So multiple web replicas enqueue at most one job per schedule window.
+A worker (standalone or `JOBS_WORKER=1`) executes it.
+
+CLI one-shot remains available: `npm run news:ingest` (direct, not via queue).
+
+## Production scheduler recommendations
+
+1. **Best:** run `npm run jobs:worker` as a separate Coolify service / container
+   with the same `DATABASE_URL` (and secrets) as the web app.
+2. **Good:** external cron hits `POST /api/admin/jobs` with a stable
+   `idempotencyKey` (or keeps using the web process only to enqueue).
+3. **Acceptable for single replica:** `JOBS_WORKER=1` on the web process
+   (still uses durable claim/locks — safe if you scale web later *without*
+   enabling worker on every replica, or enable it on all: SKIP LOCKED prevents
+   double execution).
+4. **Not enough alone:** bare `setInterval` that performs side effects with no
+   queue (removed for news ingest).
+
+## Tests
+
+```bash
+npm run test:jobs
+# included in:
+npm run test:unit
+```
+
+Offline coverage: claim exclusivity, idempotent enqueue, backoff state machine,
+retry → pending, dead-letter after max attempts.
+
+## Related
+
+- Migrations: `docs/ops/migrations.md` (version `004`)
+- Domain contract: `docs/domain-contract-v1.md`
+- News: `lib/news-ingest.js`, `scripts/ingest-news.js`
