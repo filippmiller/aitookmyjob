@@ -1,4 +1,5 @@
 const path = require("path");
+const crypto = require("crypto");
 const express = require("express");
 const dotenv = require("dotenv");
 const helmet = require("helmet");
@@ -10,6 +11,11 @@ const compression = require("compression");
 dotenv.config();
 
 const ctx = require("./lib/context");
+const logger = require("./lib/logger");
+const metrics = require("./lib/metrics");
+const alerts = require("./lib/alerts");
+const { getRelease } = require("./lib/release");
+const { evaluateReadiness, defaultJobsCheck } = require("./lib/readiness");
 const { authMiddleware } = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
 const storiesRoutes = require("./routes/stories");
@@ -31,6 +37,7 @@ const NEWS_INGEST_INTERVAL_HOURS = Math.min(Math.max(Number(process.env.NEWS_ING
 // deploys; SKIP LOCKED keeps multi-replica safe. Prefer dedicated `npm run jobs:worker`
 // and set JOBS_WORKER=false on web replicas when scaling out.
 const ENABLE_JOBS_WORKER = String(process.env.JOBS_WORKER || (ctx.usePostgres ? "true" : "false")).toLowerCase() === "true";
+const log = logger.createLogger({ component: "server" });
 
 const activityClients = new Set();
 app.locals.activityEvents = [];
@@ -87,12 +94,65 @@ app.use(
       callback(new Error("Origin not allowed"));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Request-Id"],
     maxAge: 86400
   })
 );
 
-app.use(morgan("combined"));
+// Request ID + structured access log (redacted via lib/logger; no bodies/PII).
+app.use((req, res, next) => {
+  const incoming = req.headers["x-request-id"];
+  const requestId =
+    typeof incoming === "string" && incoming.trim() && incoming.length <= 128
+      ? incoming.trim()
+      : crypto.randomUUID();
+  req.id = requestId;
+  req.log = logger.createLogger({ requestId, method: req.method, path: req.path });
+  res.setHeader("X-Request-Id", requestId);
+  next();
+});
+
+// Count all requests (including probes); access-log skips probe noise below.
+app.use((req, res, next) => {
+  res.on("finish", () => {
+    metrics.inc("http_requests_total");
+    if (res.statusCode >= 500) metrics.inc("http_errors_5xx");
+    else if (res.statusCode >= 400) metrics.inc("http_errors_4xx");
+  });
+  next();
+});
+
+morgan.token("id", (req) => req.id || "-");
+app.use(
+  morgan(
+    (tokens, req, res) => {
+      const status = Number(tokens.status(req, res) || 0);
+      const durationMs = Number(tokens["response-time"](req, res) || 0);
+      return JSON.stringify(
+        logger.redact({
+          ts: new Date().toISOString(),
+          level: status >= 500 ? "error" : status >= 400 ? "warn" : "info",
+          msg: "http_request",
+          service: "aitookmyjob",
+          requestId: req.id,
+          method: tokens.method(req, res),
+          path: tokens.url(req, res),
+          status,
+          durationMs,
+          bytes: Number(tokens.res(req, res, "content-length") || 0) || undefined,
+          remote: tokens["remote-addr"](req, res)
+        })
+      );
+    },
+    {
+      skip: (req) => {
+        const p = req.path || "";
+        return p === "/live" || p === "/ready" || p === "/health" || p === "/metrics";
+      }
+    }
+  )
+);
+
 app.use(express.json({ limit: "50kb", strict: true }));
 app.use(express.urlencoded({ extended: false, limit: "50kb" }));
 app.use(authMiddleware);
@@ -128,7 +188,21 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-// ── Health & meta (kept in server.js — small, foundational) ──
+// ── Health / live / ready / metrics (kept in server.js — small, foundational) ──
+
+app.get("/live", (_req, res) => {
+  // Liveness: process is up. Does not check DB or migrations.
+  const mem = process.memoryUsage();
+  res.json({
+    ok: true,
+    live: true,
+    pid: process.pid,
+    uptimeSec: Math.round(process.uptime()),
+    memory: { rss: mem.rss, heapUsed: mem.heapUsed },
+    release: getRelease(),
+    timestamp: new Date().toISOString()
+  });
+});
 
 app.get("/health", (_req, res) => {
   res.json({
@@ -136,51 +210,47 @@ app.get("/health", (_req, res) => {
     service: "aitookmyjob",
     timestamp: new Date().toISOString(),
     schemaVersion: ctx.getSchemaVersion(),
-    storage: ctx.usePostgres ? "postgres" : "file-json"
+    storage: ctx.usePostgres ? "postgres" : "file-json",
+    release: getRelease()
   });
 });
 
-app.get("/ready", async (_req, res) => {
-  if (!ctx.usePostgres) {
-    return res.json({
-      ok: true,
-      ready: true,
-      storage: "file-json",
-      schemaVersion: null
-    });
+app.get("/ready", async (req, res) => {
+  const { getMigrationStatus } = require("./lib/migrate");
+  const result = await evaluateReadiness({
+    usePostgres: ctx.usePostgres,
+    getPool: () => ctx.getPgPool(),
+    getMigrationStatus,
+    checkJobs: defaultJobsCheck,
+    domainContractVersion: ctx.DOMAIN_CONTRACT_VERSION
+  });
+  if (!result.ready) {
+    metrics.inc("ready_failures");
+    // Fire-and-forget; never block the probe response.
+    alerts
+      .notify({
+        severity: "critical",
+        type: "readiness_failed",
+        message: result.error || "not_ready",
+        details: {
+          error: result.error,
+          storage: result.storage,
+          checks: result.checks
+        }
+      })
+      .catch(() => {});
+    req.log?.warn("ready_failed", { error: result.error, checks: result.checks });
   }
-  try {
-    const pool = ctx.getPgPool();
-    if (!pool) {
-      return res.status(503).json({ ok: false, ready: false, error: "pool_not_ready" });
-    }
-    await pool.query("SELECT 1;");
-    const { getMigrationStatus } = require("./lib/migrate");
-    const status = await getMigrationStatus(pool);
-    if (!status.ok) {
-      return res.status(503).json({
-        ok: false,
-        ready: false,
-        schemaVersion: status.schemaVersion,
-        pendingCount: status.pendingCount,
-        error: "migrations_pending"
-      });
-    }
-    return res.json({
-      ok: true,
-      ready: true,
-      storage: "postgres",
-      schemaVersion: status.schemaVersion,
-      domainContractVersion: ctx.DOMAIN_CONTRACT_VERSION
-    });
-  } catch (err) {
-    return res.status(503).json({
-      ok: false,
-      ready: false,
-      error: "db_unavailable",
-      message: err.message
-    });
-  }
+  const { statusCode, ...body } = result;
+  return res.status(statusCode || (result.ready ? 200 : 503)).json({
+    ...body,
+    release: getRelease(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/metrics", (_req, res) => {
+  res.json(metrics.snapshot());
 });
 
 app.get("/api/meta", (_req, res) => {
@@ -190,7 +260,8 @@ app.get("/api/meta", (_req, res) => {
     roles: ctx.roles,
     schemaVersion: ctx.getSchemaVersion(),
     domainContractVersion: ctx.DOMAIN_CONTRACT_VERSION,
-    storage: ctx.usePostgres ? "postgres" : "file-json"
+    storage: ctx.usePostgres ? "postgres" : "file-json",
+    release: getRelease()
   });
 });
 
@@ -292,9 +363,22 @@ app.use((_req, res) => {
   res.status(404).sendFile(path.join(ctx.publicDir, "404.html"));
 });
 
-app.use((err, _req, res, _next) => {
-  console.error("Unhandled error:", err);
-  res.status(500).json({ message: "Internal server error" });
+app.use((err, req, res, _next) => {
+  metrics.inc("unhandled_errors");
+  const reqLog = req.log || log;
+  reqLog.error("unhandled_error", {
+    error: err instanceof Error ? err.message : String(err),
+    stack: err instanceof Error ? err.stack : undefined
+  });
+  alerts
+    .notify({
+      severity: "critical",
+      type: "unhandled_error",
+      message: err instanceof Error ? err.message : "Internal server error",
+      details: { path: req.path, method: req.method, requestId: req.id }
+    })
+    .catch(() => {});
+  res.status(500).json({ message: "Internal server error", requestId: req.id });
 });
 
 // ── Start ──
@@ -333,12 +417,24 @@ async function enqueueScheduledNewsIngest(reason) {
       jobsRuntimeOptions()
     );
     if (created) {
-      console.log(`News ingest job enqueued (${reason}): ${job.id} key=${idempotencyKey}`);
+      log.info("news_ingest_enqueued", { reason, jobId: job.id, idempotencyKey });
     } else {
-      console.log(`News ingest job already queued for window (${reason}): ${job.id}`);
+      log.info("news_ingest_already_queued", { reason, jobId: job.id, idempotencyKey });
     }
   } catch (error) {
-    console.error(`News ingest enqueue ${reason} failed:`, error);
+    metrics.inc("job_enqueue_failures");
+    log.error("news_ingest_enqueue_failed", {
+      reason,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    alerts
+      .notify({
+        severity: "warning",
+        type: "job_enqueue_failed",
+        message: `news.ingest enqueue failed (${reason})`,
+        details: { reason }
+      })
+      .catch(() => {});
   }
 }
 
@@ -359,12 +455,35 @@ function startInProcessJobWorker() {
   const concurrency = Math.max(1, Math.min(20, Number(process.env.JOBS_CONCURRENCY || 1)));
   const pollMs = Math.max(500, Number(process.env.JOBS_POLL_MS || 2000));
   const leaseMs = Math.max(5000, Number(process.env.JOBS_LEASE_MS || jobs.DEFAULT_LEASE_MS));
-  console.log(
-    `[jobs] in-process worker starting id=${workerId} concurrency=${concurrency} pollMs=${pollMs}`
-  );
+  const jobsLog = logger.createLogger({ component: "jobs", workerId });
+  log.info("jobs_worker_starting", { workerId, concurrency, pollMs });
   return jobs.startWorkerLoop(
     workerId,
-    { concurrency, pollMs, leaseMs, unref: true, logger: console },
+    {
+      concurrency,
+      pollMs,
+      leaseMs,
+      unref: true,
+      logger: {
+        info: (msg) => {
+          metrics.inc("jobs_processed");
+          jobsLog.info(typeof msg === "string" ? msg : "jobs_tick", typeof msg === "object" ? msg : undefined);
+        },
+        log: (msg) => jobsLog.info(typeof msg === "string" ? msg : "jobs_tick"),
+        error: (msg) => {
+          metrics.inc("job_failures");
+          jobsLog.error(typeof msg === "string" ? msg : "jobs_error");
+          alerts
+            .notify({
+              severity: "warning",
+              type: "job_worker_tick_failed",
+              message: typeof msg === "string" ? msg : "jobs worker tick failed",
+              details: { workerId }
+            })
+            .catch(() => {});
+        }
+      }
+    },
     jobsRuntimeOptions()
   );
 }
@@ -375,8 +494,7 @@ async function start() {
     if (ctx.ADMIN_TOKEN === "change-me-admin-token") weakSecrets.push("ADMIN_TOKEN");
     if (ctx.AUTH_SECRET === "change-me-auth-secret") weakSecrets.push("AUTH_SECRET");
     if (weakSecrets.length > 0) {
-      console.error(`FATAL: Refusing to start with default secrets: ${weakSecrets.join(", ")}`);
-      console.error("Set real values or REQUIRE_STRICT_SECRETS=false to bypass.");
+      log.error("fatal_weak_secrets", { secrets: weakSecrets });
       process.exit(1);
     }
   }
@@ -384,10 +502,10 @@ async function start() {
   if (ctx.usePostgres) {
     ctx.setPgPool(await ctx.buildPgPool());
     await ctx.initStorage();
-    console.log("Storage mode: postgres");
+    log.info("storage_mode", { storage: "postgres" });
   } else {
     await ctx.initStorage();
-    console.log("Storage mode: file-json");
+    log.info("storage_mode", { storage: "file-json" });
   }
 
   // Handlers always registered so admin enqueue / separate worker share types.
@@ -396,11 +514,14 @@ async function start() {
   startInProcessJobWorker();
 
   app.listen(port, () => {
-    console.log(`aitookmyjob running on :${port}`);
+    log.info("server_listen", { port, release: getRelease() });
   });
 }
 
 start().catch((error) => {
-  console.error("Failed to start server:", error);
+  log.error("server_start_failed", {
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined
+  });
   process.exit(1);
 });
