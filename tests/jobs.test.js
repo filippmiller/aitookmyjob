@@ -410,3 +410,87 @@ describe("migration 004 present", () => {
     assert.ok(idx > versions.indexOf("003"));
   });
 });
+
+const runPgJobTests =
+  Boolean(process.env.DATABASE_URL) && process.env.RUN_PG_JOB_TESTS === "1";
+
+describe("PostgreSQL stale-attempt fencing (live)", { skip: !runPgJobTests }, () => {
+  it("reclaim fences stale complete/fail while the active run retains ownership", async () => {
+    // Required lazily so the offline suite remains independent of PostgreSQL.
+    // eslint-disable-next-line global-require
+    const { Pool } = require("pg");
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: String(process.env.PG_SSL || "false").toLowerCase() === "true"
+        ? { rejectUnauthorized: false }
+        : false
+    });
+    const options = { usePostgres: true, getPool: () => pool };
+    const createdJobIds = [];
+    const suffix = `${process.pid}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    try {
+      const { job } = await jobs.enqueue(
+        {
+          type: "jobs.ping",
+          timeoutMs: 1000,
+          maxAttempts: 3,
+          idempotencyKey: `test:pg-job-fencing:${suffix}`
+        },
+        options
+      );
+      createdJobIds.push(job.id);
+
+      const [first] = await jobs.claim(`pg-w1-${suffix}`, { limit: 1, leaseMs: 1 }, options);
+      assert.equal(first.job.id, job.id);
+      await new Promise((resolve) => setTimeout(resolve, 1400));
+      const [active] = await jobs.claim(`pg-w2-${suffix}`, { limit: 1, leaseMs: 1 }, options);
+      assert.equal(active.job.id, job.id);
+      assert.equal(active.job.attempts, 2);
+
+      const staleComplete = await jobs.complete(
+        job.id,
+        { stale: "complete" },
+        first.runId,
+        options
+      );
+      assert.equal(staleComplete, null);
+      let current = await jobs.getJob(job.id, options);
+      assert.equal(current.status, jobs.JOB_STATUS.RUNNING);
+      assert.equal(current.lockedBy, `pg-w2-${suffix}`);
+      assert.equal(current.attempts, 2);
+
+      const staleFail = await jobs.fail(
+        job.id,
+        new Error("stale failure"),
+        { runId: first.runId },
+        options
+      );
+      assert.equal(staleFail, null);
+      current = await jobs.getJob(job.id, options);
+      assert.equal(current.status, jobs.JOB_STATUS.RUNNING);
+      assert.equal(current.lockedBy, `pg-w2-${suffix}`);
+      assert.equal(current.lastError, null);
+
+      const completed = await jobs.complete(
+        job.id,
+        { active: true },
+        active.runId,
+        options
+      );
+      assert.equal(completed.status, jobs.JOB_STATUS.SUCCEEDED);
+      assert.deepEqual(completed.result, { active: true });
+
+      const runs = await jobs.getJobRuns(job.id, options);
+      const superseded = runs.find((run) => run.id === first.runId);
+      assert.equal(superseded.status, jobs.RUN_STATUS.TIMEOUT);
+      assert.equal(superseded.error, "lease_reclaimed");
+      assert.equal(runs.find((run) => run.id === active.runId).status, jobs.RUN_STATUS.SUCCEEDED);
+    } finally {
+      if (createdJobIds.length > 0) {
+        await pool.query("DELETE FROM jobs WHERE id = ANY($1::text[]);", [createdJobIds]);
+      }
+      await pool.end();
+    }
+  });
+});
