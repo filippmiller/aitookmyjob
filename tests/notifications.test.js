@@ -157,6 +157,154 @@ describe("idempotent delivery", () => {
     assert.match(second.reason, /already_delivered/);
   });
 
+  it("concurrent deliver calls claim once before invoking the provider", async () => {
+    const { delivery } = await notifications.createDelivery(
+      {
+        channel: "telegram",
+        templateKey: notifications.TEMPLATE_KEYS.SUPPORT_ACK,
+        recipientTelegramChatId: "chat-1",
+        idempotencyKey: "support:concurrent"
+      },
+      mem
+    );
+
+    let releaseSend;
+    let markStarted;
+    const started = new Promise((resolve) => { markStarted = resolve; });
+    const release = new Promise((resolve) => { releaseSend = resolve; });
+    let sends = 0;
+    const options = {
+      ...mem,
+      sendTelegram: async () => {
+        sends += 1;
+        markStarted();
+        await release;
+        return true;
+      }
+    };
+
+    const first = notifications.deliver(delivery.id, options);
+    await started;
+    const second = await notifications.deliver(delivery.id, options);
+    assert.equal(second.skipped, true);
+    assert.equal(second.reason, "already_sending");
+    assert.equal(sends, 1, "only the atomic claim winner calls the provider");
+    releaseSend();
+    const sent = await first;
+    assert.equal(sent.ok, true);
+    assert.equal(sent.delivery.status, "delivered", "concurrent caller did not overwrite the claim");
+    assert.equal(sends, 1);
+  });
+
+  it("a stale provider response cannot overwrite a newer delivery attempt", async () => {
+    const { delivery } = await notifications.createDelivery(
+      {
+        channel: "telegram",
+        templateKey: notifications.TEMPLATE_KEYS.SUPPORT_ACK,
+        recipientTelegramChatId: "chat-fence",
+        idempotencyKey: "support:fence"
+      },
+      mem
+    );
+    let markFirstStarted;
+    let releaseFirst;
+    const firstStarted = new Promise((resolve) => { markFirstStarted = resolve; });
+    const firstRelease = new Promise((resolve) => { releaseFirst = resolve; });
+    let calls = 0;
+    const options = {
+      ...mem,
+      sendTelegram: async () => {
+        calls += 1;
+        if (calls === 1) {
+          markFirstStarted();
+          await firstRelease;
+        }
+        return true;
+      }
+    };
+
+    const oldAttempt = notifications.deliver(delivery.id, options);
+    await firstStarted;
+    // Simulate an operator/recovery path establishing a newer attempt.
+    await notifications.updateDelivery(delivery.id, { status: "pending" }, mem);
+    const newAttempt = await notifications.deliver(delivery.id, options);
+    assert.equal(newAttempt.ok, true);
+    assert.equal(newAttempt.delivery.attempts, 2);
+    assert.equal(newAttempt.delivery.status, "delivered");
+
+    releaseFirst();
+    const stale = await oldAttempt;
+    assert.equal(stale.stale, true, "attempt token fences the old completion");
+    const after = await notifications.getDelivery(delivery.id, mem);
+    assert.equal(after.status, "delivered");
+    assert.equal(after.attempts, 2, "old token did not overwrite the newer attempt");
+  });
+
+  it("ambiguous provider failure remains sending and is never auto-sent again", async () => {
+    const { delivery } = await notifications.createDelivery(
+      {
+        channel: "telegram",
+        templateKey: notifications.TEMPLATE_KEYS.SUPPORT_ACK,
+        recipientTelegramChatId: "chat-ambiguous",
+        idempotencyKey: "support:ambiguous"
+      },
+      mem
+    );
+    let sends = 0;
+    const options = {
+      ...mem,
+      sendTelegram: async () => {
+        sends += 1;
+        throw new Error("response lost after provider accepted request");
+      }
+    };
+
+    const first = await notifications.deliver(delivery.id, options);
+    assert.equal(first.ok, false);
+    assert.equal(first.ambiguous, true);
+    assert.equal(first.reconciliationRequired, true);
+    assert.equal(first.delivery.status, "sending");
+
+    const automaticRetry = await notifications.deliver(delivery.id, options);
+    assert.equal(automaticRetry.skipped, true);
+    assert.equal(automaticRetry.reason, "already_sending");
+    assert.equal(sends, 1, "ambiguous outcome was not sent a second time");
+
+    const manualRetry = await notifications.retryDelivery(delivery.id, options);
+    assert.equal(manualRetry.ok, false);
+    assert.equal(manualRetry.reason, "already_sending");
+  });
+
+  it("abort after claim but before provider invocation returns delivery to pending", async () => {
+    const { delivery } = await notifications.createDelivery(
+      {
+        channel: "telegram",
+        templateKey: notifications.TEMPLATE_KEYS.SUPPORT_ACK,
+        recipientTelegramChatId: "chat-pre-abort",
+        idempotencyKey: "support:pre-abort"
+      },
+      mem
+    );
+    const controller = new AbortController();
+    let sends = 0;
+    const pending = notifications.deliver(delivery.id, {
+      ...mem,
+      signal: controller.signal,
+      sendTelegram: async () => {
+        sends += 1;
+        return true;
+      }
+    });
+    // The first await lets deliver claim the row; this microtask then aborts
+    // before the provider helper's final pre-invocation check.
+    queueMicrotask(() => controller.abort());
+    await assert.rejects(pending, /abort/i);
+    assert.equal(sends, 0);
+    const after = await notifications.getDelivery(delivery.id, mem);
+    assert.equal(after.status, "pending");
+    assert.equal(after.lastError, "aborted_before_provider");
+  });
+
   it("notify with same idempotency key does not double-create", async () => {
     const a = await notifications.notify(
       {
@@ -343,6 +491,61 @@ describe("job handlers notification.send + digest.weekly", () => {
     );
     assert.equal(again.created, false);
     assert.equal(again.job.id, job.id);
+  });
+
+  it("notification.send propagates timeout abort and performs no late effect", async () => {
+    let effects = 0;
+    let observedSignal = null;
+    const ctx = {
+      usePostgres: false,
+      getPgPool: () => null,
+      sendTelegramMessage: async (_chatId, _text, { signal } = {}) => {
+        observedSignal = signal;
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(resolve, 1500);
+          signal?.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(signal.reason || new Error("aborted"));
+          }, { once: true });
+        });
+        if (signal?.aborted) return false;
+        effects += 1;
+        return true;
+      },
+      storageAudit: async () => {}
+    };
+    registerBuiltinHandlers(ctx, jobs);
+
+    const { delivery } = await notifications.createDelivery(
+      {
+        channel: "telegram",
+        templateKey: notifications.TEMPLATE_KEYS.SUPPORT_ACK,
+        recipientTelegramChatId: "chat-timeout",
+        idempotencyKey: "support:timeout"
+      },
+      mem
+    );
+    await jobs.enqueue(
+      {
+        type: "notification.send",
+        payload: { deliveryId: delivery.id },
+        timeoutMs: 1000,
+        maxAttempts: 1
+      },
+      mem
+    );
+
+    const processed = await jobs.processOnce("timeout-worker", { concurrency: 1, leaseMs: 1 }, mem);
+    assert.equal(processed.results[0].timedOut, true);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.ok(observedSignal instanceof AbortSignal);
+    assert.equal(observedSignal.aborted, true);
+    assert.equal(effects, 0, "real notification.send made no effect after timeout");
+    const after = await notifications.getDelivery(delivery.id, mem);
+    assert.equal(after.status, "sending", "ambiguous aborted provider call awaits reconciliation");
+    const retry = await notifications.retryDelivery(delivery.id, mem);
+    assert.equal(retry.ok, false);
+    assert.equal(retry.reason, "already_sending");
   });
 
   it("digest.weekly fans out to subscribers with per-email idempotency", async () => {

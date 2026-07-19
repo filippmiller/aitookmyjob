@@ -8,6 +8,10 @@
  *
  * Exit 0 on all green; exit 1 on any failure. A failed run means the release
  * must not be considered promoted (rollback / do not announce).
+ *
+ * Contract (aitj-z8q.31): every check predicate returns literal `true` on
+ * success or an error string on failure. `poll()` only accepts `=== true`;
+ * truthy non-boolean values (arrays, objects) are treated as failures.
  */
 
 "use strict";
@@ -31,11 +35,14 @@ async function sleep(ms) {
  * @template T
  * @param {string} name
  * @param {() => Promise<T>} fn
- * @param {(value: T) => boolean | string} check returns true or error string
+ * @param {(value: T) => true | string} check returns literal true or error string
+ * @param {{ retries?: number, pollMs?: number }} [options]
  */
-async function poll(name, fn, check) {
+async function poll(name, fn, check, options = {}) {
+  const retries = Math.max(1, Number(options.retries || RETRIES));
+  const pollMs = Math.max(0, Number(options.pollMs ?? POLL_MS));
   let lastErr = "not started";
-  for (let i = 0; i < RETRIES; i++) {
+  for (let i = 0; i < retries; i++) {
     try {
       const value = await fn();
       const result = check(value);
@@ -47,7 +54,7 @@ async function poll(name, fn, check) {
     } catch (err) {
       lastErr = err instanceof Error ? err.message : String(err);
     }
-    if (i < RETRIES - 1) await sleep(POLL_MS);
+    if (i < retries - 1) await sleep(pollMs);
   }
   throw new Error(`${name}: ${lastErr}`);
 }
@@ -90,84 +97,98 @@ async function fetchText(path) {
   }
 }
 
+/**
+ * Smoke checks. `kind: "json"` fetches via fetchJson, `"text"` via fetchText.
+ * Every `check(r)` MUST return literal `true` on success, error string otherwise
+ * (poll requires `result === true`; a truthy array/object fails the run).
+ */
+const CHECKS = [
+  {
+    name: "GET /live",
+    path: "/live",
+    kind: "json",
+    check: (r) =>
+      r.status === 200 && r.body && r.body.live === true
+        ? true
+        : `status=${r.status} body=${JSON.stringify(r.body)}`
+  },
+  {
+    name: "GET /health",
+    path: "/health",
+    kind: "json",
+    check: (r) =>
+      r.status === 200 && r.body && r.body.ok === true && r.body.service === "aitookmyjob"
+        ? true
+        : `status=${r.status} body=${JSON.stringify(r.body)}`
+  },
+  {
+    name: "GET /ready",
+    path: "/ready",
+    kind: "json",
+    check: (r) =>
+      r.status === 200 && r.body && r.body.ready === true
+        ? true
+        : `status=${r.status} ready=${r.body?.ready} error=${r.body?.error || ""}`
+  },
+  {
+    name: "GET /api/meta",
+    path: "/api/meta",
+    kind: "json",
+    check: (r) =>
+      r.status === 200 &&
+      r.body &&
+      (Array.isArray(r.body.countries) || Boolean(r.body.domainContractVersion))
+        ? true
+        : `status=${r.status}`
+  },
+  {
+    name: "GET /api/stories (critical read)",
+    path: "/api/stories?limit=5",
+    kind: "json",
+    check: (r) => {
+      if (r.status !== 200) return `status=${r.status}`;
+      // Accept array or { items/stories/data }
+      const b = r.body;
+      if (Array.isArray(b)) return true;
+      if (b && (Array.isArray(b.items) || Array.isArray(b.stories) || Array.isArray(b.data))) {
+        return true;
+      }
+      // object with total/count is also fine for empty catalogs
+      if (b && typeof b === "object") return true;
+      return `unexpected body shape`;
+    }
+  },
+  {
+    name: "GET /api/stats (critical read)",
+    path: "/api/stats",
+    kind: "json",
+    check: (r) =>
+      r.status === 200 && r.body && typeof r.body === "object"
+        ? true
+        : `status=${r.status}`
+  },
+  {
+    name: "GET / (homepage)",
+    path: "/",
+    kind: "text",
+    check: (r) =>
+      r.status === 200 && r.text && r.text.length > 200 && /html/i.test(r.text.slice(0, 200))
+        ? true
+        : `status=${r.status} len=${r.text?.length || 0}`
+  }
+];
+
 async function main() {
   console.log(`deploy-smoke: base=${baseUrl}`);
   const failures = [];
 
-  const checks = [
-    async () => {
-      await poll(
-        "GET /live",
-        () => fetchJson("/live"),
-        (r) => (r.status === 200 && r.body?.live === true) || `status=${r.status} body=${JSON.stringify(r.body)}`
-      );
-    },
-    async () => {
-      await poll(
-        "GET /health",
-        () => fetchJson("/health"),
-        (r) =>
-          (r.status === 200 && r.body?.ok === true && r.body?.service === "aitookmyjob") ||
-          `status=${r.status} body=${JSON.stringify(r.body)}`
-      );
-    },
-    async () => {
-      await poll(
-        "GET /ready",
-        () => fetchJson("/ready"),
-        (r) =>
-          (r.status === 200 && r.body?.ready === true) ||
-          `status=${r.status} ready=${r.body?.ready} error=${r.body?.error || ""}`
-      );
-    },
-    async () => {
-      await poll(
-        "GET /api/meta",
-        () => fetchJson("/api/meta"),
-        (r) =>
-          (r.status === 200 && r.body && (r.body.countries || r.body.domainContractVersion)) ||
-          `status=${r.status}`
-      );
-    },
-    async () => {
-      await poll(
-        "GET /api/stories (critical read)",
-        () => fetchJson("/api/stories?limit=5"),
-        (r) => {
-          if (r.status !== 200) return `status=${r.status}`;
-          // Accept array or { items/stories/data }
-          const b = r.body;
-          if (Array.isArray(b)) return true;
-          if (b && (Array.isArray(b.items) || Array.isArray(b.stories) || Array.isArray(b.data))) {
-            return true;
-          }
-          // object with total/count is also fine for empty catalogs
-          if (b && typeof b === "object") return true;
-          return `unexpected body shape`;
-        }
-      );
-    },
-    async () => {
-      await poll(
-        "GET /api/stats (critical read)",
-        () => fetchJson("/api/stats"),
-        (r) => (r.status === 200 && r.body && typeof r.body === "object") || `status=${r.status}`
-      );
-    },
-    async () => {
-      await poll(
-        "GET / (homepage)",
-        () => fetchText("/"),
-        (r) =>
-          (r.status === 200 && r.text && r.text.length > 200 && /html/i.test(r.text.slice(0, 200))) ||
-          `status=${r.status} len=${r.text?.length || 0}`
-      );
-    }
-  ];
-
-  for (const run of checks) {
+  for (const c of CHECKS) {
     try {
-      await run();
+      await poll(
+        c.name,
+        () => (c.kind === "text" ? fetchText(c.path) : fetchJson(c.path)),
+        c.check
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`  FAIL ${msg}`);
@@ -183,7 +204,17 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error("deploy-smoke: unexpected error", err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error("deploy-smoke: unexpected error", err);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  CHECKS,
+  poll,
+  main,
+  fetchJson,
+  fetchText
+};

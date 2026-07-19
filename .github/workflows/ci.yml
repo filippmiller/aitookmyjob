@@ -102,8 +102,10 @@ jobs:
           DATABASE_URL: postgres://aitj:aitj_ci@localhost:5432/aitookmyjob_ci
           PG_SSL: "false"
           RUN_PG_MIGRATION_TESTS: "1"
+          RUN_PG_JOB_TESTS: "1"
         run: |
           npm run db:migrate
           npm run db:migrate
           npm run db:status
           npm run test:migrations
+          npm run test:jobs
