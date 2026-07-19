@@ -50,12 +50,14 @@ describe("loadMigrations — ordering & shape", () => {
     }
   });
 
-  it("baseline is 001 and integrity is 002", () => {
+  it("baseline is 001, integrity is 002, remaining writes is 003", () => {
     const migrations = loadMigrations();
     assert.equal(migrations[0].version, "001");
     assert.equal(migrations[0].name, "baseline_schema");
     assert.equal(migrations[1].version, "002");
     assert.equal(migrations[1].name, "integrity_constraints");
+    assert.equal(migrations[2].version, "003");
+    assert.equal(migrations[2].name, "remaining_write_entities");
   });
 });
 

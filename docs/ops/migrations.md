@@ -36,6 +36,7 @@ Schema version is the latest applied migration id (e.g. `"002"`).
 |---------|------|---------|
 | `001` | `baseline_schema` | All production tables/indexes matching pre-migration `initStorage` |
 | `002` | `integrity_constraints` | Domain-aligned CHECKs, backfills, unique indexes |
+| `003` | `remaining_write_entities` | resources, cohorts, company_boards, anonymous_inbox, takedowns, subscribers; forum_topics.updated_at (aitj-z8q.3) |
 
 ## Commands
 
@@ -75,7 +76,7 @@ Never paste full connection strings into tickets or chat.
 
 1. Set `DATABASE_URL` on an empty database.
 2. `npm start` (or `npm run db:migrate` then start).
-3. Migrations `001` + `002` create schema; `initStorage` seeds petitions/news/stories/topics if empty.
+3. Migrations `001`–`003` create schema; `initStorage` seeds petitions/news/stories/topics/resources/cohorts/boards if empty and one-shot backfills from bundled `data/*.json` when tables are empty (never writes under `data/` when `DATABASE_URL` is set).
 
 ### Upgrade from pre-migration schema
 
