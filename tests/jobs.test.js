@@ -101,9 +101,19 @@ describe("claim exclusivity", () => {
     assert.equal(second.length, 0);
   });
 
+  it("does not reclaim before the job timeout when requested lease is shorter", async () => {
+    const opts = { useMemory: true };
+    await jobs.enqueue({ type: "jobs.ping", timeoutMs: 1000 }, opts);
+    const first = await jobs.claim("w1", { limit: 1, leaseMs: 1 }, opts);
+    assert.equal(first.length, 1);
+    await new Promise((r) => setTimeout(r, 10));
+    const premature = await jobs.claim("w2", { limit: 1, leaseMs: 1 }, opts);
+    assert.equal(premature.length, 0, "timeout floor protects the active attempt");
+  });
+
   it("stale leases are reclaimed", async () => {
     const opts = { useMemory: true };
-    const { job } = await jobs.enqueue({ type: "jobs.ping" }, opts);
+    const { job } = await jobs.enqueue({ type: "jobs.ping", timeoutMs: 1000 }, opts);
     // Manually age the lock via memory store after claim
     const claimed = await jobs.claim("w1", { limit: 1, leaseMs: 60_000 }, opts);
     assert.equal(claimed.length, 1);
@@ -120,7 +130,7 @@ describe("claim exclusivity", () => {
     // Simpler: re-implement by using enqueue + claim, then use process of setting run_at.
     // Direct memory access through get + internal: use require and memoryReset only.
     // We'll simulate by claiming with leaseMs 1ms after waiting.
-    await new Promise((r) => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 1350));
     const reclaimed = await jobs.claim("w2", { limit: 1, leaseMs: 1 }, opts);
     assert.equal(reclaimed.length, 1);
     assert.equal(reclaimed[0].job.id, claimed[0].job.id);
@@ -246,6 +256,131 @@ describe("processOnce + handlers + timeout", () => {
     const out = await jobs.processOnce("w1", { concurrency: 1 }, opts);
     assert.equal(out.results[0].ok, false);
     assert.equal(out.results[0].timedOut, true);
+  });
+});
+
+describe("stale attempt isolation (aitj-z8q.25)", () => {
+  const opts = { useMemory: true };
+
+  it("handler meta includes an AbortSignal", async () => {
+    let seen = null;
+    jobs.registerHandler("test.signal", async (_payload, meta) => {
+      seen = meta && meta.signal;
+      return { ok: 1 };
+    });
+    await jobs.enqueue({ type: "test.signal" }, opts);
+    const out = await jobs.processOnce("w1", { concurrency: 1 }, opts);
+    assert.equal(out.results[0].ok, true);
+    assert.ok(seen instanceof AbortSignal, "handler received an AbortSignal");
+    assert.equal(seen.aborted, false, "signal not aborted for a fast handler");
+  });
+
+  it("timeout aborts the handler signal", async () => {
+    let seen = null;
+    jobs.registerHandler("test.signal.timeout", async (_payload, meta) => {
+      seen = meta && meta.signal;
+      await new Promise((r) => setTimeout(r, 1500));
+      return { late: true };
+    });
+    await jobs.enqueue({ type: "test.signal.timeout", timeoutMs: 1000, maxAttempts: 1 }, opts);
+    const out = await jobs.processOnce("w1", { concurrency: 1 }, opts);
+    assert.equal(out.results[0].ok, false);
+    assert.equal(out.results[0].timedOut, true);
+    assert.ok(seen instanceof AbortSignal);
+    assert.equal(seen.aborted, true, "signal aborted on timeout");
+  });
+
+  it("cooperative handler performs no side effect after abort (no duplicate effect)", async () => {
+    const effects = [];
+    jobs.registerHandler("test.effect", async (_payload, meta) => {
+      await new Promise((r) => setTimeout(r, 1200));
+      if (meta.signal.aborted) return { skipped: true };
+      effects.push("email-sent"); // externally visible effect
+      return { sent: true };
+    });
+    // maxAttempts 1 → timed-out job goes dead; no retry can duplicate the effect
+    await jobs.enqueue({ type: "test.effect", timeoutMs: 1000, maxAttempts: 1 }, opts);
+    const out = await jobs.processOnce("w1", { concurrency: 1 }, opts);
+    assert.equal(out.results[0].timedOut, true);
+    // Let the zombie handler finish past its internal wait
+    await new Promise((r) => setTimeout(r, 500));
+    assert.deepEqual(effects, [], "no externally visible effect after abort");
+  });
+
+  it("stale complete is rejected after reclaim; only the active run mutates state", async () => {
+    const { job } = await jobs.enqueue({ type: "jobs.ping", timeoutMs: 1000 }, opts);
+    const [c1] = await jobs.claim("w1", { limit: 1, leaseMs: 60_000 }, opts);
+    // Lease expires → w2 reclaims the job (attempt 2, new run)
+    await new Promise((r) => setTimeout(r, 1350));
+    const [c2] = await jobs.claim("w2", { limit: 1, leaseMs: 1 }, opts);
+    assert.equal(c2.job.id, job.id);
+    assert.equal(c2.job.attempts, 2);
+
+    // Zombie attempt 1 finishes late and tries to complete
+    const staleComplete = await jobs.complete(job.id, { zombie: true }, c1.runId, opts);
+    assert.equal(staleComplete, null, "stale complete must be a no-op");
+    const mid = await jobs.getJob(job.id, opts);
+    assert.equal(mid.status, jobs.JOB_STATUS.RUNNING, "job still owned by newer attempt");
+    assert.equal(mid.lockedBy, "w2");
+    assert.equal(mid.result, null);
+
+    // Active attempt completes normally
+    const done = await jobs.complete(job.id, { ok: true }, c2.runId, opts);
+    assert.equal(done.status, jobs.JOB_STATUS.SUCCEEDED);
+    const runs = await jobs.getJobRuns(job.id, opts);
+    const superseded = runs.find((r) => r.id === c1.runId);
+    assert.equal(superseded.status, jobs.RUN_STATUS.TIMEOUT,
+      "reclaimed run history is closed as timeout");
+    assert.equal(superseded.error, "lease_reclaimed");
+    assert.ok(superseded.finishedAt);
+    assert.equal(runs.find((r) => r.id === c2.runId).status, jobs.RUN_STATUS.SUCCEEDED);
+  });
+
+  it("stale fail cannot requeue or dead-letter a newer attempt", async () => {
+    const { job } = await jobs.enqueue({ type: "jobs.ping", maxAttempts: 1, timeoutMs: 1000 }, opts);
+    const [c1] = await jobs.claim("w1", { limit: 1, leaseMs: 60_000 }, opts);
+    await new Promise((r) => setTimeout(r, 1350));
+    const [c2] = await jobs.claim("w2", { limit: 1, leaseMs: 1 }, opts);
+    assert.ok(c2, "job reclaimed by w2");
+
+    // maxAttempts=1: if the stale fail went through, the job would be dead
+    const staleFail = await jobs.fail(job.id, new Error("zombie boom"), { runId: c1.runId }, opts);
+    assert.equal(staleFail, null, "stale fail must be a no-op");
+    const mid = await jobs.getJob(job.id, opts);
+    assert.equal(mid.status, jobs.JOB_STATUS.RUNNING);
+    assert.equal(mid.lockedBy, "w2");
+    assert.equal(mid.lastError, null);
+  });
+
+  it("same-worker reclaim still rejects the zombie attempt (attempt token mismatch)", async () => {
+    const { job } = await jobs.enqueue({ type: "jobs.ping", timeoutMs: 1000 }, opts);
+    const [c1] = await jobs.claim("w1", { limit: 1, leaseMs: 60_000 }, opts);
+    await new Promise((r) => setTimeout(r, 1350));
+    // Same worker reclaims its own stale lease → attempts bump makes run 1 stale
+    const [c2] = await jobs.claim("w1", { limit: 1, leaseMs: 1 }, opts);
+    assert.equal(c2.job.attempts, 2);
+
+    const stale = await jobs.complete(job.id, { zombie: true }, c1.runId, opts);
+    assert.equal(stale, null);
+    const mid = await jobs.getJob(job.id, opts);
+    assert.equal(mid.status, jobs.JOB_STATUS.RUNNING);
+    assert.equal(mid.lockedBy, "w1");
+  });
+
+  it("executeClaimed flags a superseded completion as stale", async () => {
+    jobs.registerHandler("test.stale.flag", async () => ({ done: true }));
+    const { job } = await jobs.enqueue({ type: "test.stale.flag", timeoutMs: 1000 }, opts);
+    const [c1] = await jobs.claim("w1", { limit: 1, leaseMs: 60_000 }, opts);
+    await new Promise((r) => setTimeout(r, 1350));
+    const [c2] = await jobs.claim("w2", { limit: 1, leaseMs: 1 }, opts);
+    // Execute the stale claim: handler succeeds but the completion is rejected
+    const out = await jobs.executeClaimed(c1, opts);
+    assert.equal(out.ok, true);
+    assert.equal(out.stale, true, "superseded completion flagged stale");
+    const mid = await jobs.getJob(job.id, opts);
+    assert.equal(mid.status, jobs.JOB_STATUS.RUNNING, "job state left to active attempt");
+    // Clean up: active attempt completes
+    await jobs.complete(job.id, { ok: true }, c2.runId, opts);
   });
 });
 

@@ -21,6 +21,8 @@ This infrastructure provides:
 | Concurrency | Worker `JOBS_CONCURRENCY` + claim limit |
 | Run history | `job_runs` row per attempt |
 | Dead letter | `status = dead` after `max_attempts` |
+| Cancellation | `AbortSignal` in handler `meta.signal`, aborted on timeout (cooperative — handlers must check it before side effects) (aitj-z8q.25) |
+| Stale-attempt guard | `complete`/`fail` with a run token mutate only while that run is the job's active attempt (run `running` + `attempt`/`locked_by` match); superseded attempts no-op and are flagged `stale` (aitj-z8q.25) |
 | Admin inspect/retry | `/api/admin/jobs*` |
 
 ## Storage modes
@@ -46,7 +48,29 @@ Admin `POST …/retry` moves `failed` / `dead` / `succeeded` → `pending` (bump
 `max_attempts` if exhausted so the job can run again).
 
 Stale `running` leases (worker crash) are reclaimed when
-`locked_at < now - lease_ms` on the next claim.
+`locked_at < now - max(lease_ms, timeout_ms + 250ms)` on the next claim. A competing
+worker therefore cannot reclaim a live attempt before its allowed handler
+timeout, even when configured with a shorter lease.
+When reclaim does occur, the superseded `job_runs` row is closed as `timeout`
+with `lease_reclaimed` before the replacement run is created.
+
+After a reclaim, the superseded attempt can no longer mutate the job:
+`complete`/`fail` verify the run token against the job's current
+`attempts`/`locked_by` (and the run still being `running`), so a timed-out or
+zombie handler cannot complete, requeue, or dead-letter the newer attempt
+(aitj-z8q.25). Handlers also receive `meta.signal` (AbortSignal) which is
+aborted on timeout — cooperative handlers check `signal.aborted` before
+externally visible side effects to reduce duplicate-effect risk.
+`notification.send` additionally claims its delivery atomically before calling
+email/Telegram providers; concurrent calls for the same delivery skip while it
+is `sending`. Telegram HTTP and injected senders receive the AbortSignal;
+SMTP checks it immediately before Nodemailer's non-cancellable `sendMail` call.
+An already-`sending` delivery is never resent automatically; an operator must
+reconcile provider state before resetting it for retry.
+Provider exceptions, response loss, and aborts after invocation are ambiguous:
+the delivery remains `sending` with `reconciliationRequired` instead of being
+returned to the automatic retry path. Only proven pre-send failures or explicit
+provider rejection can become retryable.
 
 ## Running a worker
 
