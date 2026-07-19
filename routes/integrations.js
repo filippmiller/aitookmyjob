@@ -232,41 +232,20 @@ router.post("/api/legal/takedown", async (req, res) => {
   res.status(201).json({ id: entry.id, status: entry.status });
 });
 
-// ── Research & Transparency ──
+// ── Research & Transparency (k-anonymity — aitj-z8q.18) ──
 
-router.get("/api/research/aggregate", async (req, res) => {
-  const country = ctx.normalizeCountry(req.query.country || "global");
-  const stories = (await ctx.storageGetStories()).filter((s) => s.status === "published" && (country === "global" || s.country === country));
-  const byProfession = new Map();
-  const byMonth = new Map();
-  for (const s of stories) {
-    byProfession.set(s.profession, (byProfession.get(s.profession) || 0) + 1);
-    const monthKey = String(s.laidOffAt || "").slice(0, 7) || "unknown";
-    byMonth.set(monthKey, (byMonth.get(monthKey) || 0) + 1);
-  }
-  res.json({
-    country, generatedAt: new Date().toISOString(), totalPublishedStories: stories.length,
-    topProfessions: [...byProfession.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20).map(([profession, storiesCount]) => ({ profession, storiesCount })),
-    monthlyTrend: [...byMonth.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([month, storiesCount]) => ({ month, storiesCount }))
-  });
-});
+const analyticsLib = require("../lib/analytics");
 
-router.get("/api/research/aggregates", async (req, res) => {
+async function researchAggregateHandler(req, res) {
   const country = ctx.normalizeCountry(req.query.country || "global");
-  const stories = (await ctx.storageGetStories()).filter((s) => s.status === "published" && (country === "global" || s.country === country));
-  const byProfession = new Map();
-  const byMonth = new Map();
-  for (const s of stories) {
-    byProfession.set(s.profession, (byProfession.get(s.profession) || 0) + 1);
-    const monthKey = String(s.laidOffAt || "").slice(0, 7) || "unknown";
-    byMonth.set(monthKey, (byMonth.get(monthKey) || 0) + 1);
-  }
-  res.json({
-    country, generatedAt: new Date().toISOString(), totalPublishedStories: stories.length,
-    topProfessions: [...byProfession.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20).map(([profession, storiesCount]) => ({ profession, storiesCount })),
-    monthlyTrend: [...byMonth.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([month, storiesCount]) => ({ month, storiesCount }))
-  });
-});
+  const k = Math.min(Math.max(Number(req.query.k) || analyticsLib.DEFAULT_K, 1), 50);
+  const stories = await ctx.storageGetStories();
+  const payload = analyticsLib.publicStoryAggregates(stories, { country, k });
+  res.json(payload);
+}
+
+router.get("/api/research/aggregate", researchAggregateHandler);
+router.get("/api/research/aggregates", researchAggregateHandler);
 
 router.get("/api/transparency/report", async (req, res) => {
   const now = new Date();

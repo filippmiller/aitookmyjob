@@ -18,6 +18,7 @@ const notifications = require("../lib/notifications");
 const adminOps = require("../lib/admin-ops");
 const social = require("../lib/social");
 const metrics = require("../lib/metrics");
+const analytics = require("../lib/analytics");
 const readiness = require("../lib/readiness");
 const { getRelease } = require("../lib/release");
 const { adminRouter: resourcesAdminRouter } = require("./resources");
@@ -58,6 +59,76 @@ function socialOptions(req) {
     ip: req?.ip
   };
 }
+
+function analyticsOptions() {
+  return {
+    usePostgres: ctx.usePostgres,
+    getPool: () => ctx.getPgPool(),
+    useMemory: !ctx.usePostgres
+  };
+}
+
+/** Product analytics catalog + funnels (real vs seed/test). aitj-z8q.18 */
+router.get("/analytics/catalog", async (req, res) => {
+  if (!(ctx.hasAdminToken(req) || ctx.hasModeratorRole(req.user))) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+  res.json(analytics.eventCatalog());
+});
+
+router.get("/analytics/funnels", async (req, res) => {
+  if (!(ctx.hasAdminToken(req) || ctx.hasModeratorRole(req.user))) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+  try {
+    const name = req.query.funnel ? String(req.query.funnel) : null;
+    const filters = {
+      from: req.query.from || undefined,
+      to: req.query.to || undefined
+    };
+    if (name) {
+      const data = await analytics.funnel(name, filters, analyticsOptions());
+      res.json(data);
+      return;
+    }
+    const data = await analytics.listFunnels(filters, analyticsOptions());
+    res.json(data);
+  } catch (err) {
+    if (err.code === "UNKNOWN_FUNNEL") {
+      res.status(404).json({ message: err.message });
+      return;
+    }
+    console.error("[admin] analytics funnels failed:", err.message || err);
+    res.status(500).json({ message: "Could not load funnels" });
+  }
+});
+
+router.get("/analytics/events", async (req, res) => {
+  if (!(ctx.hasAdminToken(req) || ctx.hasModeratorRole(req.user))) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+  try {
+    const events = await analytics.listEvents(
+      {
+        eventName: req.query.eventName || undefined,
+        userId: req.query.userId || undefined,
+        includeSeed: req.query.includeSeed === "1" || req.query.includeSeed === "true",
+        includeTest: req.query.includeTest === "1" || req.query.includeTest === "true",
+        from: req.query.from || undefined,
+        to: req.query.to || undefined,
+        limit: req.query.limit
+      },
+      analyticsOptions()
+    );
+    res.json({ events, count: events.length });
+  } catch (err) {
+    console.error("[admin] analytics events failed:", err.message || err);
+    res.status(500).json({ message: "Could not load events" });
+  }
+});
 
 router.get("/overview", async (req, res) => {
   if (!(ctx.hasAdminToken(req) || ctx.hasModeratorRole(req.user))) { res.status(401).json({ message: "Unauthorized" }); return; }

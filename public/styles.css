@@ -16,6 +16,33 @@
   a { color: inherit; text-decoration: none; }
   ul, ol { list-style: none; }
   button { cursor: pointer; background: none; border: none; }
+
+  /* WCAG 2.2 AA — visible keyboard focus (aitj-z8q.19) */
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 2px solid var(--amber, #D4956B);
+    outline-offset: 2px;
+  }
+  .skip-link {
+    position: absolute;
+    left: 0.75rem;
+    top: 0.75rem;
+    z-index: 10000;
+    padding: 0.6rem 1rem;
+    background: var(--bg-elevated, #1B1B1F);
+    color: var(--text-primary, #EDEBE8);
+    border: 1px solid var(--amber, #D4956B);
+    border-radius: 6px;
+    font-weight: 600;
+    transform: translateY(-200%);
+    transition: transform 0.15s ease;
+  }
+  .skip-link:focus,
+  .skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid var(--amber, #D4956B);
+    outline-offset: 2px;
+  }
 }
 
 /* ─── DESIGN TOKENS ─── */
