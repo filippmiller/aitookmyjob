@@ -20,6 +20,9 @@ test-results/
 
 docs/
 docs
+# Keep versioned domain architecture contracts trackable
+!docs/
+!docs/domain-contract*.md
 
 # Session logs / scratch
 .claude/sessions/

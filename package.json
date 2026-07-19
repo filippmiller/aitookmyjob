@@ -7,6 +7,7 @@
     "start": "node server.js",
     "dev": "node server.js",
     "news:ingest": "node scripts/ingest-news.js",
+    "test:domain": "node --test tests/domain-contract.test.js",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report"
