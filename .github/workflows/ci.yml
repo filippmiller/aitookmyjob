@@ -1,0 +1,109 @@
+# Deterministic PR quality gates for aitookmyjob (aitj-z8q.7)
+# Practical runtime: install + secret scan + audit + unit + migrate + smoke
+# Full E2E is intentionally NOT in the PR gate (run separately / nightly).
+
+name: CI
+
+on:
+  pull_request:
+    branches: [master, main]
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  CI: "true"
+
+jobs:
+  quality:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Deterministic install (npm ci)
+        run: npm ci
+
+      - name: Secret scan
+        run: npm run test:secrets
+
+      - name: Dependency audit (high/critical + allowlist)
+        run: npm run test:audit
+
+      - name: Offline migration check
+        run: npm run test:migrate-check
+
+      - name: Unit / API tests
+        run: npm run test:unit
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Fast critical smoke (no fixed sleeps)
+        run: npm run test:smoke
+        env:
+          # Local webServer in playwright.smoke.config.mjs
+          TEST_PORT: "8091"
+
+  # Optional live migration apply against Postgres service container.
+  # Offline checks already ran in quality; this catches SQL/runtime issues.
+  migrate-pg:
+    name: Migration apply (Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [] # independent; still a required check if branch protection lists it
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: aitj
+          POSTGRES_PASSWORD: aitj_ci
+          POSTGRES_DB: aitookmyjob_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U aitj -d aitookmyjob_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Deterministic install (npm ci)
+        run: npm ci
+
+      - name: Apply migrations twice (idempotency)
+        env:
+          DATABASE_URL: postgres://aitj:aitj_ci@localhost:5432/aitookmyjob_ci
+          PG_SSL: "false"
+          RUN_PG_MIGRATION_TESTS: "1"
+        run: |
+          npm run db:migrate
+          npm run db:migrate
+          npm run db:status
+          npm run test:migrations

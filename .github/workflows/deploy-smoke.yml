@@ -1,0 +1,75 @@
+# Post-deploy smoke verification (aitj-z8q.7)
+# Confirms /ready + critical user reads against a live base URL.
+# A failed run means the release must not be considered promoted.
+
+name: Deploy smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL to verify (no trailing slash)"
+        required: true
+        default: "https://aitookmyjob.filippmiller.com"
+  # After CI green on master — verify production surface (Coolify auto-deploys master).
+  # Uses a short delay via job step poll inside deploy-smoke.js (not fixed sleep in tests).
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [master, main]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  deploy-smoke:
+    name: Verify production readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only auto-run when CI succeeded on master; always allow manual dispatch
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Deterministic install (npm ci)
+        run: npm ci
+
+      - name: Resolve base URL
+        id: base
+        env:
+          INPUT_URL: ${{ github.event.inputs.base_url }}
+          VAR_URL: ${{ vars.SMOKE_BASE_URL }}
+        run: |
+          if [ -n "$INPUT_URL" ]; then
+            echo "url=$INPUT_URL" >> "$GITHUB_OUTPUT"
+          elif [ -n "$VAR_URL" ]; then
+            echo "url=$VAR_URL" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=https://aitookmyjob.filippmiller.com" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy smoke (/ready + critical reads)
+        env:
+          BASE_URL: ${{ steps.base.outputs.url }}
+          # Allow container to come up after Coolify pull; poll inside script
+          SMOKE_RETRIES: "20"
+          SMOKE_POLL_MS: "3000"
+          SMOKE_TIMEOUT_MS: "15000"
+        run: npm run test:deploy-smoke
+
+      - name: Fail loudly if not ready
+        if: failure()
+        run: |
+          echo "::error::Deploy smoke failed — do NOT promote this release. Check Coolify logs and /ready."
+          exit 1

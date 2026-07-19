@@ -1,0 +1,12 @@
+{
+  "$comment": "Documented npm audit allowlist for high/critical only. Each entry must include reason + review date. Remove when fixed.",
+  "allow": [
+    {
+      "name": "nodemailer",
+      "severity": "high",
+      "advisory": "GHSA-c7w3-x93f-qmm8",
+      "reason": "SMTP envelope.size injection; app does not pass attacker-controlled envelope.size. Major upgrade to 9.x planned in a dedicated dep PR.",
+      "reviewBy": "2026-08-31"
+    }
+  ]
+}
