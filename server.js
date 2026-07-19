@@ -13,6 +13,7 @@ const ctx = require("./lib/context");
 const { authMiddleware } = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
 const storiesRoutes = require("./routes/stories");
+const expressionRoutes = require("./routes/expression");
 const forumRoutes = require("./routes/forum");
 const adminRoutes = require("./routes/admin");
 const integrationsRoutes = require("./routes/integrations");
@@ -202,6 +203,7 @@ app.get("/api/locale", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use(storiesRoutes);       // mounted at root — routes include /api/stories, /api/stats, /api/companies, /sitemap.xml
+app.use(expressionRoutes);    // /api/expression/*, /api/vents/* (aitj-z8q.8)
 app.use("/api/forum", forumRoutes);
 app.use("/api/admin", adminRoutes);
 app.use(integrationsRoutes);  // mounted at root — routes include /api/integrations/*, /api/resources, /api/news, etc.

@@ -22,8 +22,16 @@ function publicStory(story) {
     commentsCount: Number(metrics.commentsCount || 0),
     reactions: metrics.reactions || {}
   };
+  let responsePolicy = null;
+  try {
+    const expression = require("../lib/expression");
+    responsePolicy = expression.responsePromptPolicy(masked.desiredResponse);
+  } catch (_e) {
+    responsePolicy = null;
+  }
   return {
     id: masked.id,
+    kind: "story",
     name: masked.name,
     country: masked.country,
     language: masked.language,
@@ -50,6 +58,13 @@ function publicStory(story) {
     moodScore: masked.moodScore,
     updateLabel: masked.updateLabel,
     evidenceTier: masked.evidenceTier,
+    publicationIntent: masked.publicationIntent || "story",
+    desiredResponse: masked.desiredResponse || "witness",
+    advicePermission: masked.advicePermission || "open",
+    anonymityMode: masked.anonymityMode || "alias",
+    visibility: masked.visibility || "public",
+    retentionPreference: masked.retentionPreference || "indefinite",
+    responsePolicy,
     metrics: publicMetrics,
     views: publicMetrics.views,
     meToo: publicMetrics.meToo,
@@ -176,12 +191,33 @@ router.post("/api/stories", storySubmitLimiter, requireAuth, requireVerifiedPhon
   if (ctx.isAccountMuted(req.user)) { res.status(403).json({ message: "Account temporarily muted" }); return; }
   const prepared = ctx.buildStoryPayload(req);
   if (!prepared.ok) { res.status(422).json({ message: "Validation failed", errors: prepared.errors }); return; }
+  const expression = require("../lib/expression");
+  const controls = expression.normalizeAuthorControls({
+    ...req.body,
+    publicationIntent: req.body.publicationIntent || req.body.intent || expression.PUBLICATION_INTENT.STORY
+  });
+  const expressionControls = controls.ok
+    ? controls.controls
+    : {
+      publicationIntent: expression.PUBLICATION_INTENT.STORY,
+      desiredResponse: expression.DESIRED_RESPONSE.WITNESS,
+      advicePermission: expression.ADVICE_PERMISSION.OPEN,
+      anonymityMode: expression.ANONYMITY_MODE.ALIAS,
+      visibility: expression.VISIBILITY.PUBLIC,
+      retentionPreference: expression.RETENTION_PREFERENCE.INDEFINITE
+    };
   const moderation = ctx.scoreModeration(prepared.data);
   const initialStatus = moderation.riskBand === "high" ? "rejected" : "pending";
-  const newStory = ctx.buildStoryRecord(prepared.data, req.user.id, moderation, initialStatus);
+  try {
+    expression.assertValidStatus(expression.ENTITY.STORY, initialStatus);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+    return;
+  }
+  const newStory = ctx.buildStoryRecord(prepared.data, req.user.id, moderation, initialStatus, expressionControls);
   await ctx.storageInsertStory(newStory);
   await ctx.storageInsertStoryVersion({ id: ctx.auditId(), storyId: newStory.id, versionNo: 1, payload: newStory, createdBy: req.user.id, createdAt: newStory.createdAt });
-  await ctx.storageAudit({ action: "story.submit", actorId: req.user?.id || null, targetType: "story", targetId: newStory.id, metadata: { country: newStory.country, language: newStory.language, moderation }, ip: req.ip });
+  await ctx.storageAudit({ action: "story.submit", actorId: req.user?.id || null, targetType: "story", targetId: newStory.id, metadata: { country: newStory.country, language: newStory.language, publicationIntent: newStory.publicationIntent, moderation }, ip: req.ip });
   if (moderation.riskBand !== "low" && ctx.TELEGRAM_MOD_CHAT_ID) {
     await ctx.sendTelegramMessage(ctx.TELEGRAM_MOD_CHAT_ID, `New story flagged (${moderation.riskBand})\nID: ${newStory.id}\nCountry: ${newStory.country}\nRisk: ${JSON.stringify(moderation)}`);
   }
@@ -193,7 +229,11 @@ router.post("/api/stories", storySubmitLimiter, requireAuth, requireVerifiedPhon
   });
   res.status(initialStatus === "rejected" ? 202 : 201).json({
     message: initialStatus === "rejected" ? "Story auto-flagged for high-risk review" : "Story submitted for moderation",
-    id: newStory.id, status: newStory.status, moderation,
+    id: newStory.id, status: newStory.status,
+    publicationIntent: newStory.publicationIntent,
+    desiredResponse: newStory.desiredResponse,
+    responsePolicy: expression.responsePromptPolicy(newStory.desiredResponse),
+    moderation,
     deanonymizationRisk: moderation.deanonymization, recommendations: moderation.recommendations,
     crisisResources: moderation.crisis ? ctx.getCrisisResources(newStory.country) : []
   });

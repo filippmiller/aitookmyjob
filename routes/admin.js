@@ -112,7 +112,63 @@ router.post("/moderation/:id/action", requireAdminOrToken, async (req, res) => {
       });
     }
   }
+  if (String(req.params.id).startsWith("vent:")) {
+    const ventKey = String(req.params.id).split(":")[1];
+    const vent = await ctx.storageGetVentById(ventKey);
+    await ctx.storageInsertTransparencyEvent({
+      id: ctx.auditId(),
+      eventType: "moderation",
+      status: parsed.data.action,
+      details: { entryId: req.params.id, reason: parsed.data.reason, publicationIntent: "vent" },
+      createdAt: new Date().toISOString()
+    });
+    if (parsed.data.action === "approve" && req.app?.locals?.publishActivity) {
+      req.app.locals.publishActivity({
+        type: "vent.published",
+        title: "Vent published",
+        detail: vent ? `${vent.country || "global"} · ${vent.desiredResponse || "empathy"}` : ventKey,
+        href: `/#vents`
+      });
+    }
+  }
+  if (String(req.params.id).startsWith("report:")) {
+    await ctx.storageInsertTransparencyEvent({
+      id: ctx.auditId(),
+      eventType: "moderation",
+      status: parsed.data.action,
+      details: { entryId: req.params.id, reason: parsed.data.reason, type: "report" },
+      createdAt: new Date().toISOString()
+    });
+  }
   res.json({ ok: true });
+});
+
+router.get("/expression/reports", requireAdminOrToken, async (req, res) => {
+  const status = req.query.status ? String(req.query.status) : undefined;
+  const reports = await ctx.storageGetExpressionReports({ status, limit: 200 });
+  res.json({ reports, total: reports.length });
+});
+
+router.get("/expression/vents", requireAdminOrToken, async (req, res) => {
+  const status = req.query.status ? String(req.query.status) : null;
+  let vents = await ctx.storageGetVents();
+  if (status) vents = vents.filter((v) => v.status === status);
+  res.json({
+    vents: vents.slice(0, 200).map((v) => ({
+      id: v.id,
+      status: v.status,
+      title: v.title,
+      body: v.body,
+      publicationIntent: v.publicationIntent,
+      desiredResponse: v.desiredResponse,
+      visibility: v.visibility,
+      country: v.country,
+      submittedBy: v.submittedBy,
+      createdAt: v.createdAt,
+      moderation: v.moderation
+    })),
+    total: vents.length
+  });
 });
 
 router.get("/moderation/:id/scores", requireAdminOrToken, async (req, res) => {

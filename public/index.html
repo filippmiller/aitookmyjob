@@ -231,6 +231,78 @@
         </p>
       </div>
       <form id="storyForm">
+        <fieldset class="privacy-panel" aria-labelledby="intentPanelTitle" style="margin-bottom:var(--sp-4);">
+          <div class="privacy-panel-header">
+            <div>
+              <h4 id="intentPanelTitle">What do you want to share?</h4>
+              <p>Pick a mode. You control anonymity, desired response, and who may give advice. Support never forces action content.</p>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="storyPublicationIntent">Mode</label>
+            <select class="select" id="storyPublicationIntent" name="publicationIntent" aria-describedby="intentHelp">
+              <option value="story" selected>Structured story</option>
+              <option value="vent">Vent (be heard)</option>
+              <option value="advice_request">Ask for advice</option>
+              <option value="warn">Warn others</option>
+              <option value="good_news">Share good news</option>
+              <option value="news_share">Share a news item</option>
+            </select>
+            <p id="intentHelp" style="font-size:var(--text-xs);color:var(--text-muted);margin:var(--sp-2) 0 0;">Vents default to community visibility and empathy — no job-search CTAs.</p>
+          </div>
+          <div class="privacy-controls-grid" id="expressionControlsGrid">
+            <label class="form-group">
+              <span class="form-label" for="storyDesiredResponse">Desired response</span>
+              <select class="select" id="storyDesiredResponse" name="desiredResponse">
+                <option value="witness" selected>Witness / be seen</option>
+                <option value="empathy">Empathy</option>
+                <option value="advice">Advice</option>
+                <option value="practical_help">Practical help</option>
+                <option value="share">Share / amplify</option>
+                <option value="celebrate">Celebrate</option>
+                <option value="discuss">Discuss</option>
+                <option value="none">None (no prompts)</option>
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label" for="storyAnonymityMode">Anonymity</span>
+              <select class="select" id="storyAnonymityMode" name="anonymityMode">
+                <option value="alias" selected>Alias</option>
+                <option value="anonymous">Anonymous</option>
+                <option value="identified">Identified</option>
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label" for="storyAdvicePermission">Who may give advice</span>
+              <select class="select" id="storyAdvicePermission" name="advicePermission">
+                <option value="open" selected>Anyone</option>
+                <option value="followers">Followers</option>
+                <option value="closed">Closed</option>
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label" for="storyVisibility">Visibility</span>
+              <select class="select" id="storyVisibility" name="visibility">
+                <option value="public" selected>Public</option>
+                <option value="community">Community (signed-in)</option>
+                <option value="restricted">Restricted</option>
+                <option value="private">Private</option>
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label" for="storyRetention">Retention</span>
+              <select class="select" id="storyRetention" name="retentionPreference">
+                <option value="indefinite" selected>Indefinite</option>
+                <option value="365d">365 days</option>
+                <option value="90d">90 days</option>
+                <option value="30d">30 days</option>
+              </select>
+            </label>
+          </div>
+          <p id="responsePolicyHint" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--sp-2);" role="status">
+            Response policy: support / witness only — no forced action.
+          </p>
+        </fieldset>
         <div class="privacy-panel" aria-labelledby="privacyPanelTitle">
           <div class="privacy-panel-header">
             <div>
@@ -338,9 +410,12 @@
           </label>
         </div>
         <div id="storyFormError" style="color:var(--signal-red);font-size:var(--text-sm);display:none;margin-bottom:var(--sp-3);"></div>
-        <button type="submit" class="btn btn-primary full-width" id="storySubmitBtn" data-i18n="storySubmitBtn">Submit Story</button>
+        <div class="form-row" style="gap:var(--sp-2); margin-bottom:var(--sp-3);">
+          <button type="button" class="btn btn-ghost" id="storyDraftBtn" style="flex:1;">Save draft</button>
+          <button type="submit" class="btn btn-primary" id="storySubmitBtn" data-i18n="storySubmitBtn" style="flex:2;">Submit</button>
+        </div>
         <p style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--sp-3);text-align:center;" data-i18n="storySubmitNote">
-          Stories are reviewed before publishing. No account needed for anonymous submission.
+          Content is reviewed before publishing. You can vent without action CTAs. Drafts require sign-in.
         </p>
       </form>
       <div id="storySuccessPanel" style="display:none; text-align:center; padding:var(--sp-8) var(--sp-4);">
