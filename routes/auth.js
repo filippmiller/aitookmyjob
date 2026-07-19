@@ -97,13 +97,57 @@ router.post("/logout", async (req, res) => {
   res.json({ ok: true });
 });
 
+router.get("/export", requireAuth, async (req, res) => {
+  try {
+    const privacy = require("../lib/privacy");
+    const payload = await privacy.exportUserData(req.user.id, ctx);
+    await ctx.storageAudit({
+      action: "privacy.export",
+      actorId: req.user.id,
+      targetType: "user",
+      targetId: req.user.id,
+      metadata: {
+        stories: payload.content?.stories?.length || 0,
+        vents: payload.content?.vents?.length || 0,
+        analytics: payload.analytics?.length || 0
+      },
+      ip: req.ip
+    });
+    res.setHeader("Content-Disposition", 'attachment; filename="aitookmyjob-privacy-export.json"');
+    res.json(payload);
+  } catch (err) {
+    console.error("[auth] privacy export failed:", err.message || err);
+    res.status(500).json({ message: "Could not export account data" });
+  }
+});
+
 router.post("/delete-account", requireAuth, async (req, res) => {
   const confirmation = ctx.sanitizeText(req.body.confirmation || "").toUpperCase();
   if (confirmation !== "DELETE") { res.status(422).json({ message: "Set confirmation to DELETE to continue" }); return; }
-  await ctx.storageDeleteUser(req.user.id);
-  await ctx.storageAudit({ action: "auth.delete_account", actorId: req.user.id, targetType: "user", targetId: req.user.id, metadata: {}, ip: req.ip });
+  const userId = req.user.id;
+  let effects = null;
+  try {
+    const result = await ctx.storageDeleteUser(userId);
+    effects = result?.effects || null;
+  } catch (err) {
+    console.error("[auth] delete-account cascade failed:", err.message || err);
+    res.status(500).json({ message: "Could not delete account" });
+    return;
+  }
+  try {
+    await ctx.storageAudit({
+      action: "auth.delete_account",
+      actorId: null,
+      targetType: "user",
+      targetId: userId,
+      metadata: { effects, actorRedacted: true },
+      ip: req.ip
+    });
+  } catch (_e) {
+    /* audit best-effort after user row gone */
+  }
   ctx.clearAuthCookie(res);
-  res.json({ ok: true });
+  res.json({ ok: true, effects });
 });
 
 router.get("/me", (req, res) => {

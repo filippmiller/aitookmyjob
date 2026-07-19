@@ -153,7 +153,12 @@
   "footerJobs": "Job Boards",
   "footerForum": "Forum",
   "footerSupportGroups": "Support Groups",
-  "footerCopyright": "\u00a9 2026 AI Took My Job. Built for resilience.",
-  "footerOpen": "Open source \u00b7 Community driven",
-  "footer": "Global launch: EN / RU / DE / FR / ES. Country-aware routes are live."
+  "footerCopyright": "© 2026 AI Took My Job. Built for resilience.",
+  "footerOpen": "Open source · Community driven",
+  "footer": "Global launch: EN / RU / DE / FR / ES. Country-aware routes are live.",
+  "skipToContent": "Skip to content",
+  "privacyExport": "Export my data",
+  "privacyExportOk": "Export ready.",
+  "deleteAccount": "Delete account",
+  "deleteAccountConfirm": "Type DELETE to confirm"
 }
