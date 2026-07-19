@@ -22,6 +22,7 @@ const storiesRoutes = require("./routes/stories");
 const expressionRoutes = require("./routes/expression");
 const forumRoutes = require("./routes/forum");
 const adminRoutes = require("./routes/admin");
+const appealsPublicRouter = adminRoutes.appealsPublicRouter;
 const integrationsRoutes = require("./routes/integrations");
 const insiderRoutes = require("./routes/insider");
 const resourcesRoutes = require("./routes/resources");
@@ -285,6 +286,7 @@ app.use(storiesRoutes);       // mounted at root — routes include /api/stories
 app.use(expressionRoutes);    // /api/expression/*, /api/vents/* (aitj-z8q.8)
 app.use("/api/forum", forumRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/appeals", appealsPublicRouter); // authenticated appeal submit (aitj-z8q.16)
 app.use("/api/signals", insiderRoutes); // insider signals — public summary only
 app.use(resourcesRoutes);     // /api/resources, /api/opportunities (aitj-z8q.12)
 app.use(newsRoutes);          // /api/news* community news (aitj-z8q.10)
@@ -365,6 +367,8 @@ app.get(/^\/([a-z]{2,10})\/([a-z]{2})(?:\/.*)?$/i, (req, res) => {
 
 app.get("/forum", (req, res) => { res.sendFile(path.join(ctx.publicDir, "forum.html")); });
 app.get("/research", (req, res) => { res.sendFile(path.join(ctx.publicDir, "research.html")); });
+app.get("/admin", (req, res) => { res.sendFile(path.join(ctx.publicDir, "admin.html")); });
+app.get("/admin/", (req, res) => { res.sendFile(path.join(ctx.publicDir, "admin.html")); });
 app.get("/support", (req, res) => { res.sendFile(path.join(ctx.publicDir, "index.html")); });
 app.get("/events", (req, res) => { res.sendFile(path.join(ctx.publicDir, "index.html")); });
 app.get("/dashboard", (req, res) => { res.sendFile(path.join(ctx.publicDir, "index.html")); });
