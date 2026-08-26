@@ -24,7 +24,7 @@ env:
 jobs:
   deploy-smoke:
     name: Verify production readiness
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, lan-ci-linux]
     timeout-minutes: 10
     # Only auto-run when CI succeeded on master; always allow manual dispatch
     if: >
