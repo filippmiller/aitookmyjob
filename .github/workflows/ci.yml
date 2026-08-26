@@ -22,7 +22,7 @@ env:
 jobs:
   quality:
     name: Quality gates
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, lan-ci-linux]
     timeout-minutes: 20
 
     steps:
@@ -65,7 +65,7 @@ jobs:
   # Offline checks already ran in quality; this catches SQL/runtime issues.
   migrate-pg:
     name: Migration apply (Postgres)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, lan-ci-linux]
     timeout-minutes: 15
     needs: [] # independent; still a required check if branch protection lists it
 
