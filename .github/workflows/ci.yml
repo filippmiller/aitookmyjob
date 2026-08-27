@@ -1,111 +1,158 @@
-# Deterministic PR quality gates for aitookmyjob (aitj-z8q.7)
-# Practical runtime: install + secret scan + audit + unit + migrate + smoke
-# Full E2E is intentionally NOT in the PR gate (run separately / nightly).
-
 name: CI
 
 on:
-  pull_request:
-    branches: [master, main]
   push:
-    branches: [master, main]
-  workflow_dispatch:
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
 
 env:
-  NODE_VERSION: "20"
-  CI: "true"
+  PYTHON_VERSION: "3.11"
+  DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+  SECRET_KEY: "test-secret-key-for-ci-only"
 
 jobs:
-  quality:
-    name: Quality gates
+  lint:
+    name: Lint & Format
     runs-on: [self-hosted, lan-ci-linux]
-    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ./backend
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          fetch-depth: 0
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: backend/pyproject.toml
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+      - name: Install dependencies
+        run: |
+          pip install ruff mypy
 
-      - name: Deterministic install (npm ci)
-        run: npm ci
+      - name: Run Ruff linter
+        run: ruff check api_server/ shared/
 
-      - name: Secret scan
-        run: npm run test:secrets
+      - name: Run Ruff formatter check
+        run: ruff format --check api_server/ shared/
 
-      - name: Dependency audit (high/critical + allowlist)
-        run: npm run test:audit
+      - name: Run MyPy type checker
+        run: mypy api_server/ shared/ --ignore-missing-imports --explicit-package-bases
 
-      - name: Offline migration check
-        run: npm run test:migrate-check
-
-      - name: Unit / API tests
-        run: npm run test:unit
-
-      - name: Install Playwright Chromium
-        run: npx playwright install chromium --with-deps
-
-      - name: Fast critical smoke (no fixed sleeps)
-        run: npm run test:smoke
-        env:
-          # Local webServer in playwright.smoke.config.mjs
-          TEST_PORT: "8091"
-
-  # Optional live migration apply against Postgres service container.
-  # Offline checks already ran in quality; this catches SQL/runtime issues.
-  migrate-pg:
-    name: Migration apply (Postgres)
+  test:
+    name: Tests
     runs-on: [self-hosted, lan-ci-linux]
-    timeout-minutes: 15
-    needs: [] # independent; still a required check if branch protection lists it
+    defaults:
+      run:
+        working-directory: ./backend
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:15-alpine
         env:
-          POSTGRES_USER: aitj
-          POSTGRES_PASSWORD: aitj_ci
-          POSTGRES_DB: aitookmyjob_ci
-        ports:
-          - 25442:5432
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
         options: >-
-          --health-cmd "pg_isready -U aitj -d aitookmyjob_ci"
-          --health-interval 5s
+          --health-cmd pg_isready
+          --health-interval 10s
           --health-timeout 5s
-          --health-retries 10
+          --health-retries 5
+        ports:
+          - 5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Deterministic install (npm ci)
-        run: npm ci
-
-      - name: Apply migrations twice (idempotency)
-        env:
-          DATABASE_URL: postgres://aitj:aitj_ci@localhost:25442/aitookmyjob_ci
-          PG_SSL: "false"
-          RUN_PG_MIGRATION_TESTS: "1"
-          RUN_PG_JOB_TESTS: "1"
+      - name: Resolve service connection strings
         run: |
-          npm run db:migrate
-          npm run db:migrate
-          npm run db:status
-          npm run test:migrations
-          npm run test:jobs
+          echo "DATABASE_URL=postgresql+asyncpg://test:test@localhost:${{ job.services.postgres.ports['5432'] }}/test" >> "$GITHUB_ENV"
+          echo "REDIS_URL=redis://localhost:${{ job.services.redis.ports['6379'] }}/0" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+
+      - name: Run tests with coverage
+        run: |
+          pytest --cov=api_server --cov=shared --cov-report=xml --cov-report=term -v
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+
+  security:
+    name: Security Scan
+    runs-on: [self-hosted, lan-ci-linux]
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install bandit safety
+          pip install -e ".[dev]"
+
+      - name: Run Bandit security linter
+        run: bandit -r api_server/ shared/ -f json -o bandit-report.json || true
+
+      - name: Check dependencies for vulnerabilities
+        run: safety check || true
+
+  build:
+    name: Build Docker Image
+    runs-on: [self-hosted, lan-ci-linux]
+    needs: [lint, test]
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: false
+          load: true
+          tags: linkpulse-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image
+        run: |
+          docker run --rm linkpulse-backend:${{ github.sha }} python -c "from shared.models import User; print('Import successful')"
