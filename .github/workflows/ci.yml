@@ -77,7 +77,7 @@ jobs:
           POSTGRES_PASSWORD: aitj_ci
           POSTGRES_DB: aitookmyjob_ci
         ports:
-          - 5432:5432
+          - 25442:5432
         options: >-
           --health-cmd "pg_isready -U aitj -d aitookmyjob_ci"
           --health-interval 5s
@@ -99,7 +99,7 @@ jobs:
 
       - name: Apply migrations twice (idempotency)
         env:
-          DATABASE_URL: postgres://aitj:aitj_ci@localhost:5432/aitookmyjob_ci
+          DATABASE_URL: postgres://aitj:aitj_ci@localhost:25442/aitookmyjob_ci
           PG_SSL: "false"
           RUN_PG_MIGRATION_TESTS: "1"
           RUN_PG_JOB_TESTS: "1"
